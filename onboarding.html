@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Onboarding</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
+  <script src="auth-guard.js"></script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <h2 class="logo">HyperRoute Intelligence</h2>
+      <nav>
+        <a href="dashboard.html">Dashboard</a>
+        
+                <a href="onboarding.html" class="active">Onboarding</a>
+        
+        <a href="activity.html">Activity</a>
+        <a href="dispatch.html">Dispatch Board</a>
+        <a href="driver-portal.html">Driver Portal</a>
+        <a href="reports.html">Reports</a>
+        <a href="alerts.html">Alerts</a>
+        <a href="index.html">Create Driver</a>
+        <a href="drivers.html">View Drivers</a>
+        <a href="create-load.html">Create Load</a>
+        <a href="loads.html">View Loads</a>
+        <a href="customers.html">Customers</a>
+        <a href="invoices.html">Invoices</a>
+        <a href="settlements.html">Settlements</a>
+        <a href="documents.html">Documents</a>
+        <a href="create-vehicle.html">Create Vehicle</a>
+        <a href="vehicles.html">View Vehicles</a>
+        <a href="create-maintenance.html">Create Maintenance</a>
+        <a href="maintenance.html">Maintenance Logs</a>
+        <a href="assign-vehicle.html">Assign Vehicle</a>
+        <a href="compliance.html">Driver Compliance</a>
+        <a href="company-admin.html">Company Admin</a>
+        <a href="platform-admin.html">Platform Admin</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <div class="page-header">
+        <div>
+          <h1>Onboarding</h1>
+          <p id="onboardingCompanyName">Company setup checklist</p>
+        </div>
+      </div>
+
+      <section class="kpi-grid">
+        <div class="kpi-card"><h3 id="setupProgress">0%</h3><p>Setup Progress</p></div>
+        <div class="kpi-card success"><h3 id="completeSteps">0</h3><p>Completed Steps</p></div>
+        <div class="kpi-card caution"><h3 id="remainingSteps">0</h3><p>Remaining Steps</p></div>
+        <div class="kpi-card"><h3 id="totalSteps">0</h3><p>Total Steps</p></div>
+      </section>
+
+      <section class="card onboarding-summary">
+        <div class="field operation-type-field">
+          <label>Transportation Company Type</label>
+          <select id="operationTypeSelect">
+            <option value="carrier">Carrier / Fleet</option>
+            <option value="dispatcher">Dispatch Service</option>
+            <option value="broker_3pl">Broker / 3PL</option>
+            <option value="hybrid">Hybrid Operation</option>
+          </select>
+          <p id="operationTypeSummary" class="operation-type-summary">Choose the operating model that matches this workspace.</p>
+        </div>
+        <div>
+          <p class="section-eyebrow" id="onboardingStage">Setup</p>
+          <h2>Setup Progress</h2>
+          <p id="onboardingSummaryText">Loading setup progress...</p>
+          <p class="onboarding-next" id="onboardingNextStep"></p>
+        </div>
+        <div class="onboarding-progress-track">
+          <div id="onboardingProgressBar" class="onboarding-progress-bar"></div>
+        </div>
+      </section>
+
+      <section class="onboarding-launch-grid">
+        <article class="launch-phase-card" data-phase-card="foundation">
+          <span>1</span>
+          <strong>Foundation</strong>
+          <small id="foundationPhaseStatus">Checking...</small>
+        </article>
+        <article class="launch-phase-card" data-phase-card="workflow">
+          <span>2</span>
+          <strong>Operating Workflow</strong>
+          <small id="workflowPhaseStatus">Checking...</small>
+        </article>
+        <article class="launch-phase-card" data-phase-card="golive">
+          <span>3</span>
+          <strong>Go-Live</strong>
+          <small id="golivePhaseStatus">Checking...</small>
+        </article>
+      </section>
+
+      <section class="dashboard-two-column onboarding-focus">
+        <article class="card">
+          <div class="section-header">
+            <div>
+              <p class="section-eyebrow">Launch Status</p>
+              <h2 id="operationalStatusTitle">Checking setup...</h2>
+            </div>
+          </div>
+          <p id="operationalStatusText">HyperRoute is reviewing this workspace.</p>
+        </article>
+
+        <article class="card">
+          <div class="section-header">
+            <div>
+              <p class="section-eyebrow">Quick Start</p>
+              <h2>Recommended Actions</h2>
+            </div>
+          </div>
+          <div id="quickStartActions" class="quick-start-grid"></div>
+        </article>
+      </section>
+
+      <section class="onboarding-list" id="onboardingChecklist"></section>
+
+      <p id="onboardingMessage" class="message"></p>
+    </main>
+  </div>
+
+  <script src="companyContext.js"></script>
+  <script type="module" src="onboarding.js"></script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Supabase Test</title>
+</head>
+<body>
+  <h1>Supabase Test</h1>
+
+  <pre id="output">Running test...</pre>
+
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js";
+
+    const supabase = createClient(
+      "https://ygrikxlbfmtkovktwhdp.supabase.co",
+      "sb_publishable_vw7voiBA2V5_attC2dkUqw_PuOx468W"
+    );
+
+    const output = document.getElementById("output");
+
+    output.textContent = "Testing connection...";
+
+    const { data, error } = await supabase.from("user_roles").select("*").limit(1);
+
+    if (error) {
+      output.textContent = "❌ Connection failed: " + error.message;
+    } else {
+      output.textContent = "✅ Connection successful!\n\n" + JSON.stringify(data, null, 2);
+    }
+  </script>
+</body>
+</html>

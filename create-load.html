@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Create Load</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
+  <script src="auth-guard.js"></script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <h2 class="logo">HyperRoute Intelligence</h2>
+      <nav>
+        
+        
+        <a href="dashboard.html">Dashboard</a>
+
+        
+        
+        <a href="onboarding.html">Onboarding</a>
+
+        
+        
+        <a href="activity.html">Activity</a>
+        <a href="dispatch.html">Dispatch Board</a>
+        <a href="driver-portal.html">Driver Portal</a>
+        <a href="reports.html">Reports</a>
+        <a href="alerts.html">Alerts</a>
+        <a href="index.html">Create Driver</a>
+        <a href="drivers.html">View Drivers</a>
+        <a href="create-load.html" class="active">Create Load</a>
+        <a href="loads.html">View Loads</a>
+        <a href="customers.html">Customers</a>
+        <a href="invoices.html">Invoices</a>
+        <a href="settlements.html">Settlements</a>
+        <a href="documents.html">Documents</a>
+        <a href="create-vehicle.html">Create Vehicle</a>
+        <a href="vehicles.html">View Vehicles</a>
+        <a href="create-maintenance.html">Create Maintenance</a>
+        <a href="maintenance.html">Maintenance Logs</a>
+        <a href="assign-vehicle.html">Assign Vehicle</a>
+        <a href="compliance.html">Driver Compliance</a>
+        <a href="company-admin.html">Company Admin</a>
+        <a href="platform-admin.html">Platform Admin</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <h1>Create Load</h1>
+      <section class="card">
+        <form id="loadForm" class="form">
+          <div class="field">
+            <label>Load Number</label>
+            <input name="load_number" placeholder="LD-1001" />
+          </div>
+          <div class="field">
+            <label>Status</label>
+            <select name="status" required>
+              <option value="booked">Booked</option>
+              <option value="dispatched">Dispatched</option>
+              <option value="picked_up">Picked Up</option>
+              <option value="in_transit">In Transit</option>
+              <option value="delivered">Delivered</option>
+              <option value="pod_received">POD Received</option>
+              <option value="invoiced">Invoiced</option>
+              <option value="paid">Paid</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Customer</label>
+            <select id="customerSelect" name="customer_name"></select>
+          </div>
+          <div class="field">
+            <label>Manual Customer</label>
+            <input id="manualCustomerName" name="manual_customer_name" placeholder="Use only if customer is not listed" />
+          </div>
+          <div class="field">
+            <label>Commodity</label>
+            <input name="commodity" placeholder="Freight description" />
+          </div>
+          <div class="field">
+            <label>Pickup Location</label>
+            <input name="pickup_location" placeholder="City, ST" />
+          </div>
+          <div class="field">
+            <label>Delivery Location</label>
+            <input name="delivery_location" placeholder="City, ST" />
+          </div>
+          <div class="field">
+            <label>Pickup Date</label>
+            <input name="pickup_date" type="date" />
+          </div>
+          <div class="field">
+            <label>Pickup Time</label>
+            <input name="pickup_time" type="time" />
+          </div>
+          <div class="field">
+            <label>Delivery Date</label>
+            <input name="delivery_date" type="date" />
+          </div>
+          <div class="field">
+            <label>Delivery Time</label>
+            <input name="delivery_time" type="time" />
+          </div>
+          <div class="field">
+            <label>Rate</label>
+            <input name="rate" type="number" step="0.01" />
+          </div>
+          <div class="field">
+            <label>Carrier</label>
+            <select name="carrier_id" id="carrierSelect"></select>
+          </div>
+          <div class="field">
+            <label>Carrier Cost</label>
+            <input name="carrier_rate" type="number" step="0.01" />
+          </div>
+          <div class="field">
+            <label>Weight</label>
+            <input name="weight" type="number" />
+          </div>
+          <div class="field">
+            <label>Trailer Type</label>
+            <input name="trailer_type" placeholder="Dry van, reefer, flatbed" />
+          </div>
+          <div class="field">
+            <label>Trailer Length</label>
+            <input name="trailer_length" placeholder="53 ft" />
+          </div>
+          <div class="field">
+            <label>Driver</label>
+            <select name="driver_id" id="driverSelect"></select>
+          </div>
+          <div class="field">
+            <label>Truck</label>
+            <select name="truck_id" id="truckSelect"></select>
+          </div>
+          <div class="field">
+            <label>Notes</label>
+            <textarea name="notes"></textarea>
+          </div>
+          <button type="submit" class="btn">Save Load</button>
+        </form>
+        <p id="loadMessage" class="message"></p>
+      </section>
+    </main>
+  </div>
+
+  <script src="companyContext.js"></script>
+<script src="load-form.js"></script>
+</body>
+</html>

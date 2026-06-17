@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reports</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
+  <script src="auth-guard.js"></script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <h2 class="logo">HyperRoute Intelligence</h2>
+      <nav>
+        
+        
+        <a href="dashboard.html">Dashboard</a>
+
+        
+        
+        <a href="onboarding.html">Onboarding</a>
+
+        
+        
+        <a href="activity.html">Activity</a>
+        <a href="dispatch.html">Dispatch Board</a>
+        <a href="driver-portal.html">Driver Portal</a>
+        <a href="reports.html" class="active">Reports</a>
+        <a href="alerts.html">Alerts</a>
+        <a href="index.html">Create Driver</a>
+        <a href="drivers.html">View Drivers</a>
+        <a href="create-load.html">Create Load</a>
+        <a href="loads.html">View Loads</a>
+        <a href="customers.html">Customers</a>
+        <a href="invoices.html">Invoices</a>
+        <a href="settlements.html">Settlements</a>
+        <a href="documents.html">Documents</a>
+        <a href="create-vehicle.html">Create Vehicle</a>
+        <a href="vehicles.html">View Vehicles</a>
+        <a href="create-maintenance.html">Create Maintenance</a>
+        <a href="maintenance.html">Maintenance Logs</a>
+        <a href="assign-vehicle.html">Assign Vehicle</a>
+        <a href="compliance.html">Driver Compliance</a>
+        <a href="company-admin.html">Company Admin</a>
+        <a href="platform-admin.html">Platform Admin</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <div class="page-header">
+        <div>
+          <h1>Reports</h1>
+          <p>Review compliance, maintenance, loads, invoices, and export CSV files.</p>
+        </div>
+        <div class="quick-actions no-print">
+          <button id="printReportBtn" class="view secondary-action" type="button">Print</button>
+          <button id="exportCsvBtn" class="view" type="button">Export CSV</button>
+        </div>
+      </div>
+
+      <section class="card reports-toolbar">
+        <div class="field">
+          <label for="reportType">Report</label>
+          <select id="reportType">
+            <option value="loads">Loads</option>
+            <option value="profitability">Profitability</option>
+            <option value="invoices">Invoices</option>
+            <option value="quotes">Quote Pipeline</option>
+            <option value="compliance">Compliance</option>
+            <option value="maintenance">Maintenance</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="startDate">Start Date</label>
+          <input id="startDate" type="date" />
+        </div>
+        <div class="field">
+          <label for="endDate">End Date</label>
+          <input id="endDate" type="date" />
+        </div>
+        <div class="field">
+          <label for="statusFilter">Status</label>
+          <select id="statusFilter">
+            <option value="">All Statuses</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="searchFilter">Search</label>
+          <input id="searchFilter" type="search" placeholder="Customer, driver, truck, load..." />
+        </div>
+        <button id="clearReportFiltersBtn" class="btn" type="button">Clear</button>
+      </section>
+
+      <section id="reportKpis" class="kpi-grid reports-kpis"></section>
+
+      <section class="card">
+        <div class="report-table-header">
+          <h2 id="reportTitle">Loads Report</h2>
+          <p id="reportCount">0 rows</p>
+        </div>
+        <table class="data-table">
+          <thead id="reportTableHead"></thead>
+          <tbody id="reportTableBody"></tbody>
+        </table>
+        <p id="reportsMessage" class="message"></p>
+      </section>
+    </main>
+  </div>
+
+  <script src="companyContext.js"></script>
+<script src="reports.js"></script>
+</body>
+</html>

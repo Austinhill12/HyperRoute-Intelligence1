@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Documents</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
+  <script src="auth-guard.js"></script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <h2 class="logo">HyperRoute Intelligence</h2>
+      <nav>
+        <a href="dashboard.html">Dashboard</a>
+
+        <a href="onboarding.html">Onboarding</a>
+
+        <a href="activity.html">Activity</a>
+        <a href="dispatch.html">Dispatch Board</a>
+        <a href="driver-portal.html">Driver Portal</a>
+        <a href="reports.html">Reports</a>
+        <a href="alerts.html">Alerts</a>
+        <a href="index.html">Create Driver</a>
+        <a href="drivers.html">View Drivers</a>
+        <a href="create-load.html">Create Load</a>
+        <a href="loads.html">View Loads</a>
+        <a href="customers.html">Customers</a>
+        <a href="invoices.html">Invoices</a>
+        <a href="settlements.html">Settlements</a>
+        <a href="documents.html" class="active">Documents</a>
+        <a href="create-vehicle.html">Create Vehicle</a>
+        <a href="vehicles.html">View Vehicles</a>
+        <a href="create-maintenance.html">Create Maintenance</a>
+        <a href="maintenance.html">Maintenance Logs</a>
+        <a href="assign-vehicle.html">Assign Vehicle</a>
+        <a href="compliance.html">Driver Compliance</a>
+        <a href="company-admin.html">Company Admin</a>
+        <a href="platform-admin.html">Platform Admin</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <div class="page-header">
+        <div>
+          <h1>Documents</h1>
+          <p>Upload, search, download, and manage company paperwork.</p>
+        </div>
+      </div>
+
+      <section class="kpi-grid document-kpis">
+        <div class="kpi-card"><h3 id="totalDocuments">0</h3><p>Total Documents</p></div>
+        <div class="kpi-card"><h3 id="loadDocuments">0</h3><p>Load Documents</p></div>
+        <div class="kpi-card caution"><h3 id="complianceDocuments">0</h3><p>Compliance Documents</p></div>
+        <div class="kpi-card success"><h3 id="recentDocuments">0</h3><p>Added This Month</p></div>
+      </section>
+
+      <section class="card">
+        <h2>Upload Document</h2>
+        <form id="documentForm" class="form">
+          <div class="field">
+            <label>Attach To</label>
+            <select id="entityType" name="entity_type" required>
+              <option value="general">General</option>
+              <option value="driver">Driver</option>
+              <option value="truck">Vehicle</option>
+              <option value="load">Load</option>
+              <option value="customer">Customer</option>
+              <option value="invoice">Invoice</option>
+              <option value="maintenance">Maintenance</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Record ID</label>
+            <input id="entityId" name="entity_id" placeholder="Optional record ID" />
+          </div>
+
+          <div class="field">
+            <label>Document Type</label>
+            <select id="documentType" name="document_type" required>
+              <option value="other">Other</option>
+              <option value="cdl">CDL</option>
+              <option value="medical_card">Medical Card</option>
+              <option value="twic">TWIC</option>
+              <option value="hazmat">Hazmat</option>
+              <option value="insurance">Insurance</option>
+              <option value="registration">Registration</option>
+              <option value="inspection">Inspection</option>
+              <option value="rate_confirmation">Rate Confirmation</option>
+              <option value="bol">BOL</option>
+              <option value="pod">POD</option>
+              <option value="invoice_backup">Invoice Backup</option>
+              <option value="contract">Contract</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>File</label>
+            <input id="documentFile" name="document_file" type="file" required />
+          </div>
+
+          <div class="field document-notes">
+            <label>Notes</label>
+            <textarea id="documentNotes" name="notes" placeholder="Optional notes"></textarea>
+          </div>
+
+          <button type="submit" class="btn">Upload Document</button>
+        </form>
+        <p id="documentMessage" class="message"></p>
+      </section>
+
+      <section class="card document-toolbar">
+        <div class="field">
+          <label>Search</label>
+          <input id="documentSearch" placeholder="Search file, type, notes..." />
+        </div>
+        <div class="field">
+          <label>Filter</label>
+          <select id="entityFilter">
+            <option value="">All Documents</option>
+            <option value="general">General</option>
+            <option value="driver">Drivers</option>
+            <option value="truck">Vehicles</option>
+            <option value="load">Loads</option>
+            <option value="customer">Customers</option>
+            <option value="invoice">Invoices</option>
+            <option value="maintenance">Maintenance</option>
+          </select>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Document Library</h2>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>File</th>
+              <th>Type</th>
+              <th>Attached To</th>
+              <th>Size</th>
+              <th>Uploaded</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="documentsTableBody"></tbody>
+        </table>
+      </section>
+    </main>
+  </div>
+
+  <script src="companyContext.js"></script>
+  <script src="documents.js"></script>
+</body>
+</html>

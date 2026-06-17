@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Driver Portal</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
+  <script src="auth-guard.js"></script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <h2 class="logo">HyperRoute Intelligence</h2>
+      <nav>
+        
+        
+        <a href="dashboard.html">Dashboard</a>
+
+        
+        
+        <a href="onboarding.html">Onboarding</a>
+
+        
+        
+        <a href="activity.html">Activity</a>
+        <a href="dispatch.html">Dispatch Board</a>
+        <a href="driver-portal.html" class="active">Driver Portal</a>
+        <a href="alerts.html">Alerts</a>
+        <a href="index.html">Create Driver</a>
+        <a href="drivers.html">View Drivers</a>
+        <a href="create-load.html">Create Load</a>
+        <a href="loads.html">View Loads</a>
+        <a href="customers.html">Customers</a>
+        <a href="invoices.html">Invoices</a>
+        <a href="settlements.html">Settlements</a>
+        <a href="documents.html">Documents</a>
+        <a href="create-vehicle.html">Create Vehicle</a>
+        <a href="vehicles.html">View Vehicles</a>
+        <a href="create-maintenance.html">Create Maintenance</a>
+        <a href="maintenance.html">Maintenance Logs</a>
+        <a href="assign-vehicle.html">Assign Vehicle</a>
+        <a href="compliance.html">Driver Compliance</a>
+        <a href="company-admin.html">Company Admin</a>
+        <a href="platform-admin.html">Platform Admin</a>
+      </nav>
+    </aside>
+
+    <main class="content driver-portal-page">
+      <div class="page-header">
+        <div>
+          <h1>Driver Portal</h1>
+          <p>View assigned loads, send check calls, update load status, and upload POD documents.</p>
+        </div>
+      </div>
+
+      <section class="card driver-lookup">
+        <div class="field">
+          <label for="driverSelect">Driver</label>
+          <select id="driverSelect">
+            <option value="">Select driver</option>
+          </select>
+        </div>
+        <button id="loadDriverLoadsBtn" class="btn" type="button">Load Assignments</button>
+      </section>
+
+      <section class="kpi-grid driver-portal-kpis">
+        <div class="kpi-card"><h3 id="driverLoadCount">0</h3><p>Assigned Loads</p></div>
+        <div class="kpi-card caution"><h3 id="driverPickupToday">0</h3><p>Pickup Today</p></div>
+        <div class="kpi-card warning"><h3 id="driverAtRisk">0</h3><p>Late / At Risk</p></div>
+      </section>
+
+      <p id="driverPortalMessage" class="message"></p>
+      <section id="driverLoadsList" class="driver-loads-list"></section>
+    </main>
+  </div>
+
+  <script src="companyContext.js"></script>
+<script src="driver-portal.js"></script>
+</body>
+</html>

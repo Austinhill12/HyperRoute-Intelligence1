@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard</title>
+
+  <!-- Global Styles -->
+  <link rel="stylesheet" href="styles.css" />
+
+  <!-- Modern Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    .logout-btn {
+      width: 100%;
+      padding: 10px;
+      background: #dc3545;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    .logout-btn:hover {
+      background: #c82333;
+    }
+  </style>
+  <script src="auth-guard.js"></script>
+</head>
+
+<body>
+  <div class="layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <h2 class="logo">HyperRoute Intelligence</h2>
+
+      <nav id="sidebarLinks">
+        
+        
+        <a href="dashboard.html" class="active">Dashboard</a>
+
+        
+        
+        <a href="onboarding.html">Onboarding</a>
+
+        
+        
+        <a href="activity.html">Activity</a>
+        <a href="dispatch.html">Dispatch Board</a>
+        <a href="driver-portal.html">Driver Portal</a>
+        <a href="reports.html">Reports</a>
+        <a href="alerts.html">Alerts</a>
+
+        <!-- Drivers -->
+        <a href="index.html">Create Driver</a>
+        <a href="drivers.html">View Drivers</a>
+        <!-- Loads -->
+        <a href="create-load.html">Create Load</a>
+        <a href="loads.html">View Loads</a>
+        <a href="customers.html">Customers</a>
+        <a href="invoices.html">Invoices</a>
+        <a href="settlements.html">Settlements</a>
+        <a href="documents.html">Documents</a>
+
+
+        <!-- Vehicles -->
+        <a href="create-vehicle.html">Create Vehicle</a>
+        <a href="edit-vehicle.html">View Vehicles</a>
+
+        <!-- Maintenance -->
+        <a href="create-maintenance.html">Create Maintenance</a>
+        <a href="maintenance.html">Maintenance Logs</a>
+
+        <!-- Assignments -->
+        <a href="assign-vehicle.html">Assign Vehicle</a>
+
+        <!-- Compliance -->
+        <a href="compliance.html">Driver Compliance</a>
+        <a href="company-admin.html">Company Admin</a>
+        <a href="platform-admin.html">Platform Admin</a>
+      </nav>
+
+      <button id="logoutBtn" class="logout-btn">Logout</button>
+    </aside>
+
+    <main class="content">
+      <div class="page-header">
+        <div>
+          <h1>Operations Intelligence</h1>
+          <p id="dashboardSubtitle">Loading company command center...</p>
+        </div>
+        <div class="quick-actions">
+          <a class="view" href="create-load.html">Create Load</a>
+          <a class="view secondary-action" href="quotes.html">Quotes</a>
+          <a class="view secondary-action" href="dispatch.html">Dispatch Board</a>
+          <a class="view secondary-action" href="alerts.html">Alerts</a>
+        </div>
+      </div>
+
+      <section id="demoModeBanner" class="card demo-mode-banner" hidden>
+        <div>
+          <p class="section-eyebrow">Demo Mode</p>
+          <h2>HyperRoute Demo Story</h2>
+          <p>This demo account is intentionally loaded with active work, revenue, risks, and follow-up items so prospects can see how HyperRoute surfaces what needs attention.</p>
+        </div>
+        <div class="demo-script-actions">
+          <button class="view" id="copyDemoScript" type="button">Copy Demo Script</button>
+          <a class="view secondary-action" href="loads.html">Show Loads</a>
+          <a class="view secondary-action" href="alerts.html">Show Risks</a>
+        </div>
+      </section>
+
+      <section class="dashboard-command-grid">
+        <article class="card command-score-card">
+          <p class="section-eyebrow">Operational Health</p>
+          <h2 id="healthScore">0%</h2>
+          <div class="health-meter"><span id="healthMeterBar"></span></div>
+          <p id="healthSummary">Loading operational health...</p>
+        </article>
+
+        <article class="card command-panel">
+          <p class="section-eyebrow">Today</p>
+          <h2 id="todayFocusTitle">Loading</h2>
+          <p id="todayFocusText">Checking loads, invoices, compliance, and maintenance.</p>
+          <div class="mini-stat-row">
+            <span><strong id="activeLoads">0</strong> Active Loads</span>
+            <span><strong id="openRisks">0</strong> Open Risks</span>
+            <span data-dashboard-mini="revenue"><strong id="monthlyRevenue">$0</strong> Month Revenue</span>
+          </div>
+        </article>
+      </section>
+
+      <section class="kpi-grid dashboard-kpis">
+        <div class="kpi-card"><h3 id="kpiLoadPipeline">0</h3><p>Loads In Pipeline</p></div>
+        <div class="kpi-card success"><h3 id="kpiDeliveredMonth">0</h3><p>Delivered This Month</p></div>
+        <div class="kpi-card success"><h3 id="kpiGrossMargin">$0</h3><p>Gross Margin</p></div>
+        <div class="kpi-card caution"><h3 id="kpiMarginPercent">0%</h3><p>Margin %</p></div>
+        <div class="kpi-card warning"><h3 id="kpiProfitRisks">0</h3><p>Profit Risks</p></div>
+        <div class="kpi-card warning"><h3 id="kpiClaimExposure">$0</h3><p>Claim Exposure</p></div>
+        <div class="kpi-card caution"><h3 id="kpiOpenReceivables">$0</h3><p>Open Receivables</p></div>
+        <div class="kpi-card warning"><h3 id="kpiOverdueInvoices">0</h3><p>Overdue Invoices</p></div>
+        <div class="kpi-card warning"><h3 id="kpiComplianceRisk">0</h3><p>Compliance Risks</p></div>
+        <div class="kpi-card caution"><h3 id="kpiMaintenanceDue">0</h3><p>Maintenance Due</p></div>
+        <div class="kpi-card"><h3 id="kpiAvailableTrucks">0</h3><p>Available Trucks</p></div>
+        <div class="kpi-card"><h3 id="kpiDocuments">0</h3><p>Documents Stored</p></div>
+        <div class="kpi-card caution"><h3 id="kpiOpenQuotes">0</h3><p>Open Quotes</p></div>
+        <div class="kpi-card success"><h3 id="kpiQuoteWinRate">0%</h3><p>Quote Win Rate</p></div>
+        <div class="kpi-card"><h3 id="kpiQuotedValue">$0</h3><p>Open Quoted Value</p></div>
+        <div class="kpi-card warning"><h3 id="kpiQuotesExpiring">0</h3><p>Quotes Expiring</p></div>
+      </section>
+
+      <section class="dashboard-two-column">
+        <article class="card" data-dashboard-section="quotes">
+          <div class="section-header">
+            <div>
+              <p class="section-eyebrow">Quotes</p>
+              <h2>Sales Pipeline</h2>
+            </div>
+            <a class="view secondary-action" href="quotes.html">View Quotes</a>
+          </div>
+          <div id="quotePipelineList" class="dashboard-list"></div>
+        </article>
+
+        <article class="card" data-dashboard-section="quotes">
+          <div class="section-header">
+            <div>
+              <p class="section-eyebrow">Quote Status</p>
+              <h2>Win Pipeline</h2>
+            </div>
+            <a class="view secondary-action" href="quotes.html">Manage Quotes</a>
+          </div>
+          <canvas id="quoteStatusChart" height="150"></canvas>
+        </article>
+      </section>
+
+      <section class="dashboard-two-column">
+        <article class="card" data-dashboard-section="attention">
+          <div class="section-header">
+            <div>
+              <p class="section-eyebrow">Attention</p>
+              <h2>Needs Action</h2>
+            </div>
+            <a class="view secondary-action" href="alerts.html">View Alerts</a>
+          </div>
+          <div id="attentionList" class="dashboard-list"></div>
+        </article>
+
+        <article class="card" data-dashboard-section="activity">
+          <div class="section-header">
+            <div>
+              <p class="section-eyebrow">Activity</p>
+              <h2>Recent Movement</h2>
+            </div>
+            <a class="view secondary-action" href="activity.html">Activity Log</a>
+          </div>
+          <div id="recentActivityList" class="dashboard-list"></div>
+        </article>
+      </section>
+
+      <section class="dashboard-two-column">
+        <article class="card" data-dashboard-section="loads">
+          <div class="section-header">
+            <div>
+              <p class="section-eyebrow">Loads</p>
+              <h2>Pipeline</h2>
+            </div>
+            <a class="view secondary-action" href="loads.html">View Loads</a>
+          </div>
+          <canvas id="loadStatusChart" height="150"></canvas>
+        </article>
+
+        <article class="card" data-dashboard-section="revenue">
+          <div class="section-header">
+            <div>
+              <p class="section-eyebrow">Revenue</p>
+              <h2>Invoices</h2>
+            </div>
+            <a class="view secondary-action" href="invoices.html">View Invoices</a>
+          </div>
+          <canvas id="invoiceStatusChart" height="150"></canvas>
+        </article>
+      </section>
+
+      <p id="dashboardMessage" class="message"></p>
+
+    </main>
+
+  </div>
+<!-- Dashboard Logic -->
+<script src="companyContext.js"></script>
+<script src="dashboard.js"></script>
+
+<!-- Authentication -->
+<script type="module">
+import { supabase } from "./supabaseClient.js";
+
+const logoutBtn = document.getElementById("logoutBtn");
+
+function clearLocalSession() {
+  localStorage.removeItem("hyperroute_active_company_id");
+  Object.keys(localStorage).forEach(key => {
+    if (key.startsWith("sb-") && key.endsWith("-auth-token")) {
+      localStorage.removeItem(key);
+    }
+  });
+}
+
+if (logoutBtn) {
+  logoutBtn.addEventListener("click", async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error("Logout Error:", err);
+    } finally {
+      clearLocalSession();
+      window.location.href = "login.html";
+    }
+  });
+}
+
+try {
+
+  const {
+    data: { session }
+  } = await supabase.auth.getSession();
+
+  if (!session) {
+    window.location.href = "login.html";
+  } else {
+    console.log("Logged in as:", session.user.email);
+  }
+
+} catch (err) {
+
+  console.error("Dashboard Auth Error:", err);
+
+}
+</script>
+
+</body>
+</html>

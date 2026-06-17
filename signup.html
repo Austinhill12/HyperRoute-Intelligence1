@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign Up - HyperRoute Intelligence</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
+</head>
+<body class="signup-page">
+  <main class="signup-shell">
+    <section class="signup-brand-panel">
+      <img src="assets/hyperroute-logo-clean.png" alt="HyperRoute Intelligence" class="login-logo" />
+      <div>
+        <p class="section-eyebrow">Create Company Workspace</p>
+        <h1>Launch the right operating system for your logistics team.</h1>
+        <p>Select your company type and HyperRoute will shape the workspace around the tools you actually need.</p>
+      </div>
+      <div class="login-proof-grid">
+        <span>Carrier / Fleet</span>
+        <span>Broker / 3PL</span>
+        <span>Dispatch Service</span>
+      </div>
+    </section>
+
+    <section class="signup-panel">
+      <div class="signup-heading">
+        <p class="section-eyebrow">14-Day Trial</p>
+        <h1>Start Your HyperRoute Trial</h1>
+        <p>Create a trial workspace matched to your transportation operation. HyperRoute reviews each workspace before full go-live.</p>
+      </div>
+
+      <form id="signupForm" class="form signup-form">
+        <div class="field">
+          <label>Plan</label>
+          <div class="plan-grid">
+            <label class="plan-option">
+              <input type="radio" name="plan_name" value="starter" />
+              <span>Starter</span>
+              <strong>$99/mo</strong>
+            </label>
+            <label class="plan-option selected">
+              <input type="radio" name="plan_name" value="professional" checked />
+              <span>Professional</span>
+              <strong>$199/mo</strong>
+            </label>
+            <label class="plan-option">
+              <input type="radio" name="plan_name" value="business" />
+              <span>Business</span>
+              <strong>$399/mo</strong>
+            </label>
+            <label class="plan-option">
+              <input type="radio" name="plan_name" value="enterprise" />
+              <span>Enterprise</span>
+              <strong>Custom</strong>
+            </label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Transportation Company Type</label>
+          <select name="operation_type">
+            <option value="carrier">Carrier / Fleet</option>
+            <option value="dispatcher">Dispatch Service</option>
+            <option value="broker_3pl">Broker / 3PL</option>
+            <option value="hybrid">Hybrid Operation</option>
+          </select>
+        </div>
+
+        <div class="field"><label>Company Name</label><input name="company_name" required /></div>
+        <div class="field"><label>Legal Name</label><input name="legal_name" /></div>
+        <div class="field"><label>Company Phone</label><input name="phone" /></div>
+        <div class="field"><label>Billing / Company Email</label><input name="company_email" type="email" /></div>
+        <div class="field"><label>Your Email</label><input name="email" type="email" required /></div>
+        <div class="field"><label>Password</label><input name="password" type="password" minlength="6" required /></div>
+
+        <button id="signupSubmitBtn" type="submit" class="btn">Start Trial Workspace</button>
+      </form>
+
+      <p id="signupMessage" class="message"></p>
+      <p class="auth-switch">Already have an account? <a href="login.html">Log in</a></p>
+    </section>
+  </main>
+
+  <script type="module" src="signup.js"></script>
+</body>
+</html>

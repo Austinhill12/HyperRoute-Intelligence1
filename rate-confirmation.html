@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rate Confirmation</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
+  <script src="auth-guard.js"></script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar no-print">
+      <h2 class="logo">HyperRoute Intelligence</h2>
+      <nav>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="loads.html">View Loads</a>
+        <a href="carriers.html">Carriers</a>
+        <a href="documents.html">Documents</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <div class="page-header no-print">
+        <div>
+          <h1>Rate Confirmation</h1>
+          <p>Carrier-facing confirmation for this load.</p>
+        </div>
+        <div class="quick-actions">
+          <button id="printRateConfirmationBtn" class="view" type="button">Print / Save PDF</button>
+          <button id="copyRateConfirmationBtn" class="view secondary-action" type="button">Copy Summary</button>
+          <a id="backToLoadLink" class="view secondary-action" href="loads.html">Back to Load</a>
+        </div>
+      </div>
+
+      <section class="card rate-confirmation-document print-document">
+        <div class="rate-confirmation-header document-header">
+          <div>
+            <p class="section-eyebrow">Rate Confirmation</p>
+            <h2 id="rateCompanyName">HyperRoute Intelligence</h2>
+            <p id="rateCompanyDetails"></p>
+          </div>
+          <div class="document-title-block">
+            <strong id="rateLoadNumber">Load</strong>
+            <span id="rateStatus"></span>
+            <small>Powered by HyperRoute</small>
+          </div>
+        </div>
+
+        <div class="rate-confirmation-grid">
+          <div>
+            <h3>Carrier</h3>
+            <p id="carrierName">N/A</p>
+            <p id="carrierContact"></p>
+            <p id="carrierAuthority"></p>
+          </div>
+          <div>
+            <h3>Pay</h3>
+            <p><strong>Carrier Rate:</strong> <span id="carrierRate">$0</span></p>
+            <p><strong>Customer Rate:</strong> <span id="customerRate">$0</span></p>
+            <p><strong>Margin:</strong> <span id="loadMargin">$0</span></p>
+          </div>
+        </div>
+
+        <div class="rate-confirmation-grid">
+          <div>
+            <h3>Pickup</h3>
+            <p id="pickupLocation"></p>
+            <p id="pickupDateTime"></p>
+            <p id="shipperInfo"></p>
+          </div>
+          <div>
+            <h3>Delivery</h3>
+            <p id="deliveryLocation"></p>
+            <p id="deliveryDateTime"></p>
+            <p id="consigneeInfo"></p>
+          </div>
+        </div>
+
+        <div class="rate-confirmation-grid">
+          <div>
+            <h3>Freight</h3>
+            <p><strong>Commodity:</strong> <span id="commodity"></span></p>
+            <p><strong>Weight:</strong> <span id="weight"></span></p>
+            <p><strong>Trailer:</strong> <span id="trailer"></span></p>
+          </div>
+          <div>
+            <h3>Instructions</h3>
+            <p id="notes"></p>
+          </div>
+        </div>
+
+        <div class="rate-confirmation-terms">
+          <h3>Carrier Agreement</h3>
+          <p>Carrier agrees to perform transportation services for the load above at the confirmed carrier rate. Carrier must provide timely status updates and submit required delivery documents, including POD, before payment processing.</p>
+          <div class="signature-grid">
+            <span>Carrier Signature</span>
+            <span>Date</span>
+          </div>
+        </div>
+
+        <footer class="document-footer">
+          <span>Transportation Operations Intelligence</span>
+          <strong>Powered by HyperRoute Intelligence</strong>
+        </footer>
+      </section>
+
+      <p id="rateConfirmationMessage" class="message"></p>
+    </main>
+  </div>
+
+  <script src="companyContext.js"></script>
+  <script src="rate-confirmation.js"></script>
+</body>
+</html>

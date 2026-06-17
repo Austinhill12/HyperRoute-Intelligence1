@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Assign Vehicle</title>
+
+  <!-- Global Styles -->
+  <link rel="stylesheet" href="styles.css" />
+
+  <!-- Modern Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
+  <script src="auth-guard.js"></script>
+</head>
+
+<body>
+  <div class="layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <h2 class="logo">HyperRoute Intelligence</h2>
+
+      <nav>
+        
+        
+        <a href="dashboard.html">Dashboard</a>
+
+        
+        
+        <a href="onboarding.html">Onboarding</a>
+
+        
+        
+        <a href="activity.html">Activity</a>
+        <a href="dispatch.html">Dispatch Board</a>
+        <a href="driver-portal.html">Driver Portal</a>
+        <a href="reports.html">Reports</a>
+        <a href="alerts.html">Alerts</a>
+
+        <!-- Drivers -->
+        <a href="index.html">Create Driver</a>
+        <a href="drivers.html">View Drivers</a>
+        <!-- Loads -->
+        <a href="create-load.html">Create Load</a>
+        <a href="loads.html">View Loads</a>
+        <a href="customers.html">Customers</a>
+        <a href="invoices.html">Invoices</a>
+        <a href="settlements.html">Settlements</a>
+        <a href="documents.html">Documents</a>
+
+
+        <!-- Vehicles -->
+        <a href="create-vehicle.html">Create Vehicle</a>
+        <a href="vehicles.html">View Vehicles</a>
+
+        <!-- Maintenance -->
+        <a href="create-maintenance.html">Create Maintenance</a>
+        <a href="maintenance.html">Maintenance Logs</a>
+
+        <!-- Assignments -->
+        <a href="assign-vehicle.html" class="active">Assign Vehicle</a>
+
+        <!-- Compliance -->
+        <a href="compliance.html">Driver Compliance</a>
+        <a href="company-admin.html">Company Admin</a>
+        <a href="platform-admin.html">Platform Admin</a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="content">
+      <h1>Assign Vehicle to Driver</h1>
+
+      <section class="card">
+
+        <form id="assignForm" class="form">
+
+          <div class="field">
+            <label>Select Driver</label>
+            <select id="driverSelect" name="driver_id"></select>
+          </div>
+
+          <div class="field">
+            <label>Select Vehicle</label>
+            <select id="vehicleSelect" name="truck_id"></select>
+          </div>
+
+          <div class="field">
+            <label>Select Load</label>
+            <select id="loadSelect" name="load_id">
+              <option value="">No load assigned</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Start Date</label>
+            <input type="date" name="start_date" />
+          </div>
+
+          <button class="btn" type="submit">Assign Vehicle</button>
+
+        </form>
+
+        <p id="assignMessage" class="message"></p>
+
+      </section>
+    </main>
+
+  </div>
+
+  <!-- Page Logic -->
+  <script src="companyContext.js"></script>
+<script src="assign-vehicle.js"></script>
+</body>
+</html>

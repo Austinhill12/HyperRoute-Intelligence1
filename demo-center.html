@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Demo Center</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
+  <script src="auth-guard.js"></script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <h2 class="logo">HyperRoute Intelligence</h2>
+      <nav>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="platform-admin.html">Platform Admin</a>
+        <a href="demo-center.html" class="active">Demo Center</a>
+        <a href="loads.html">Loads</a>
+        <a href="reports.html">Reports</a>
+        <a href="alerts.html">Alerts</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <div class="page-header">
+        <div>
+          <h1>Demo Center</h1>
+          <p>Run clean HyperRoute sales walkthroughs by company type.</p>
+        </div>
+        <div class="quick-actions">
+          <button id="copyUniversalPitchBtn" class="view" type="button">Copy Pitch</button>
+          <a class="view secondary-action" href="platform-admin.html">Platform Admin</a>
+        </div>
+      </div>
+
+      <section class="demo-center-hero card">
+        <div>
+          <p class="section-eyebrow">Sales Demo Mode</p>
+          <h2>Show the right product story in the right order.</h2>
+          <p>Use carrier/fleet for asset-based trucking teams and 3PL/broker for brokerage customers. Each demo opens the correct company workspace before navigating.</p>
+        </div>
+        <div class="demo-center-score">
+          <strong id="demoCompanyCount">0</strong>
+          <span>Demo Companies</span>
+        </div>
+      </section>
+
+      <section id="demoCards" class="demo-center-grid"></section>
+
+      <section class="dashboard-two-column">
+        <article class="card">
+          <div class="section-header">
+            <div>
+              <p class="section-eyebrow">Talk Track</p>
+              <h2>Universal Pitch</h2>
+            </div>
+          </div>
+          <div id="universalPitch" class="demo-script-box"></div>
+        </article>
+
+        <article class="card">
+          <div class="section-header">
+            <div>
+              <p class="section-eyebrow">Demo Prep</p>
+              <h2>Before You Start</h2>
+            </div>
+          </div>
+          <div class="dashboard-list">
+            <div class="dashboard-list-item"><span class="readiness-status pass">1</span><span><strong>Choose the prospect type</strong><small>Carrier, 3PL/broker, dispatcher, or hybrid.</small></span></div>
+            <div class="dashboard-list-item"><span class="readiness-status pass">2</span><span><strong>Open matching demo</strong><small>Use the buttons below so the company context switches first.</small></span></div>
+            <div class="dashboard-list-item"><span class="readiness-status pass">3</span><span><strong>Start with dashboard risks</strong><small>Show what needs attention today before opening details.</small></span></div>
+            <div class="dashboard-list-item"><span class="readiness-status pass">4</span><span><strong>End with customer-facing proof</strong><small>Show tracking, invoices, documents, and support readiness.</small></span></div>
+          </div>
+        </article>
+      </section>
+
+      <p id="demoCenterMessage" class="message"></p>
+    </main>
+  </div>
+
+  <script src="companyContext.js"></script>
+  <script type="module" src="demo-center.js"></script>
+</body>
+</html>

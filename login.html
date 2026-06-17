@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
+  <title>HyperRoute Intelligence Login</title>
+
+  <link
+    rel="stylesheet"
+    href="styles.css"
+  />
+
+  <script
+    type="module"
+    src="user/login.js"
+    defer
+  ></script>
+
+</head>
+
+<body class="login-page">
+
+  <main class="login-shell">
+    <section class="login-brand-panel">
+      <img src="assets/hyperroute-logo-clean.png" alt="HyperRoute Intelligence" class="login-logo" />
+      <div>
+        <p class="section-eyebrow">Transportation Operations Intelligence</p>
+        <h1>Command center for modern logistics teams.</h1>
+        <p>Manage companies, loads, documents, alerts, billing, and customer visibility from one clean workspace.</p>
+      </div>
+      <div class="login-proof-grid">
+        <span>Multi-company ready</span>
+        <span>3PL, carrier, dispatcher</span>
+        <span>Powered by HyperRoute</span>
+      </div>
+    </section>
+
+    <section class="login-card">
+      <div class="login-heading">
+        <p class="section-eyebrow">Secure Login</p>
+        <h2>Welcome Back</h2>
+        <p>Sign in to open your HyperRoute workspace.</p>
+      </div>
+
+      <form id="loginForm" class="login-form">
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" type="email" placeholder="you@company.com" autocomplete="email" required />
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" type="password" placeholder="Enter your password" autocomplete="current-password" required />
+        </div>
+
+        <button id="loginSubmitBtn" type="submit" class="btn">Log In</button>
+      </form>
+
+      <p id="loginMessage" class="message"></p>
+
+      <p class="auth-switch">Need an account? <a href="signup.html">Create company workspace</a></p>
+    </section>
+  </main>
+
+</body>
+</html>

@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Load Details</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
+  <script src="auth-guard.js"></script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <h2 class="logo">HyperRoute Intelligence</h2>
+      <nav>
+        
+        
+        <a href="dashboard.html">Dashboard</a>
+
+        
+        
+        <a href="onboarding.html">Onboarding</a>
+
+        
+        
+        <a href="activity.html">Activity</a>
+        <a href="dispatch.html">Dispatch Board</a>
+        <a href="driver-portal.html">Driver Portal</a>
+        <a href="reports.html">Reports</a>
+        <a href="alerts.html">Alerts</a>
+        <a href="index.html">Create Driver</a>
+        <a href="drivers.html">View Drivers</a>
+        <a href="create-load.html">Create Load</a>
+        <a href="loads.html">View Loads</a>
+        <a href="customers.html">Customers</a>
+        <a href="invoices.html">Invoices</a>
+        <a href="settlements.html">Settlements</a>
+        <a href="documents.html">Documents</a>
+        <a href="create-vehicle.html">Create Vehicle</a>
+        <a href="vehicles.html">View Vehicles</a>
+        <a href="create-maintenance.html">Create Maintenance</a>
+        <a href="maintenance.html">Maintenance Logs</a>
+        <a href="assign-vehicle.html">Assign Vehicle</a>
+        <a href="compliance.html">Driver Compliance</a>
+        <a href="company-admin.html">Company Admin</a>
+        <a href="platform-admin.html">Platform Admin</a>
+      </nav>
+    </aside>
+    <main class="content">
+      <h1>Load Details</h1>
+      <section class="card details-card">
+        <h2 id="loadTitle">Loading...</h2>
+        <p><strong>Status:</strong> <span id="loadStatus"></span></p>
+        <p><strong>Customer:</strong> <span id="customerName"></span></p>
+        <p><strong>Lane:</strong> <span id="loadLane"></span></p>
+        <p><strong>Pickup:</strong> <span id="pickupInfo"></span></p>
+        <p><strong>Delivery:</strong> <span id="deliveryInfo"></span></p>
+        <p><strong>Commodity:</strong> <span id="commodity"></span></p>
+        <p><strong>Weight:</strong> <span id="weight"></span></p>
+        <p><strong>Rate:</strong> <span id="rate"></span></p>
+        <p><strong>Driver:</strong> <span id="driverName"></span></p>
+        <p><strong>Truck:</strong> <span id="truckName"></span></p>
+        <p><strong>Tracking Code:</strong> <span id="trackingCode"></span></p>
+        <p><strong>Notes:</strong> <span id="notes"></span></p>
+        <div class="actions">
+          <a class="view" id="editLoadLink" href="#">Edit Load</a>
+          <a class="view" id="tenderLoadLink" href="#">Tender Load</a>
+          <a class="view secondary-action" id="rateConfirmationLink" href="#">Rate Confirmation</a>
+          <button class="view" id="openTrackingLink" type="button">Open Tracking</button>
+          <button class="view secondary-action" id="copyTrackingLink" type="button">Copy Tracking Link</button>
+          <button class="view secondary-action" id="copyTrackingMessage" type="button">Copy Customer Message</button>
+          <button class="view secondary-action" id="emailTrackingLink" type="button">Email Tracking</button>
+          <button class="view secondary-action" id="smsTrackingLink" type="button">SMS Tracking</button>
+          <a class="view" href="loads.html">Back to Loads</a>
+        </div>
+        <p id="trackingLinkMessage" class="message"></p>
+      </section>
+
+      <section class="card tender-history-card">
+        <div class="section-header">
+          <div>
+            <p class="section-eyebrow">Carrier Tendering</p>
+            <h2>Carrier Offers</h2>
+          </div>
+          <a class="view" id="createTenderLink" href="#">Create Tender</a>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Carrier</th>
+              <th>Status</th>
+              <th>Rate</th>
+              <th>Expires</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="loadTendersTableBody"></tbody>
+        </table>
+      </section>
+
+      <section class="card communication-card">
+        <div class="section-header">
+          <div>
+            <p class="section-eyebrow">Communication</p>
+            <h2>Load Communication Log</h2>
+          </div>
+        </div>
+        <form id="communicationForm" class="form">
+          <div class="field">
+            <label>Contact Type</label>
+            <select name="contact_type">
+              <option value="customer">Customer</option>
+              <option value="carrier">Carrier</option>
+              <option value="driver">Driver</option>
+              <option value="internal">Internal</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Channel</label>
+            <select name="channel">
+              <option value="phone">Phone</option>
+              <option value="email">Email</option>
+              <option value="sms">SMS</option>
+              <option value="portal">Portal</option>
+              <option value="in_person">In Person</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Direction</label>
+            <select name="direction">
+              <option value="outbound">Outbound</option>
+              <option value="inbound">Inbound</option>
+              <option value="internal">Internal</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Status</label>
+            <select name="status">
+              <option value="open">Open Follow-Up</option>
+              <option value="completed">Completed</option>
+              <option value="no_follow_up_needed">No Follow-Up Needed</option>
+            </select>
+          </div>
+          <div class="field"><label>Contact Name</label><input name="contact_name" /></div>
+          <div class="field"><label>Contact Detail</label><input name="contact_detail" placeholder="Email, phone, or team member" /></div>
+          <div class="field"><label>Subject</label><input name="subject" placeholder="Pickup appointment, POD request, billing follow-up" /></div>
+          <div class="field"><label>Next Follow-Up</label><input name="next_follow_up_at" type="datetime-local" /></div>
+          <div class="field communication-wide"><label>Summary</label><textarea name="summary" required placeholder="What was discussed, promised, requested, or escalated?"></textarea></div>
+          <button type="submit" class="btn">Save Communication</button>
+        </form>
+        <p id="communicationMessage" class="message"></p>
+      </section>
+
+      <section class="card communication-card">
+        <h2>Communication History</h2>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Contact</th>
+              <th>Channel</th>
+              <th>Subject</th>
+              <th>Follow-Up</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="communicationsTableBody"></tbody>
+        </table>
+      </section>
+
+      <section class="card issue-card">
+        <div class="section-header">
+          <div>
+            <p class="section-eyebrow">Issues & Claims</p>
+            <h2>Open Issue / Claim</h2>
+          </div>
+        </div>
+        <form id="issueForm" class="form">
+          <div class="field">
+            <label>Issue Type</label>
+            <select name="issue_type">
+              <option value="late_pickup">Late Pickup</option>
+              <option value="late_delivery">Late Delivery</option>
+              <option value="damaged_freight">Damaged Freight</option>
+              <option value="missing_pod">Missing POD</option>
+              <option value="billing_dispute">Billing Dispute</option>
+              <option value="carrier_no_show">Carrier No-Show</option>
+              <option value="customer_complaint">Customer Complaint</option>
+              <option value="accessorial_dispute">Accessorial Dispute</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Severity</label>
+            <select name="severity">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+              <option value="critical">Critical</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Status</label>
+            <select name="status">
+              <option value="open">Open</option>
+              <option value="in_progress">In Progress</option>
+              <option value="resolved">Resolved</option>
+              <option value="closed">Closed</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Responsible Party</label>
+            <select name="responsible_party">
+              <option value="unknown">Unknown</option>
+              <option value="customer">Customer</option>
+              <option value="carrier">Carrier</option>
+              <option value="driver">Driver</option>
+              <option value="company">Company</option>
+              <option value="shipper">Shipper</option>
+              <option value="consignee">Consignee</option>
+            </select>
+          </div>
+          <div class="field"><label>Title</label><input name="title" required placeholder="Short issue title" /></div>
+          <div class="field"><label>Claim Amount</label><input name="claim_amount" type="number" min="0" step="0.01" /></div>
+          <div class="field"><label>Due / Follow-Up Date</label><input name="due_at" type="datetime-local" /></div>
+          <div class="field issue-wide"><label>Description</label><textarea name="description" placeholder="What happened, who is involved, and what needs to be resolved?"></textarea></div>
+          <div class="field issue-wide"><label>Resolution</label><textarea name="resolution" placeholder="Resolution notes if already resolved."></textarea></div>
+          <button type="submit" class="btn">Save Issue</button>
+        </form>
+        <p id="issueMessage" class="message"></p>
+      </section>
+
+      <section class="card issue-card">
+        <h2>Issue / Claim History</h2>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Issue</th>
+              <th>Severity</th>
+              <th>Responsible</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="issuesTableBody"></tbody>
+        </table>
+      </section>
+
+      <section class="card" style="margin-top: 30px;">
+        <h2>Add Load Update</h2>
+        <form id="loadEventForm" class="form">
+          <div class="field">
+            <label>Event Type</label>
+            <select id="eventType" name="event_type" required>
+              <option value="dispatched">Dispatched</option>
+              <option value="arrived_pickup">Arrived Pickup</option>
+              <option value="loaded">Loaded</option>
+              <option value="departed_pickup">Departed Pickup</option>
+              <option value="in_transit">In Transit</option>
+              <option value="arrived_delivery">Arrived Delivery</option>
+              <option value="delivered">Delivered</option>
+              <option value="delay">Delay</option>
+              <option value="issue">Issue</option>
+              <option value="pod_received">POD Received</option>
+              <option value="invoiced">Invoiced</option>
+              <option value="paid">Paid</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Event Time</label>
+            <input id="eventTime" name="event_time" type="datetime-local" />
+          </div>
+
+          <div class="field">
+            <label>Location</label>
+            <input id="eventLocation" name="location" placeholder="City, ST" />
+          </div>
+
+          <div class="field">
+            <label>Notes</label>
+            <textarea id="eventNotes" name="notes" placeholder="Check call notes"></textarea>
+          </div>
+
+          <button type="submit" class="btn">Save Update</button>
+        </form>
+        <p id="loadEventMessage" class="message"></p>
+      </section>
+
+      <section class="card" style="margin-top: 30px;">
+        <h2>Load Timeline</h2>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Event</th>
+              <th>Time</th>
+              <th>Location</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody id="loadEventsTableBody"></tbody>
+        </table>
+      </section>
+
+      <section class="card" style="margin-top: 30px;">
+        <h2>Add Load Document</h2>
+        <form id="loadDocumentForm" class="form">
+          <div class="field">
+            <label>Document Type</label>
+            <select id="documentType" name="document_type" required>
+              <option value="rate_confirmation">Rate Confirmation</option>
+              <option value="bol">BOL</option>
+              <option value="pod">POD</option>
+              <option value="lumper_receipt">Lumper Receipt</option>
+              <option value="fuel_receipt">Fuel Receipt</option>
+              <option value="invoice">Invoice</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Upload File</label>
+            <input id="documentFile" name="document_file" type="file" />
+          </div>
+
+          <div class="field">
+            <label>Notes</label>
+            <textarea id="documentNotes" name="notes" placeholder="Document notes"></textarea>
+          </div>
+
+          <button type="submit" class="btn">Save Document</button>
+        </form>
+        <p id="loadDocumentMessage" class="message"></p>
+      </section>
+
+      <section class="card" style="margin-top: 30px;">
+        <h2>Load Documents</h2>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Added</th>
+              <th>Notes</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="loadDocumentsTableBody"></tbody>
+        </table>
+      </section>
+
+      <section class="card" style="margin-top: 30px;">
+        <h2>Create Invoice</h2>
+        <form id="invoiceForm" class="form">
+          <div class="field">
+            <label>Invoice Number</label>
+            <input id="invoiceNumber" name="invoice_number" placeholder="INV-1001" />
+          </div>
+
+          <div class="field">
+            <label>Status</label>
+            <select id="invoiceStatus" name="status">
+              <option value="draft">Draft</option>
+              <option value="sent">Sent</option>
+              <option value="paid">Paid</option>
+              <option value="overdue">Overdue</option>
+              <option value="void">Void</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Invoice Date</label>
+            <input id="invoiceDate" name="invoice_date" type="date" />
+          </div>
+
+          <div class="field">
+            <label>Due Date</label>
+            <input id="dueDate" name="due_date" type="date" />
+          </div>
+
+          <div class="field">
+            <label>Linehaul Amount</label>
+            <input id="linehaulAmount" name="linehaul_amount" type="number" step="0.01" />
+          </div>
+
+          <div class="field">
+            <label>Accessorial Amount</label>
+            <input id="accessorialAmount" name="accessorial_amount" type="number" step="0.01" value="0" />
+          </div>
+
+          <div class="field">
+            <label>Notes</label>
+            <textarea id="invoiceNotes" name="notes"></textarea>
+          </div>
+
+          <button type="submit" class="btn">Create Invoice</button>
+        </form>
+        <p id="invoiceMessage" class="message"></p>
+      </section>
+
+      <section class="card" style="margin-top: 30px;">
+        <h2>Invoices</h2>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Invoice #</th>
+              <th>Status</th>
+              <th>Due Date</th>
+              <th>Total</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="loadInvoicesTableBody"></tbody>
+        </table>
+      </section>
+
+      <p id="loadDetailsMessage" class="message"></p>
+    </main>
+  </div>
+  <script src="companyContext.js"></script>
+<script src="load-details.js"></script>
+</body>
+</html>

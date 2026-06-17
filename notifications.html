@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Notifications</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
+  <script src="auth-guard.js"></script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <h2 class="logo">HyperRoute Intelligence</h2>
+      <nav>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="onboarding.html">Onboarding</a>
+        <a href="activity.html">Activity</a>
+        <a href="dispatch.html">Dispatch Board</a>
+        <a href="driver-portal.html">Driver Portal</a>
+        <a href="reports.html">Reports</a>
+        <a href="alerts.html">Alerts</a>
+        <a href="index.html">Create Driver</a>
+        <a href="drivers.html">View Drivers</a>
+        <a href="create-load.html">Create Load</a>
+        <a href="loads.html">View Loads</a>
+        <a href="customers.html">Customers</a>
+        <a href="invoices.html">Invoices</a>
+        <a href="settlements.html">Settlements</a>
+        <a href="documents.html">Documents</a>
+        <a href="create-vehicle.html">Create Vehicle</a>
+        <a href="vehicles.html">View Vehicles</a>
+        <a href="create-maintenance.html">Create Maintenance</a>
+        <a href="maintenance.html">Maintenance Logs</a>
+        <a href="assign-vehicle.html">Assign Vehicle</a>
+        <a href="compliance.html">Driver Compliance</a>
+        <a href="company-admin.html">Company Admin</a>
+        <a href="platform-admin.html">Platform Admin</a>
+        <a href="support.html">Support</a>
+        <a href="notifications.html" class="active">Notifications</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <div class="page-header">
+        <div>
+          <h1>Notifications</h1>
+          <p id="notificationsCompanyName">Recent system and support updates.</p>
+        </div>
+        <div class="quick-actions">
+          <button id="scanBusinessNotificationsBtn" class="view" type="button" onclick="window.scanBusinessEventsFromButton && window.scanBusinessEventsFromButton()">Scan Business Events</button>
+          <button id="markAllNotificationsReadBtn" class="view secondary-action" type="button">Mark All Read</button>
+        </div>
+      </div>
+
+      <section class="kpi-grid notification-kpis">
+        <div class="kpi-card"><h3 id="notificationTotalCount">0</h3><p>Total</p></div>
+        <div class="kpi-card caution"><h3 id="notificationUnreadCount">0</h3><p>Unread</p></div>
+        <div class="kpi-card warning"><h3 id="notificationUrgentCount">0</h3><p>Urgent / High</p></div>
+        <div class="kpi-card success"><h3 id="notificationReadCount">0</h3><p>Read</p></div>
+      </section>
+
+      <section class="card notification-toolbar">
+        <div class="field">
+          <label>Status</label>
+          <select id="notificationStatusFilter">
+            <option value="">All</option>
+            <option value="unread">Unread</option>
+            <option value="read">Read</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Priority</label>
+          <select id="notificationPriorityFilter">
+            <option value="">All Priorities</option>
+            <option value="urgent">Urgent</option>
+            <option value="high">High</option>
+            <option value="normal">Normal</option>
+            <option value="low">Low</option>
+          </select>
+        </div>
+        <button id="refreshNotificationsBtn" class="btn" type="button">Refresh</button>
+      </section>
+
+      <section class="card" style="margin-top: 30px;">
+        <h2>Notification Center</h2>
+        <div id="notificationsList" class="notification-list"></div>
+        <p id="notificationsMessage" class="message"></p>
+      </section>
+    </main>
+  </div>
+
+  <script src="companyContext.js"></script>
+  <script type="module" src="notifications.js"></script>
+</body>
+</html>

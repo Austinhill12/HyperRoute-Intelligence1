@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Company Settings</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
+  <script src="auth-guard.js"></script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <h2 class="logo">HyperRoute Intelligence</h2>
+      <nav>
+        
+        
+        <a href="dashboard.html">Dashboard</a>
+
+        
+        
+        <a href="onboarding.html">Onboarding</a>
+
+        
+        
+        <a href="activity.html">Activity</a>
+        <a href="dispatch.html">Dispatch Board</a>
+        <a href="driver-portal.html">Driver Portal</a>
+        <a href="reports.html">Reports</a>
+        <a href="alerts.html">Alerts</a>
+        <a href="index.html">Create Driver</a>
+        <a href="drivers.html">View Drivers</a>
+        <a href="create-load.html">Create Load</a>
+        <a href="loads.html">View Loads</a>
+        <a href="customers.html">Customers</a>
+        <a href="invoices.html">Invoices</a>
+        <a href="settlements.html">Settlements</a>
+        <a href="documents.html">Documents</a>
+        <a href="create-vehicle.html">Create Vehicle</a>
+        <a href="vehicles.html">View Vehicles</a>
+        <a href="create-maintenance.html">Create Maintenance</a>
+        <a href="maintenance.html">Maintenance Logs</a>
+        <a href="assign-vehicle.html">Assign Vehicle</a>
+        <a href="compliance.html">Driver Compliance</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <div class="page-header">
+        <div>
+          <h1>Company Settings</h1>
+          <p>Set the business profile and invoice defaults used across HyperRoute.</p>
+        </div>
+      </div>
+
+      <section class="card">
+        <form id="settingsForm" class="form">
+          <div class="field"><label>Company Name</label><input id="companyName" name="company_name" required /></div>
+          <div class="field"><label>Phone</label><input id="phone" name="phone" /></div>
+          <div class="field"><label>Email</label><input id="email" name="email" type="email" /></div>
+          <div class="field"><label>Website</label><input id="website" name="website" /></div>
+          <div class="field"><label>Address Line 1</label><input id="addressLine1" name="address_line_1" /></div>
+          <div class="field"><label>Address Line 2</label><input id="addressLine2" name="address_line_2" /></div>
+          <div class="field"><label>City</label><input id="city" name="city" /></div>
+          <div class="field"><label>State</label><input id="state" name="state" maxlength="2" /></div>
+          <div class="field"><label>ZIP</label><input id="zip" name="zip" /></div>
+          <div class="field"><label>MC Number</label><input id="mcNumber" name="mc_number" /></div>
+          <div class="field"><label>DOT Number</label><input id="dotNumber" name="dot_number" /></div>
+          <div class="field"><label>Logo URL</label><input id="logoUrl" name="logo_url" type="url" placeholder="https://..." /></div>
+          <div class="field"><label>Invoice Prefix</label><input id="invoicePrefix" name="invoice_prefix" placeholder="INV-" /></div>
+          <div class="field"><label>Payment Terms Days</label><input id="paymentTermsDays" name="payment_terms_days" type="number" min="0" step="1" /></div>
+          <div class="field"><label>Default Invoice Notes</label><textarea id="defaultInvoiceNotes" name="default_invoice_notes"></textarea></div>
+          <button type="submit" class="btn">Save Settings</button>
+        </form>
+        <p id="settingsMessage" class="message"></p>
+      </section>
+    </main>
+  </div>
+
+  <script src="companyContext.js"></script>
+<script src="settings.js"></script>
+</body>
+</html>

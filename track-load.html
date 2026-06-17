@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Track Load</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
+</head>
+<body class="tracking-page">
+  <main class="tracking-shell">
+    <header class="tracking-header">
+      <div class="tracking-brand-wrap">
+        <div class="tracking-brand company-first-brand">
+          <span id="companyInitials">HR</span>
+        </div>
+        <span class="tracking-powered-pill">Powered by HyperRoute</span>
+      </div>
+      <div>
+        <p class="tracking-kicker">Shipment Tracking</p>
+        <h1 id="publicCompanyHeading">Track Your Load</h1>
+        <p>View shipment status, pickup and delivery details, documents, and recent timeline updates.</p>
+      </div>
+    </header>
+
+    <section class="tracking-card">
+      <div class="tracking-card-heading">
+        <div>
+          <p class="tracking-kicker">Lookup</p>
+          <h2>Enter Tracking Details</h2>
+        </div>
+        <span>Secure customer visibility</span>
+      </div>
+      <form id="trackingForm" class="tracking-form">
+        <div class="field">
+          <label for="trackingInput">Tracking Code or Load Number</label>
+          <input id="trackingInput" name="tracking_input" placeholder="Example: LD-1001" required />
+        </div>
+        <button class="btn" type="submit">Track Load</button>
+      </form>
+      <p id="trackingMessage" class="message"></p>
+    </section>
+
+    <section id="trackingResult" class="tracking-result" hidden>
+      <section class="tracking-summary">
+        <div>
+          <span id="companyName" class="tracking-company"></span>
+          <h2 id="loadTitle"></h2>
+          <p id="customerName"></p>
+          <span id="trackingCode" class="tracking-code"></span>
+        </div>
+        <div class="tracking-status-block">
+          <small>Current Status</small>
+          <span id="loadStatus" class="tracking-status"></span>
+        </div>
+      </section>
+
+      <section class="tracking-grid">
+        <div class="tracking-panel">
+          <h3>Pickup</h3>
+          <p id="pickupLocation"></p>
+          <span id="pickupTime"></span>
+        </div>
+        <div class="tracking-panel">
+          <h3>Delivery</h3>
+          <p id="deliveryLocation"></p>
+          <span id="deliveryTime"></span>
+        </div>
+        <div class="tracking-panel">
+          <h3>Documents</h3>
+          <p id="podStatus"></p>
+          <span id="invoiceStatus"></span>
+        </div>
+      </section>
+
+      <section class="tracking-grid tracking-grid-secondary">
+        <div class="tracking-panel">
+          <h3>Shipper</h3>
+          <p id="shipperName"></p>
+          <span id="shipperContact"></span>
+        </div>
+        <div class="tracking-panel">
+          <h3>Consignee</h3>
+          <p id="consigneeName"></p>
+          <span id="consigneeContact"></span>
+        </div>
+        <div class="tracking-panel">
+          <h3>Contact</h3>
+          <p id="dispatcherContact"></p>
+          <span id="lastUpdated"></span>
+        </div>
+      </section>
+
+      <section class="tracking-card">
+        <h2>Timeline</h2>
+        <ol id="timelineList" class="tracking-timeline"></ol>
+      </section>
+    </section>
+
+    <footer class="tracking-footer">
+      <span>Transportation Operations Intelligence</span>
+      <strong>Powered by HyperRoute Intelligence</strong>
+    </footer>
+  </main>
+
+  <script src="track-load.js"></script>
+</body>
+</html>

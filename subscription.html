@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Subscription</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
+  <script src="auth-guard.js"></script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <h2 class="logo">HyperRoute Intelligence</h2>
+      <nav>
+        <a href="dashboard.html">Dashboard</a>
+
+        <a href="onboarding.html">Onboarding</a>
+
+        <a href="activity.html">Activity</a>
+        <a href="dispatch.html">Dispatch Board</a>
+        <a href="driver-portal.html">Driver Portal</a>
+        <a href="reports.html">Reports</a>
+        <a href="alerts.html">Alerts</a>
+        <a href="index.html">Create Driver</a>
+        <a href="drivers.html">View Drivers</a>
+        <a href="create-load.html">Create Load</a>
+        <a href="loads.html">View Loads</a>
+        <a href="customers.html">Customers</a>
+        <a href="invoices.html">Invoices</a>
+        <a href="settlements.html">Settlements</a>
+        <a href="documents.html">Documents</a>
+        <a href="create-vehicle.html">Create Vehicle</a>
+        <a href="vehicles.html">View Vehicles</a>
+        <a href="create-maintenance.html">Create Maintenance</a>
+        <a href="maintenance.html">Maintenance Logs</a>
+        <a href="assign-vehicle.html">Assign Vehicle</a>
+        <a href="compliance.html">Driver Compliance</a>
+        <a href="company-admin.html">Company Admin</a>
+        <a href="subscription.html" class="active">Subscription</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <div class="page-header">
+        <div>
+          <h1>Subscription</h1>
+          <p>Choose a plan, review company limits, and track billing status.</p>
+        </div>
+      </div>
+
+      <section class="kpi-grid subscription-kpis">
+        <div class="kpi-card"><h3 id="currentPlan">-</h3><p>Current Plan</p></div>
+        <div class="kpi-card caution"><h3 id="billingStatus">-</h3><p>Billing Status</p></div>
+        <div class="kpi-card"><h3 id="monthlyPrice">$0</h3><p>Monthly Price</p></div>
+        <div class="kpi-card success"><h3 id="renewsAt">-</h3><p>Renews / Trial Ends</p></div>
+      </section>
+
+      <section class="subscription-grid" id="planGrid"></section>
+
+      <section class="card subscription-details">
+        <h2>Plan Usage</h2>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th>Used</th>
+              <th>Limit</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="usageTableBody"></tbody>
+        </table>
+        <p id="subscriptionMessage" class="message"></p>
+      </section>
+    </main>
+  </div>
+
+  <script src="companyContext.js"></script>
+  <script src="subscription.js"></script>
+</body>
+</html>

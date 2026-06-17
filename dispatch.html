@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dispatch Board</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
+  <script src="auth-guard.js"></script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <h2 class="logo">HyperRoute Intelligence</h2>
+      <nav>
+        
+        
+        <a href="dashboard.html">Dashboard</a>
+
+        
+        
+        <a href="onboarding.html">Onboarding</a>
+
+        
+        
+        <a href="activity.html">Activity</a>
+        <a href="dispatch.html" class="active">Dispatch Board</a>
+        <a href="alerts.html">Alerts</a>
+        <a href="index.html">Create Driver</a>
+        <a href="drivers.html">View Drivers</a>
+        <a href="create-load.html">Create Load</a>
+        <a href="loads.html">View Loads</a>
+        <a href="customers.html">Customers</a>
+        <a href="invoices.html">Invoices</a>
+        <a href="settlements.html">Settlements</a>
+        <a href="documents.html">Documents</a>
+        <a href="create-vehicle.html">Create Vehicle</a>
+        <a href="vehicles.html">View Vehicles</a>
+        <a href="create-maintenance.html">Create Maintenance</a>
+        <a href="maintenance.html">Maintenance Logs</a>
+        <a href="assign-vehicle.html">Assign Vehicle</a>
+        <a href="compliance.html">Driver Compliance</a>
+        <a href="company-admin.html">Company Admin</a>
+        <a href="platform-admin.html">Platform Admin</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <div class="page-header">
+        <div>
+          <h1>Dispatch Board</h1>
+          <p>Track active loads, assignments, delivery risk, and invoicing from one screen.</p>
+        </div>
+        <a class="view" href="create-load.html">Create Load</a>
+      </div>
+
+      <section class="dispatch-toolbar card">
+        <div class="field">
+          <label for="statusFilter">Status</label>
+          <select id="statusFilter">
+            <option value="">All Active Loads</option>
+            <option value="booked">Booked</option>
+            <option value="assigned">Assigned</option>
+            <option value="dispatched">Dispatched</option>
+            <option value="picked_up">Picked Up</option>
+            <option value="in_transit">In Transit</option>
+            <option value="delivered">Delivered</option>
+            <option value="pod_received">POD Received</option>
+            <option value="invoiced">Invoiced</option>
+            <option value="paid">Paid</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="dateFilter">Pickup Date</label>
+          <input id="dateFilter" type="date" />
+        </div>
+
+        <div class="field">
+          <label for="searchFilter">Search</label>
+          <input id="searchFilter" type="search" placeholder="Load, customer, city, driver, truck" />
+        </div>
+
+        <button id="clearFiltersBtn" class="btn" type="button">Clear Filters</button>
+      </section>
+
+      <section class="kpi-grid dispatch-kpis">
+        <div class="kpi-card"><h3 id="dispatchTotal">0</h3><p>Active Loads</p></div>
+        <div class="kpi-card caution"><h3 id="dispatchToday">0</h3><p>Pickup Today</p></div>
+        <div class="kpi-card warning"><h3 id="dispatchLate">0</h3><p>Late / At Risk</p></div>
+        <div class="kpi-card success"><h3 id="dispatchDelivered">0</h3><p>Delivered / POD</p></div>
+      </section>
+
+      <p id="dispatchMessage" class="message"></p>
+
+      <section id="dispatchBoard" class="dispatch-board"></section>
+    </main>
+  </div>
+
+  <script src="companyContext.js"></script>
+<script src="dispatch.js"></script>
+</body>
+</html>

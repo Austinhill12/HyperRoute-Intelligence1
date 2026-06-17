@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Platform Admin</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
+  <script src="auth-guard.js"></script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <h2 class="logo">HyperRoute Intelligence</h2>
+      <nav>
+        
+        
+        <a href="dashboard.html">Dashboard</a>
+
+        
+        
+        <a href="onboarding.html">Onboarding</a>
+
+        
+        
+        <a href="activity.html">Activity</a>
+        <a href="dispatch.html">Dispatch Board</a>
+        <a href="driver-portal.html">Driver Portal</a>
+        <a href="reports.html">Reports</a>
+        <a href="alerts.html">Alerts</a>
+        <a href="index.html">Create Driver</a>
+        <a href="drivers.html">View Drivers</a>
+        <a href="create-load.html">Create Load</a>
+        <a href="loads.html">View Loads</a>
+        <a href="customers.html">Customers</a>
+        <a href="invoices.html">Invoices</a>
+        <a href="settlements.html">Settlements</a>
+        <a href="documents.html">Documents</a>
+        <a href="create-vehicle.html">Create Vehicle</a>
+        <a href="vehicles.html">View Vehicles</a>
+        <a href="create-maintenance.html">Create Maintenance</a>
+        <a href="maintenance.html">Maintenance Logs</a>
+        <a href="assign-vehicle.html">Assign Vehicle</a>
+        <a href="compliance.html">Driver Compliance</a>
+        <a href="company-admin.html">Company Admin</a>
+        <a href="platform-admin.html" class="active">Platform Admin</a>
+        <a href="demo-center.html">Demo Center</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <div class="page-header">
+        <div>
+          <h1>Platform Admin</h1>
+          <p>Manage customer companies, company users, and platform visibility.</p>
+        </div>
+      </div>
+
+      <section class="kpi-grid">
+        <div class="kpi-card"><h3 id="platformCompanyCount">0</h3><p>Companies</p></div>
+        <div class="kpi-card success"><h3 id="platformActiveCompanyCount">0</h3><p>Active Companies</p></div>
+        <div class="kpi-card"><h3 id="platformUserCount">0</h3><p>Company Users</p></div>
+        <div class="kpi-card caution"><h3 id="platformInviteCount">0</h3><p>Pending Invites</p></div>
+        <div class="kpi-card caution"><h3 id="platformLoadCount">0</h3><p>Total Loads</p></div>
+        <div class="kpi-card success"><h3 id="platformMonthlyRevenue">$0</h3><p>Monthly Revenue</p></div>
+        <div class="kpi-card warning"><h3 id="platformPastDueCount">0</h3><p>Past Due / Suspended</p></div>
+      </section>
+
+      <section class="card demo-admin-panel">
+        <div>
+          <p class="section-eyebrow">Demo Mode</p>
+          <h2>HyperRoute Demo Controls</h2>
+          <p id="demoAdminSummary">Loading demo account status...</p>
+        </div>
+        <div class="demo-script-actions">
+          <button class="view" id="openDemoCompany" type="button">Open Demo Dashboard</button>
+          <button class="view secondary-action" id="copyPlatformDemoScript" type="button">Copy Demo Script</button>
+          <button class="view secondary-action" id="copyElevatorPitch" type="button">Copy Pitch</button>
+          <button class="view secondary-action" id="copyPricingTalkTrack" type="button">Copy Pricing</button>
+          <button class="view secondary-action" id="copyCloseScript" type="button">Copy Close</button>
+          <button class="view secondary-action" id="copyDemoResetNote" type="button">Copy Reset Note</button>
+        </div>
+        <div id="demoReadinessList" class="dashboard-list demo-readiness-list"></div>
+      </section>
+
+      <section class="readiness-grid">
+        <article class="card readiness-score-card">
+          <p class="section-eyebrow">Sell Readiness</p>
+          <h2 id="readinessScore">0%</h2>
+          <div class="health-meter"><span id="readinessScoreBar"></span></div>
+          <p id="readinessSummary">Checking production readiness...</p>
+        </article>
+
+        <article class="card readiness-actions-card">
+          <div class="readiness-mini-grid">
+            <div><strong id="readinessBlockers">0</strong><span>Blockers</span></div>
+            <div><strong id="readinessWarnings">0</strong><span>Warnings</span></div>
+            <div><strong id="readinessTablesReady">0/0</strong><span>Tables Ready</span></div>
+          </div>
+          <div class="readiness-next">
+            <strong>Next Fix</strong>
+            <span id="readinessNextFix">Loading readiness checks...</span>
+          </div>
+        </article>
+      </section>
+
+      <section class="dashboard-two-column readiness-section">
+        <article class="card">
+          <div class="section-header">
+            <div>
+              <p class="section-eyebrow">Readiness</p>
+              <h2>Ready To Sell Checklist</h2>
+            </div>
+          </div>
+          <div id="readinessChecklist" class="dashboard-list"></div>
+        </article>
+
+        <article class="card">
+          <div class="section-header">
+            <div>
+              <p class="section-eyebrow">System Health</p>
+              <h2>Required Tables</h2>
+            </div>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Area</th>
+                <th>Table</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="tableHealthBody"></tbody>
+          </table>
+        </article>
+      </section>
+
+      <section class="dashboard-two-column readiness-section">
+        <article class="card">
+          <div class="section-header">
+            <div>
+              <p class="section-eyebrow">Beta Launch</p>
+              <h2>Launch Plan</h2>
+            </div>
+          </div>
+          <div id="launchChecklist" class="dashboard-list"></div>
+        </article>
+
+        <article class="card">
+          <div class="section-header">
+            <div>
+              <p class="section-eyebrow">Revenue Path</p>
+              <h2>First Customer Targets</h2>
+            </div>
+          </div>
+          <div id="launchRevenuePlan" class="launch-revenue-grid"></div>
+        </article>
+      </section>
+
+      <section class="card readiness-section">
+        <div class="section-header">
+          <div>
+            <p class="section-eyebrow">Security</p>
+            <h2>Security Audit & Company Isolation</h2>
+          </div>
+          <button id="runIsolationTestBtn" class="view" type="button">Run Security Audit</button>
+        </div>
+        <div class="readiness-mini-grid security-audit-grid">
+          <div>
+            <span>Security Score</span>
+            <strong id="securityAuditScore">Not Run</strong>
+          </div>
+          <div>
+            <span>Blockers</span>
+            <strong id="securityAuditBlockers">-</strong>
+          </div>
+          <div>
+            <span>Warnings</span>
+            <strong id="securityAuditWarnings">-</strong>
+          </div>
+          <div>
+            <span>Tables Checked</span>
+            <strong id="securityAuditTables">-</strong>
+          </div>
+        </div>
+        <div id="isolationTestSummary" class="dashboard-list"></div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Area / Table</th>
+              <th>Status</th>
+              <th>Company Records</th>
+              <th>Finding</th>
+            </tr>
+          </thead>
+          <tbody id="isolationTestTableBody"></tbody>
+        </table>
+      </section>
+
+      <section class="card readiness-section">
+        <div class="section-header">
+          <div>
+            <p class="section-eyebrow">Onboarding</p>
+            <h2>Customer Signup Readiness</h2>
+          </div>
+          <a class="view secondary-action" href="signup.html">Open Signup</a>
+        </div>
+        <div id="onboardingReadinessList" class="dashboard-list"></div>
+      </section>
+
+      <section class="card readiness-section">
+        <div class="section-header">
+          <div>
+            <p class="section-eyebrow">Data Quality</p>
+            <h2>Company Setup Warnings</h2>
+          </div>
+        </div>
+        <div id="companyQualityList" class="dashboard-list"></div>
+      </section>
+
+      <section class="card readiness-section" id="customerAccountProfileCard">
+        <div class="section-header">
+          <div>
+            <p class="section-eyebrow">Customer Account</p>
+            <h2 id="customerAccountProfileTitle">Select A Company</h2>
+          </div>
+          <div class="quick-actions">
+            <button class="view secondary-action" id="customerProfileOpenWorkspace" type="button" disabled>Open Workspace</button>
+            <button class="view secondary-action" id="customerProfileOpenOnboarding" type="button" disabled>Open Onboarding</button>
+          </div>
+        </div>
+        <div id="customerAccountProfileBody" class="customer-account-profile">
+          <div class="empty-state">Use Open beside a company below to review launch readiness, subscription, users, missing setup items, and handoff status.</div>
+        </div>
+      </section>
+
+      <section class="card readiness-section">
+        <div class="section-header">
+          <div>
+            <p class="section-eyebrow">Support</p>
+            <h2>Customer Support Queue</h2>
+          </div>
+          <a class="view secondary-action" href="support.html">Open Support Page</a>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Company</th>
+              <th>Ticket</th>
+              <th>Priority</th>
+              <th>Status</th>
+              <th>Updated</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="platformSupportTableBody"></tbody>
+        </table>
+        <div id="platformSupportConversationPanel" class="support-conversation-panel hidden">
+          <div class="section-header">
+            <div>
+              <p class="section-eyebrow">Ticket Thread</p>
+              <h2 id="platformSupportConversationTitle">Support Ticket</h2>
+            </div>
+            <button id="closePlatformSupportConversationBtn" class="view secondary-action" type="button">Close</button>
+          </div>
+          <div id="platformSupportConversationMessages" class="support-message-list"></div>
+          <form id="platformSupportReplyForm" class="support-reply-form">
+            <div class="field full-width">
+              <label>Reply / Note</label>
+              <textarea id="platformSupportReplyMessage" rows="4" required placeholder="Write a customer reply or internal note"></textarea>
+            </div>
+            <div class="quick-actions">
+              <button class="btn" type="submit" data-reply-mode="public">Send Public Reply</button>
+              <button class="view secondary-action" type="submit" data-reply-mode="internal">Save Internal Note</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Create Customer Company</h2>
+        <form id="platformCompanyForm" class="form">
+          <div class="field"><label>Company Name</label><input name="company_name" required /></div>
+          <div class="field"><label>Legal Name</label><input name="legal_name" /></div>
+          <div class="field"><label>Phone</label><input name="phone" /></div>
+          <div class="field"><label>Email</label><input name="email" type="email" /></div>
+          <div class="field"><label>MC Number</label><input name="mc_number" /></div>
+          <div class="field"><label>DOT Number</label><input name="dot_number" /></div>
+          <button type="submit" class="btn">Create Company</button>
+        </form>
+      </section>
+
+      <section class="card" style="margin-top: 30px;">
+        <h2>Customer Companies</h2>
+        <div id="customerLifecyclePipeline" class="readiness-mini-grid lifecycle-pipeline-grid"></div>
+        <div id="platformCompaniesTableBody" class="platform-company-list"></div>
+      </section>
+
+      <section class="card" style="margin-top: 30px;">
+        <h2>Subscriptions</h2>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Company</th>
+              <th>Plan</th>
+              <th>Price</th>
+              <th>Status</th>
+              <th>Trial Ends</th>
+              <th>Renews</th>
+              <th>Payment Setup</th>
+              <th>Billing</th>
+              <th>Notes</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="platformSubscriptionsTableBody"></tbody>
+        </table>
+      </section>
+
+      <section class="card readiness-section">
+        <div class="section-header">
+          <div>
+            <p class="section-eyebrow">Billing</p>
+            <h2>Payment Readiness</h2>
+          </div>
+          <a class="view secondary-action" href="subscription.html">Open Subscription Page</a>
+        </div>
+        <div id="paymentReadinessList" class="dashboard-list"></div>
+      </section>
+
+      <section class="card readiness-section">
+        <div class="section-header">
+          <div>
+            <p class="section-eyebrow">Deployment</p>
+            <h2>Production Hosting Readiness</h2>
+          </div>
+        </div>
+        <div id="deploymentReadinessList" class="dashboard-list"></div>
+      </section>
+
+      <section class="card readiness-section">
+        <div class="section-header">
+          <div>
+            <p class="section-eyebrow">QA</p>
+            <h2>Final App Testing Checklist</h2>
+          </div>
+          <button id="resetQaChecklistBtn" class="view secondary-action" type="button">Reset QA</button>
+        </div>
+        <div id="qaChecklistSummary" class="dashboard-list"></div>
+        <div id="qaChecklistList" class="qa-checklist-grid"></div>
+      </section>
+
+      <section class="card" style="margin-top: 30px;">
+        <h2>Invite User</h2>
+        <form id="platformInviteForm" class="form">
+          <div class="field"><label>Company</label><select id="platformInviteCompany" name="company_id" required></select></div>
+          <div class="field"><label>Email</label><input name="email" type="email" placeholder="user@company.com" required /></div>
+          <div class="field"><label>Role</label><select name="role">
+            <option value="company_owner">Company Owner</option>
+            <option value="company_admin">Company Admin</option>
+            <option value="dispatcher">Dispatcher</option>
+            <option value="driver">Driver</option>
+            <option value="accounting">Accounting</option>
+            <option value="maintenance">Maintenance</option>
+          </select></div>
+          <div class="field"><label>Notes</label><input name="notes" placeholder="Optional internal note" /></div>
+          <button type="submit" class="btn">Save Invite</button>
+        </form>
+
+        <table class="data-table platform-users-table">
+          <thead>
+            <tr>
+              <th>Company</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th>Auth User ID</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="platformInvitesTableBody"></tbody>
+        </table>
+      </section>
+
+      <section class="card" style="margin-top: 30px;">
+        <h2>Company Users</h2>
+        <form id="platformUserForm" class="form">
+          <div class="field"><label>Company</label><select id="platformUserCompany" name="company_id" required></select></div>
+          <div class="field"><label>Auth User ID</label><input name="user_id" placeholder="Supabase Auth user UUID" required /></div>
+          <div class="field"><label>Role</label><select name="role">
+            <option value="company_owner">Company Owner</option>
+            <option value="company_admin">Company Admin</option>
+            <option value="dispatcher">Dispatcher</option>
+            <option value="driver">Driver</option>
+            <option value="accounting">Accounting</option>
+            <option value="maintenance">Maintenance</option>
+          </select></div>
+          <div class="field"><label>Status</label><select name="status">
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select></div>
+          <button type="submit" class="btn">Save Company User</button>
+        </form>
+
+        <table class="data-table platform-users-table">
+          <thead>
+            <tr>
+              <th>Company</th>
+              <th>User ID</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody id="platformUsersTableBody"></tbody>
+        </table>
+      </section>
+
+      <p id="platformAdminMessage" class="message"></p>
+    </main>
+  </div>
+
+  <script src="companyContext.js"></script>
+  <script type="module" src="platform-admin.js"></script>
+</body>
+</html>

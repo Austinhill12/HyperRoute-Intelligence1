@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Carriers</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
+  <script src="auth-guard.js"></script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <h2 class="logo">HyperRoute Intelligence</h2>
+      <nav>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="dispatch.html">Dispatch Board</a>
+        <a href="loads.html">View Loads</a>
+        <a href="customers.html">Customers</a>
+        <a href="carriers.html" class="active">Carriers</a>
+        <a href="invoices.html">Invoices</a>
+        <a href="reports.html">Reports</a>
+        <a href="alerts.html">Alerts</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <div class="page-header">
+        <div>
+          <h1>Carriers</h1>
+          <p>Manage outside carriers, carrier packets, insurance, W-9s, and tendering readiness.</p>
+        </div>
+      </div>
+
+      <section class="kpi-grid carrier-kpis">
+        <article class="kpi-card"><h3 id="carrierTotal">0</h3><p>Total Carriers</p></article>
+        <article class="kpi-card success"><h3 id="carrierReady">0</h3><p>Ready To Tender</p></article>
+        <article class="kpi-card caution"><h3 id="carrierReview">0</h3><p>Needs Review</p></article>
+        <article class="kpi-card warning"><h3 id="carrierBlocked">0</h3><p>Blocked / Inactive</p></article>
+      </section>
+
+      <section class="card">
+        <div class="section-header">
+          <div>
+            <p class="section-eyebrow">Carrier Profile</p>
+            <h2 id="carrierFormTitle">Add Carrier</h2>
+          </div>
+          <button type="button" id="cancelEditCarrier" class="view secondary-action hidden">Cancel Edit</button>
+        </div>
+
+        <form id="carrierForm" class="form">
+          <input type="hidden" name="id" id="carrierId" />
+
+          <div class="field"><label>Carrier Name</label><input name="carrier_name" required /></div>
+          <div class="field"><label>Status</label><select name="status"><option value="active">Active</option><option value="inactive">Inactive</option><option value="blocked">Blocked</option></select></div>
+          <div class="field"><label>MC Number</label><input name="mc_number" /></div>
+          <div class="field"><label>DOT Number</label><input name="dot_number" /></div>
+          <div class="field"><label>Contact Name</label><input name="contact_name" /></div>
+          <div class="field"><label>Phone</label><input name="phone" /></div>
+          <div class="field"><label>Email</label><input name="email" type="email" /></div>
+          <div class="field"><label>Safety Rating</label><select name="safety_rating"><option value="">Not Reviewed</option><option value="satisfactory">Satisfactory</option><option value="conditional">Conditional</option><option value="unsatisfactory">Unsatisfactory</option></select></div>
+
+          <div class="field"><label>Address</label><input name="address_line1" /></div>
+          <div class="field"><label>City</label><input name="city" /></div>
+          <div class="field"><label>State</label><input name="state" maxlength="2" /></div>
+          <div class="field"><label>ZIP</label><input name="postal_code" /></div>
+
+          <div class="field"><label>Insurance Provider</label><input name="insurance_provider" /></div>
+          <div class="field"><label>Insurance Policy #</label><input name="insurance_policy_number" /></div>
+          <div class="field"><label>Insurance Limit</label><input name="insurance_limit" type="number" min="0" step="0.01" /></div>
+          <div class="field"><label>Insurance Expiration</label><input name="insurance_expiration" type="date" /></div>
+
+          <div class="field"><label>W-9 Status</label><select name="w9_status"><option value="missing">Missing</option><option value="received">Received</option><option value="verified">Verified</option></select></div>
+          <div class="field"><label>Carrier Packet URL</label><input name="document_url" placeholder="https://..." /></div>
+          <div class="field"><label>Factoring Company</label><input name="factoring_company" /></div>
+          <div class="field"><label>Payment Terms</label><input name="payment_terms" placeholder="Net 30, Quick Pay, etc." /></div>
+          <div class="field"><label>Preferred Lanes</label><input name="preferred_lanes" placeholder="FL to GA, Southeast regional" /></div>
+          <div class="field"><label>Service Types</label><input name="service_types" placeholder="Dry van, reefer, flatbed" /></div>
+          <div class="field"><label>Last Reviewed</label><input name="last_reviewed_at" type="date" /></div>
+          <div class="field carrier-notes-field"><label>Notes</label><textarea name="notes"></textarea></div>
+
+          <button type="submit" class="btn" id="saveCarrierButton">Save Carrier</button>
+        </form>
+        <p id="carrierMessage" class="message"></p>
+      </section>
+
+      <section class="card carriers-list-card">
+        <div class="section-header">
+          <div>
+            <p class="section-eyebrow">Carrier Directory</p>
+            <h2>Carrier Network</h2>
+          </div>
+        </div>
+
+        <div class="carrier-toolbar">
+          <div class="field"><label>Search</label><input id="carrierSearch" placeholder="Carrier, MC, DOT, lane, contact" /></div>
+          <div class="field"><label>Status</label><select id="carrierStatusFilter"><option value="">All Statuses</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="blocked">Blocked</option></select></div>
+          <div class="field"><label>Compliance</label><select id="carrierComplianceFilter"><option value="">All</option><option value="ready">Ready</option><option value="review">Needs Review</option><option value="blocked">Blocked</option></select></div>
+        </div>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Carrier</th>
+              <th>Authority</th>
+              <th>Contact</th>
+              <th>Insurance</th>
+              <th>Packet</th>
+              <th>Payment</th>
+              <th>Readiness</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="carriersTableBody"></tbody>
+        </table>
+      </section>
+    </main>
+  </div>
+
+  <script src="companyContext.js"></script>
+  <script src="carriers.js"></script>
+</body>
+</html>

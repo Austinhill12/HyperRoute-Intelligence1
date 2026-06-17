@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Driver | HyperRoute Intelligence</title>
+
+  <link rel="stylesheet" href="styles.css">
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="auth-guard.js"></script>
+</head>
+
+<body>
+
+  <div class="layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+
+      <h2 class="logo">HyperRoute Intelligence</h2>
+
+      <nav>
+
+        <a href="index.html" class="active">
+          Create Driver
+        </a>
+
+        <a href="dashboard.html">
+          Dashboard
+        </a>
+
+        <a href="drivers.html">
+          View Drivers
+        </a>
+
+        <a href="drivers.html">
+          Edit Driver
+        </a>
+
+        <a href="create-load.html">
+          Create Load
+        </a>
+
+        <a href="loads.html">
+          View Loads
+        </a>
+
+        <a href="compliance.html">
+          Compliance
+        </a>
+
+        <a href="assign-vehicle.html">
+          Assign Vehicle
+        </a>
+
+        <a href="create-maintenance.html">
+          Maintenance
+        </a>
+
+      </nav>
+
+    </aside>
+
+    <!-- Main Content -->
+    <main class="content">
+
+      <div class="page-header">
+
+        <h1>Create Driver</h1>
+
+        <p>
+          Add a new driver to your fleet management system.
+        </p>
+
+      </div>
+
+      <form id="createDriverForm" class="card form">
+
+        <div class="field">
+          <label>First Name</label>
+          <input
+            type="text"
+            name="first_name"
+            placeholder="John"
+            required>
+        </div>
+
+        <div class="field">
+          <label>Last Name</label>
+          <input
+            type="text"
+            name="last_name"
+            placeholder="Smith"
+            required>
+        </div>
+
+        <div class="field">
+          <label>Phone Number</label>
+          <input
+            type="tel"
+            name="phone"
+            placeholder="(555) 555-5555">
+        </div>
+
+        <div class="field">
+          <label>Email Address</label>
+          <input
+            type="email"
+            name="email"
+            placeholder="john@example.com">
+        </div>
+
+        <div class="field">
+          <label>License Number</label>
+          <input
+            type="text"
+            name="license_number"
+            placeholder="CDL123456">
+        </div>
+
+        <div class="field">
+          <label>License Expiration</label>
+          <input
+            type="date"
+            name="license_expiration">
+        </div>
+
+        <div class="field">
+          <label>Driver Photo URL</label>
+          <input
+            type="text"
+            name="photo_url"
+            placeholder="https://image-url.com">
+        </div>
+
+        <div class="field">
+          <label>Document URL</label>
+          <input
+            type="text"
+            name="file_url"
+            placeholder="https://document-url.com">
+        </div>
+
+        <button type="submit" class="btn">
+          Save Driver
+        </button>
+
+      </form>
+
+      <p id="createDriverMessage" class="message"></p>
+
+    </main>
+
+  </div>
+
+  <script src="companyContext.js"></script>
+<script src="script.js"></script>
+
+</body>
+
+</html>

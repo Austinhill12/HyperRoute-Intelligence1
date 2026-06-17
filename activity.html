@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Activity</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
+  <script src="auth-guard.js"></script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <h2 class="logo">HyperRoute Intelligence</h2>
+      <nav>
+        <a href="onboarding.html">Onboarding</a>
+        <a href="activity.html" class="active">Activity</a>
+        <a href="dispatch.html">Dispatch Board</a>
+        <a href="driver-portal.html">Driver Portal</a>
+        <a href="reports.html">Reports</a>
+        <a href="alerts.html">Alerts</a>
+        <a href="index.html">Create Driver</a>
+        <a href="drivers.html">View Drivers</a>
+        <a href="create-load.html">Create Load</a>
+        <a href="loads.html">View Loads</a>
+        <a href="customers.html">Customers</a>
+        <a href="invoices.html">Invoices</a>
+        <a href="settlements.html">Settlements</a>
+        <a href="documents.html">Documents</a>
+        <a href="create-vehicle.html">Create Vehicle</a>
+        <a href="vehicles.html">View Vehicles</a>
+        <a href="create-maintenance.html">Create Maintenance</a>
+        <a href="maintenance.html">Maintenance Logs</a>
+        <a href="assign-vehicle.html">Assign Vehicle</a>
+        <a href="compliance.html">Driver Compliance</a>
+        <a href="company-admin.html">Company Admin</a>
+        <a href="platform-admin.html">Platform Admin</a>
+        <a href="settings.html">Settings</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <div class="page-header">
+        <div>
+          <h1>Activity</h1>
+          <p id="activityCompanyName">Audit history for the selected company.</p>
+        </div>
+      </div>
+
+      <section class="card activity-toolbar">
+        <div class="field">
+          <label>Action</label>
+          <select id="activityActionFilter">
+            <option value="">All actions</option>
+            <option value="create">Create</option>
+            <option value="update">Update</option>
+            <option value="delete">Delete</option>
+            <option value="invite">Invite</option>
+            <option value="access">Access</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Entity</label>
+          <select id="activityEntityFilter">
+            <option value="">All entities</option>
+            <option value="company">Company</option>
+            <option value="company_user">Company User</option>
+            <option value="user_invite">User Invite</option>
+            <option value="load">Load</option>
+            <option value="driver">Driver</option>
+            <option value="truck">Truck</option>
+            <option value="invoice">Invoice</option>
+          </select>
+        </div>
+        <button id="refreshActivityBtn" class="btn" type="button">Refresh</button>
+      </section>
+
+      <section class="card" style="margin-top: 30px;">
+        <h2>Recent Activity</h2>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Action</th>
+              <th>Entity</th>
+              <th>Description</th>
+              <th>User</th>
+            </tr>
+          </thead>
+          <tbody id="activityTableBody"></tbody>
+        </table>
+        <p id="activityMessage" class="message"></p>
+      </section>
+    </main>
+  </div>
+
+  <script src="companyContext.js"></script>
+  <script type="module" src="activity.js"></script>
+</body>
+</html>

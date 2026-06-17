@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Company Admin</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
+  <script src="auth-guard.js"></script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <h2 class="logo">HyperRoute Intelligence</h2>
+      <nav>
+        
+        
+        <a href="dashboard.html">Dashboard</a>
+
+        
+        
+        <a href="onboarding.html">Onboarding</a>
+
+        
+        
+        <a href="activity.html">Activity</a>
+        <a href="dispatch.html">Dispatch Board</a>
+        <a href="driver-portal.html">Driver Portal</a>
+        <a href="reports.html">Reports</a>
+        <a href="alerts.html">Alerts</a>
+        <a href="index.html">Create Driver</a>
+        <a href="drivers.html">View Drivers</a>
+        <a href="create-load.html">Create Load</a>
+        <a href="loads.html">View Loads</a>
+        <a href="customers.html">Customers</a>
+        <a href="invoices.html">Invoices</a>
+        <a href="settlements.html">Settlements</a>
+        <a href="documents.html">Documents</a>
+        <a href="create-vehicle.html">Create Vehicle</a>
+        <a href="vehicles.html">View Vehicles</a>
+        <a href="create-maintenance.html">Create Maintenance</a>
+        <a href="maintenance.html">Maintenance Logs</a>
+        <a href="assign-vehicle.html">Assign Vehicle</a>
+        <a href="compliance.html">Driver Compliance</a>
+        <a href="company-admin.html" class="active">Company Admin</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <div class="page-header">
+        <div>
+          <h1>Company Admin</h1>
+          <p>Manage company profile, users, and roles for the SaaS foundation.</p>
+        </div>
+        <a class="view" href="subscription.html">Billing & Subscription</a>
+      </div>
+
+      <section class="kpi-grid company-admin-kpis">
+        <div class="kpi-card"><h3 id="companyCount">0</h3><p>Companies</p></div>
+        <div class="kpi-card"><h3 id="userCount">0</h3><p>Company Users</p></div>
+        <div class="kpi-card success"><h3 id="activeUserCount">0</h3><p>Active Users</p></div>
+        <div class="kpi-card caution"><h3 id="adminUserCount">0</h3><p>Admins / Owners</p></div>
+      </section>
+
+      <section class="card">
+        <h2>Create Company</h2>
+        <form id="createCompanyForm" class="form">
+          <div class="field"><label>Company Name</label><input name="company_name" required /></div>
+          <div class="field"><label>Legal Name</label><input name="legal_name" /></div>
+          <div class="field"><label>Phone</label><input name="phone" /></div>
+          <div class="field"><label>Email</label><input name="email" type="email" /></div>
+          <div class="field"><label>MC Number</label><input name="mc_number" /></div>
+          <div class="field"><label>DOT Number</label><input name="dot_number" /></div>
+          <button type="submit" class="btn">Create Company</button>
+        </form>
+      </section>
+
+      <section class="card" style="margin-top: 30px;">
+        <div class="company-admin-toolbar">
+          <div class="field">
+            <label for="companySelect">Select Company</label>
+            <select id="companySelect"></select>
+          </div>
+          <button id="newCompanyBtn" class="view" type="button">New Company</button>
+        </div>
+
+        <h2 id="companyFormTitle">Company Profile</h2>
+        <p id="companyModeText" class="company-mode-text">Editing selected company</p>
+        <form id="companyForm" class="form">
+          <input id="companyId" name="id" type="hidden" />
+          <div class="field"><label>Company Name</label><input id="companyName" name="company_name" required /></div>
+          <div class="field"><label>Legal Name</label><input id="legalName" name="legal_name" /></div>
+          <div class="field"><label>Phone</label><input id="phone" name="phone" /></div>
+          <div class="field"><label>Email</label><input id="email" name="email" type="email" /></div>
+          <div class="field"><label>Website</label><input id="website" name="website" /></div>
+          <div class="field"><label>Status</label><select id="companyStatus" name="status">
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select></div>
+          <div class="field"><label>Address Line 1</label><input id="addressLine1" name="address_line_1" /></div>
+          <div class="field"><label>Address Line 2</label><input id="addressLine2" name="address_line_2" /></div>
+          <div class="field"><label>City</label><input id="city" name="city" /></div>
+          <div class="field"><label>State</label><input id="state" name="state" maxlength="2" /></div>
+          <div class="field"><label>ZIP</label><input id="zip" name="zip" /></div>
+          <div class="field"><label>MC Number</label><input id="mcNumber" name="mc_number" /></div>
+          <div class="field"><label>DOT Number</label><input id="dotNumber" name="dot_number" /></div>
+          <button type="submit" class="btn">Save Company</button>
+        </form>
+        <p id="companyAdminMessage" class="message"></p>
+      </section>
+
+      <section class="card" style="margin-top: 30px;">
+        <h2>All Companies</h2>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Company</th>
+              <th>Legal Name</th>
+              <th>Phone</th>
+              <th>Email</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="companiesTableBody"></tbody>
+        </table>
+      </section>
+
+      <section class="card" style="margin-top: 30px;">
+        <h2>Invite / Add Company User</h2>
+        <form id="companyUserForm" class="form">
+          <div class="field"><label>Email</label><input id="inviteEmail" name="email" type="email" placeholder="user@company.com" required /></div>
+          <div class="field"><label>Auth User ID</label><input id="userId" name="user_id" placeholder="Optional Supabase auth user UUID" /></div>
+          <div class="field"><label>Role</label><select id="userRole" name="role">
+            <option value="company_owner">Owner</option>
+            <option value="company_admin">Admin</option>
+            <option value="dispatcher">Dispatcher</option>
+            <option value="accounting">Accounting</option>
+            <option value="maintenance">Maintenance</option>
+            <option value="driver">Driver</option>
+          </select></div>
+          <div class="field"><label>Status</label><select id="userStatus" name="status">
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select></div>
+          <button type="submit" class="btn">Save User / Invite</button>
+        </form>
+      </section>
+
+      <section class="card" style="margin-top: 30px;">
+        <h2>Company Users</h2>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>User ID</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="companyUsersTableBody"></tbody>
+        </table>
+      </section>
+
+      <section class="card" style="margin-top: 30px;">
+        <h2>Pending Invites</h2>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="userInvitesTableBody"></tbody>
+        </table>
+      </section>
+    </main>
+  </div>
+
+  <script src="companyContext.js"></script>
+<script src="company-admin.js"></script>
+</body>
+</html>

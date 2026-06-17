@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Add Maintenance</title>
+
+  <!-- Global Styles -->
+  <link rel="stylesheet" href="styles.css" />
+
+  <!-- Modern Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
+  <script src="auth-guard.js"></script>
+</head>
+
+<body>
+  <div class="layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <h2 class="logo">HyperRoute Intelligence</h2>
+
+      <nav>
+        
+        
+        <a href="dashboard.html">Dashboard</a>
+
+        
+        
+        <a href="onboarding.html">Onboarding</a>
+
+        
+        
+        <a href="activity.html">Activity</a>
+        <a href="dispatch.html">Dispatch Board</a>
+        <a href="driver-portal.html">Driver Portal</a>
+        <a href="reports.html">Reports</a>
+        <a href="alerts.html">Alerts</a>
+
+        <!-- Drivers -->
+        <a href="index.html">Create Driver</a>
+        <a href="drivers.html">View Drivers</a>
+        <!-- Loads -->
+        <a href="create-load.html">Create Load</a>
+        <a href="loads.html">View Loads</a>
+        <a href="customers.html">Customers</a>
+        <a href="invoices.html">Invoices</a>
+        <a href="settlements.html">Settlements</a>
+        <a href="documents.html">Documents</a>
+
+
+        <!-- Vehicles -->
+        <a href="create-vehicle.html">Create Vehicle</a>
+        <a href="vehicles.html">View Vehicles</a>
+
+        <!-- Maintenance -->
+        <a href="create-maintenance.html" class="active">Create Maintenance</a>
+        <a href="maintenance.html">Maintenance Logs</a>
+
+        <!-- Assignments -->
+        <a href="assign-vehicle.html">Assign Vehicle</a>
+
+        <!-- Compliance -->
+        <a href="compliance.html">Driver Compliance</a>
+        <a href="company-admin.html">Company Admin</a>
+        <a href="platform-admin.html">Platform Admin</a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="content">
+      <h1>Add Maintenance Record</h1>
+
+      <section class="card">
+
+        <form id="maintenanceForm" class="form">
+          <div class="field">
+            <label>Truck</label>
+            <select id="truckSelect" name="truck_id" required></select>
+          </div>
+
+          <div class="field">
+            <label>Maintenance Type</label>
+            <input name="maintenance_type" placeholder="Oil Change, Inspection, Repair" required />
+          </div>
+
+          <div class="field">
+            <label>Mileage</label>
+            <input name="mileage" type="number" />
+          </div>
+
+          <div class="field">
+            <label>Cost</label>
+            <input name="cost" type="number" step="0.01" />
+          </div>
+
+          <div class="field">
+            <label>Service Date</label>
+            <input name="service_date" type="date" />
+          </div>
+
+          <div class="field">
+            <label>Notes</label>
+            <textarea name="notes"></textarea>
+          </div>
+
+          <button class="btn" type="submit">Save Maintenance</button>
+
+        </form>
+
+        <p id="maintenanceMessage" class="message"></p>
+
+      </section>
+    </main>
+
+  </div>
+
+  <!-- Page Logic -->
+  <script src="companyContext.js"></script>
+<script src="create-maintenance.js"></script>
+</body>
+</html>

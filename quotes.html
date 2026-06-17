@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quotes</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
+  <script src="auth-guard.js"></script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <h2 class="logo">HyperRoute Intelligence</h2>
+      <nav>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="onboarding.html">Onboarding</a>
+        <a href="activity.html">Activity</a>
+        <a href="dispatch.html">Dispatch Board</a>
+        <a href="driver-portal.html">Driver Portal</a>
+        <a href="reports.html">Reports</a>
+        <a href="alerts.html">Alerts</a>
+        <a href="index.html">Create Driver</a>
+        <a href="drivers.html">View Drivers</a>
+        <a href="create-load.html">Create Load</a>
+        <a href="loads.html">View Loads</a>
+        <a href="quotes.html" class="active">Quotes</a>
+        <a href="customers.html">Customers</a>
+        <a href="invoices.html">Invoices</a>
+        <a href="settlements.html">Settlements</a>
+        <a href="documents.html">Documents</a>
+        <a href="create-vehicle.html">Create Vehicle</a>
+        <a href="vehicles.html">View Vehicles</a>
+        <a href="create-maintenance.html">Create Maintenance</a>
+        <a href="maintenance.html">Maintenance Logs</a>
+        <a href="assign-vehicle.html">Assign Vehicle</a>
+        <a href="compliance.html">Driver Compliance</a>
+        <a href="company-admin.html">Company Admin</a>
+        <a href="platform-admin.html">Platform Admin</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <div class="page-header">
+        <div>
+          <h1>Quotes</h1>
+          <p>Create rate quotes, track win rate, and convert accepted quotes into loads.</p>
+        </div>
+      </div>
+
+      <section class="kpi-grid quote-kpis">
+        <div class="kpi-card"><h3 id="quoteTotal">0</h3><p>Total Quotes</p></div>
+        <div class="kpi-card caution"><h3 id="quoteOpen">0</h3><p>Open Quotes</p></div>
+        <div class="kpi-card success"><h3 id="quoteAccepted">0</h3><p>Accepted Quotes</p></div>
+        <div class="kpi-card"><h3 id="quoteWinRate">0%</h3><p>Win Rate</p></div>
+      </section>
+
+      <section class="card">
+        <h2>Create Quote</h2>
+        <form id="quoteForm" class="form">
+          <div class="field">
+            <label>Quote Number</label>
+            <input name="quote_number" placeholder="Q-1001" />
+          </div>
+          <div class="field">
+            <label>Status</label>
+            <select name="status" required>
+              <option value="draft">Draft</option>
+              <option value="sent">Sent</option>
+              <option value="accepted">Accepted</option>
+              <option value="rejected">Rejected</option>
+              <option value="expired">Expired</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Customer</label>
+            <select id="quoteCustomerSelect" name="customer_name"></select>
+          </div>
+          <div class="field">
+            <label>Manual Customer</label>
+            <input name="manual_customer_name" placeholder="Use only if customer is not listed" />
+          </div>
+          <div class="field">
+            <label>Pickup Location</label>
+            <input name="pickup_location" placeholder="City, ST" />
+          </div>
+          <div class="field">
+            <label>Delivery Location</label>
+            <input name="delivery_location" placeholder="City, ST" />
+          </div>
+          <div class="field">
+            <label>Pickup Date</label>
+            <input name="pickup_date" type="date" />
+          </div>
+          <div class="field">
+            <label>Delivery Date</label>
+            <input name="delivery_date" type="date" />
+          </div>
+          <div class="field">
+            <label>Equipment Type</label>
+            <input name="equipment_type" placeholder="Dry van, reefer, flatbed" />
+          </div>
+          <div class="field">
+            <label>Commodity</label>
+            <input name="commodity" placeholder="Freight description" />
+          </div>
+          <div class="field">
+            <label>Estimated Miles</label>
+            <input name="estimated_miles" type="number" step="1" />
+          </div>
+          <div class="field">
+            <label>Weight</label>
+            <input name="weight" type="number" step="1" />
+          </div>
+          <div class="field">
+            <label>Quoted Rate</label>
+            <input name="quoted_rate" type="number" step="0.01" />
+          </div>
+          <div class="field">
+            <label>Expiration Date</label>
+            <input name="expiration_date" type="date" />
+          </div>
+          <div class="field">
+            <label>Notes</label>
+            <textarea name="notes"></textarea>
+          </div>
+          <button type="submit" class="btn">Save Quote</button>
+        </form>
+        <p id="quoteMessage" class="message"></p>
+      </section>
+
+      <section class="card quotes-list-card">
+        <h2>Quote Pipeline</h2>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Quote #</th>
+              <th>Customer</th>
+              <th>Lane</th>
+              <th>Pickup</th>
+              <th>Status</th>
+              <th>Rate</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="quotesTableBody"></tbody>
+        </table>
+      </section>
+    </main>
+  </div>
+
+  <script src="companyContext.js"></script>
+  <script src="quotes.js"></script>
+</body>
+</html>

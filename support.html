@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Support</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
+  <script src="auth-guard.js"></script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <h2 class="logo">HyperRoute Intelligence</h2>
+      <nav>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="onboarding.html">Onboarding</a>
+        <a href="activity.html">Activity</a>
+        <a href="dispatch.html">Dispatch Board</a>
+        <a href="driver-portal.html">Driver Portal</a>
+        <a href="reports.html">Reports</a>
+        <a href="alerts.html">Alerts</a>
+        <a href="index.html">Create Driver</a>
+        <a href="drivers.html">View Drivers</a>
+        <a href="create-load.html">Create Load</a>
+        <a href="loads.html">View Loads</a>
+        <a href="customers.html">Customers</a>
+        <a href="invoices.html">Invoices</a>
+        <a href="settlements.html">Settlements</a>
+        <a href="documents.html">Documents</a>
+        <a href="create-vehicle.html">Create Vehicle</a>
+        <a href="vehicles.html">View Vehicles</a>
+        <a href="create-maintenance.html">Create Maintenance</a>
+        <a href="maintenance.html">Maintenance Logs</a>
+        <a href="assign-vehicle.html">Assign Vehicle</a>
+        <a href="compliance.html">Driver Compliance</a>
+        <a href="company-admin.html">Company Admin</a>
+        <a href="platform-admin.html">Platform Admin</a>
+        <a href="support.html" class="active">Support</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <div class="page-header">
+        <div>
+          <h1>Support</h1>
+          <p id="supportCompanyName">Create and track support requests.</p>
+        </div>
+      </div>
+
+      <section class="kpi-grid support-kpis">
+        <div class="kpi-card"><h3 id="supportOpenCount">0</h3><p>Open Tickets</p></div>
+        <div class="kpi-card caution"><h3 id="supportInProgressCount">0</h3><p>In Progress</p></div>
+        <div class="kpi-card warning"><h3 id="supportUrgentCount">0</h3><p>Urgent / High</p></div>
+        <div class="kpi-card success"><h3 id="supportResolvedCount">0</h3><p>Resolved</p></div>
+      </section>
+
+      <section class="card">
+        <h2>Create Support Ticket</h2>
+        <form id="supportTicketForm" class="form">
+          <div class="field"><label>Subject</label><input name="subject" required placeholder="Short summary" /></div>
+          <div class="field"><label>Category</label><select name="category">
+            <option value="general">General</option>
+            <option value="bug">Bug</option>
+            <option value="billing">Billing</option>
+            <option value="training">Training</option>
+            <option value="feature_request">Feature Request</option>
+            <option value="data_issue">Data Issue</option>
+          </select></div>
+          <div class="field"><label>Priority</label><select name="priority">
+            <option value="normal">Normal</option>
+            <option value="low">Low</option>
+            <option value="high">High</option>
+            <option value="urgent">Urgent</option>
+          </select></div>
+          <div class="field full-width"><label>Description</label><textarea name="description" rows="5" required placeholder="What happened, what page were you on, and what did you expect?"></textarea></div>
+          <button type="submit" class="btn">Submit Ticket</button>
+        </form>
+      </section>
+
+      <section class="card support-toolbar">
+        <div class="field">
+          <label>Status</label>
+          <select id="supportStatusFilter">
+            <option value="">All Statuses</option>
+            <option value="open">Open</option>
+            <option value="in_progress">In Progress</option>
+            <option value="resolved">Resolved</option>
+            <option value="closed">Closed</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Priority</label>
+          <select id="supportPriorityFilter">
+            <option value="">All Priorities</option>
+            <option value="urgent">Urgent</option>
+            <option value="high">High</option>
+            <option value="normal">Normal</option>
+            <option value="low">Low</option>
+          </select>
+        </div>
+        <button id="refreshSupportBtn" class="btn" type="button">Refresh</button>
+      </section>
+
+      <section class="card" style="margin-top: 30px;">
+        <h2>My Tickets</h2>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Ticket</th>
+              <th>Category</th>
+              <th>Priority</th>
+              <th>Status</th>
+              <th>Updated</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="supportTicketsTableBody"></tbody>
+        </table>
+        <p id="supportMessage" class="message"></p>
+      </section>
+
+      <section id="supportConversationPanel" class="card support-conversation-panel hidden" style="margin-top: 30px;">
+        <div class="section-header">
+          <div>
+            <p class="section-eyebrow">Ticket Thread</p>
+            <h2 id="supportConversationTitle">Support Ticket</h2>
+          </div>
+          <button id="closeSupportConversationBtn" class="view secondary-action" type="button">Close</button>
+        </div>
+        <div id="supportConversationMessages" class="support-message-list"></div>
+        <form id="supportReplyForm" class="support-reply-form">
+          <div class="field full-width">
+            <label>Reply</label>
+            <textarea id="supportReplyMessage" rows="4" required placeholder="Add a reply to this ticket"></textarea>
+          </div>
+          <button class="btn" type="submit">Send Reply</button>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <script src="companyContext.js"></script>
+  <script type="module" src="support.js"></script>
+</body>
+</html>

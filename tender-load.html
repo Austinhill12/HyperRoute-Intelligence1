@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tender Load</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
+  <script src="auth-guard.js"></script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <h2 class="logo">HyperRoute Intelligence</h2>
+      <nav>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="dispatch.html">Dispatch Board</a>
+        <a href="loads.html">View Loads</a>
+        <a href="carriers.html">Carriers</a>
+        <a href="alerts.html">Alerts</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <div class="page-header">
+        <div>
+          <h1>Tender Load</h1>
+          <p id="tenderLoadSummary">Loading load...</p>
+        </div>
+        <a class="view" id="backToLoadLink" href="loads.html">Back To Load</a>
+      </div>
+
+      <section class="card">
+        <div class="section-header">
+          <div>
+            <p class="section-eyebrow">Carrier Offer</p>
+            <h2 id="tenderFormTitle">Create Tender</h2>
+          </div>
+          <button type="button" id="cancelTenderEdit" class="view secondary-action hidden">Cancel Edit</button>
+        </div>
+
+        <form id="tenderForm" class="form">
+          <input type="hidden" id="tenderId" name="id" />
+          <div class="field"><label>Carrier</label><select id="carrierSelect" name="carrier_id" required></select></div>
+          <div class="field"><label>Status</label><select id="tenderStatus" name="status"><option value="draft">Draft</option><option value="sent">Sent</option><option value="accepted">Accepted</option><option value="rejected">Rejected</option><option value="cancelled">Cancelled</option></select></div>
+          <div class="field"><label>Carrier Rate</label><input id="carrierRate" name="carrier_rate" type="number" step="0.01" min="0" required /></div>
+          <div class="field"><label>Expires At</label><input id="expiresAt" name="expires_at" type="datetime-local" /></div>
+          <div class="field"><label>Contact Name</label><input id="contactName" name="contact_name" /></div>
+          <div class="field"><label>Contact Email</label><input id="contactEmail" name="contact_email" type="email" /></div>
+          <div class="field"><label>Contact Phone</label><input id="contactPhone" name="contact_phone" /></div>
+          <div class="field"><label>Tender Number</label><input id="tenderNumber" name="tender_number" /></div>
+          <div class="field tender-wide"><label>Terms</label><textarea id="terms" name="terms" placeholder="Carrier must confirm pickup appointment, provide check calls, and submit POD after delivery."></textarea></div>
+          <div class="field tender-wide"><label>Notes</label><textarea id="notes" name="notes"></textarea></div>
+          <button type="submit" class="btn" id="saveTenderButton">Save Tender</button>
+        </form>
+        <p id="tenderMessage" class="message"></p>
+      </section>
+
+      <section class="card tender-history-card">
+        <div class="section-header">
+          <div>
+            <p class="section-eyebrow">Tender History</p>
+            <h2>Carrier Offers</h2>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Carrier</th>
+              <th>Status</th>
+              <th>Rate</th>
+              <th>Expires</th>
+              <th>Contact</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tendersTableBody"></tbody>
+        </table>
+      </section>
+    </main>
+  </div>
+
+  <script src="companyContext.js"></script>
+  <script src="tender-load.js"></script>
+</body>
+</html>

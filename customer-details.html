@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Customer Details</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
+  <script src="auth-guard.js"></script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <h2 class="logo">HyperRoute Intelligence</h2>
+      <nav>
+        
+        
+        <a href="dashboard.html">Dashboard</a>
+
+        
+        
+        <a href="onboarding.html">Onboarding</a>
+
+        
+        
+        <a href="activity.html">Activity</a>
+        <a href="dispatch.html">Dispatch Board</a>
+        <a href="driver-portal.html">Driver Portal</a>
+        <a href="reports.html">Reports</a>
+        <a href="alerts.html">Alerts</a>
+        <a href="index.html">Create Driver</a>
+        <a href="drivers.html">View Drivers</a>
+        <a href="create-load.html">Create Load</a>
+        <a href="loads.html">View Loads</a>
+        <a href="customers.html">Customers</a>
+        <a href="invoices.html">Invoices</a>
+        <a href="settlements.html">Settlements</a>
+        <a href="documents.html">Documents</a>
+        <a href="create-vehicle.html">Create Vehicle</a>
+        <a href="vehicles.html">View Vehicles</a>
+        <a href="create-maintenance.html">Create Maintenance</a>
+        <a href="maintenance.html">Maintenance Logs</a>
+        <a href="assign-vehicle.html">Assign Vehicle</a>
+        <a href="compliance.html">Driver Compliance</a>
+        <a href="company-admin.html">Company Admin</a>
+        <a href="platform-admin.html">Platform Admin</a>
+      </nav>
+    </aside>
+    <main class="content">
+      <h1>Customer Details</h1>
+      <section class="card details-card">
+        <h2 id="customerTitle">Loading...</h2>
+        <p><strong>Type:</strong> <span id="customerType"></span></p>
+        <p><strong>Contact:</strong> <span id="contactName"></span></p>
+        <p><strong>Phone:</strong> <span id="phone"></span></p>
+        <p><strong>Email:</strong> <span id="email"></span></p>
+        <p><strong>Payment Terms:</strong> <span id="paymentTerms"></span></p>
+        <p><strong>Status:</strong> <span id="status"></span></p>
+        <p><strong>Billing Address:</strong> <span id="billingAddress"></span></p>
+        <p><strong>Notes:</strong> <span id="notes"></span></p>
+        <div class="actions">
+          <a class="view" id="editCustomerLink" href="#">Edit Customer</a>
+          <a class="view" href="customers.html">Back to Customers</a>
+        </div>
+      </section>
+
+      <section class="card" style="margin-top: 30px;">
+        <h2>Customer Loads</h2>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Load #</th>
+              <th>Lane</th>
+              <th>Status</th>
+              <th>Rate</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="customerLoadsTableBody"></tbody>
+        </table>
+      </section>
+
+      <section class="card" style="margin-top: 30px;">
+        <h2>Customer Invoices</h2>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Invoice #</th>
+              <th>Status</th>
+              <th>Due Date</th>
+              <th>Total</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="customerInvoicesTableBody"></tbody>
+        </table>
+      </section>
+
+      <p id="customerDetailsMessage" class="message"></p>
+    </main>
+  </div>
+  <script src="companyContext.js"></script>
+<script src="customer-details.js"></script>
+</body>
+</html>

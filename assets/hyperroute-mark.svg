@@ -1,0 +1,15 @@
+<svg width="120" height="72" viewBox="0 0 120 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="120" height="72" rx="8" fill="#050505"/>
+  <text x="13" y="54"
+        fill="#B8BDC6"
+        font-family="Arial Black, Impact, Arial, sans-serif"
+        font-size="52"
+        font-weight="900"
+        letter-spacing="-5">H</text>
+  <text x="55" y="54"
+        fill="#0788E8"
+        font-family="Arial Black, Impact, Arial, sans-serif"
+        font-size="52"
+        font-weight="900"
+        letter-spacing="-5">R</text>
+</svg>
