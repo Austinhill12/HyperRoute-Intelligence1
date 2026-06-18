@@ -1,65 +1,114 @@
-const API_KEY = "sb_publishable_vw7voiBA2V5_attC2dkUqw_PuOx468W";
-const BASE_URL = "https://ygrikxlbfmtkovktwhdp.supabase.co";
-
-document.getElementById("createDriverForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-
-  const form = e.target;
+(function () {
+  const SUPABASE_URL = "https://ygrikxlbfmtkovktwhdp.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_vw7voiBA2V5_attC2dkUqw_PuOx468W";
+  const form = document.getElementById("createDriverForm");
   const output = document.getElementById("createDriverMessage");
 
-  output.textContent = "Saving driver...";
-  output.style.color = "#334155";
+  if (!form || form.dataset.rpcDriverBound === "true") return;
+  form.dataset.rpcDriverBound = "true";
 
-  if (!form.first_name.value || !form.last_name.value) {
-    output.textContent = "First and last name are required.";
-    output.style.color = "#ef4444";
-    return;
+  function setMessage(message, color = "#334155") {
+    if (!output) return;
+    output.textContent = message;
+    output.style.color = color;
   }
 
-  const formData = {
-    first_name: form.first_name.value,
-    last_name: form.last_name.value,
-    phone: form.phone.value,
-    email: form.email.value,
-    license_number: form.license_number.value,
-    license_expiration: form.license_expiration.value,
-    status: "active",
-    photo_url: form.photo_url.value || null,
-    file_url: form.file_url.value || null
-  };
-
-  await window.CompanyContext?.ready();
-  const companyId = window.CompanyContext?.getCompanyId();
-  if (companyId) formData.company_id = companyId;
-
-  try {
-    const res = await fetch(`${BASE_URL}/functions/v1/create-driver`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: API_KEY,
-        Authorization: "Bearer " + API_KEY
-      },
-      body: JSON.stringify(formData)
+  async function callCreateDriverRpc(payload) {
+    const accessToken = getStoredAccessToken();
+    const headers = accessToken ? {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${accessToken}`
+    } : (window.CompanyContext?.getHeaders?.() || {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`
     });
 
-    const result = await res.json();
-
-    console.log("CREATE DRIVER STATUS:", res.status);
-    console.log("CREATE DRIVER RESULT:", result);
-
-    if (!res.ok) {
-      throw new Error(result.error || "Failed to create driver");
+    if (!headers.Authorization || headers.Authorization === `Bearer ${SUPABASE_KEY}`) {
+      throw new Error("No Supabase login token found. Log out, log back in, then try again.");
     }
 
-    output.textContent = "Driver created successfully!";
-    output.style.color = "#047857";
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/create_driver_secure_v8`, {
+      method: "POST",
+      headers: {
+        ...headers,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
 
-    form.reset();
+    const text = await response.text();
+    const result = text ? JSON.parse(text) : null;
 
-  } catch (err) {
-    console.error("Create driver error:", err);
-    output.textContent = "Error creating driver: " + err.message;
-    output.style.color = "#ef4444";
+    if (!response.ok) {
+      throw new Error(result?.message || result?.error || text || "Driver save failed");
+    }
+
+    return result;
   }
-});
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    if (!form.first_name.value.trim() || !form.last_name.value.trim()) {
+      setMessage("First and last name are required.", "#ef4444");
+      return;
+    }
+
+    setMessage("Saving driver through secure driver RPC v8...");
+
+    try {
+      await window.CompanyContext?.ready();
+      const companyId = window.CompanyContext?.getCompanyId?.();
+
+      if (!companyId) {
+        throw new Error("No active company selected.");
+      }
+
+      await callCreateDriverRpc({
+        p_company_id: companyId,
+        p_first_name: form.first_name.value.trim(),
+        p_last_name: form.last_name.value.trim(),
+        p_phone: form.phone.value.trim() || null,
+        p_email: form.email.value.trim() || null,
+        p_license_number: form.license_number.value.trim() || null,
+        p_license_expiration: form.license_expiration.value || null,
+        p_photo_url: form.photo_url.value.trim() || null
+      });
+
+      setMessage("Driver created successfully.", "#047857");
+      form.reset();
+    } catch (error) {
+      console.error("Create driver error:", error);
+      setMessage(`Error creating driver: ${error.message || error}`, "#ef4444");
+    }
+  });
+
+  function getStoredAccessToken() {
+    const exact = localStorage.getItem("sb-ygrikxlbfmtkovktwhdp-auth-token");
+    const exactToken = readAccessToken(exact);
+    if (exactToken) return exactToken;
+
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i);
+      if (!key || !key.startsWith("sb-") || !key.endsWith("-auth-token")) continue;
+      const token = readAccessToken(localStorage.getItem(key));
+      if (token) return token;
+    }
+
+    return null;
+  }
+
+  function readAccessToken(rawValue) {
+    if (!rawValue) return null;
+    try {
+      const parsed = JSON.parse(rawValue);
+      return parsed?.access_token
+        || parsed?.currentSession?.access_token
+        || parsed?.session?.access_token
+        || parsed?.state?.session?.access_token
+        || null;
+    } catch (_) {
+      return null;
+    }
+  }
+})();
