@@ -216,26 +216,28 @@ function buildSteps(data) {
     (company.phone || company.email) &&
     (company.mc_number || company.dot_number || company.legal_name)
   );
+  const companyTypeComplete = Boolean(company.operation_type);
   const subscriptionComplete = Boolean(data.subscription?.plan_name);
   const teamReady = data.companyUsers > 1 || data.invites > 0;
   const maintenanceReady = data.maintenanceSchedules > 0 || data.maintenanceLogs > 0;
 
   const base = [
-    step("Company profile", "Add company contact, legal, MC, DOT, and address details.", companyProfileComplete, companyProfileComplete ? "Profile has core company details." : "Company profile needs more detail.", "Complete Profile", "company-admin.html", "foundation", true),
-    step("Subscription plan", "Select the plan that matches the company's operating size.", subscriptionComplete, subscriptionComplete ? `${formatPlanName(data.subscription.plan_name)} plan is selected.` : "No subscription plan is selected yet.", "Review Plan", "subscription.html", "foundation", true),
-    step("Company owner", "Confirm at least one active owner or admin user exists.", data.companyUsers > 0, `${data.companyUsers} company user${data.companyUsers === 1 ? "" : "s"} added.`, "Manage Users", "company-admin.html", "foundation", true),
+    step("Complete Company Profile", "Add company contact, legal, MC, DOT, and address details.", companyProfileComplete, companyProfileComplete ? "Profile has core company details." : "Company profile needs more detail.", "Complete Profile", "company-admin.html", "foundation", true),
+    step("Choose Company Type", "Select Dispatcher, Fleet / Carrier, 3PL / Broker, or Hybrid so HyperRoute shows the right tools.", companyTypeComplete, companyTypeComplete ? `${formatOperationType(operationType)} workspace selected.` : "No company type selected yet.", "Choose Type", "onboarding.html", "foundation", true),
+    step("Review Subscription / Trial", "Confirm the trial plan, monthly price, and size limits before going live.", subscriptionComplete, subscriptionComplete ? `${formatPlanName(data.subscription.plan_name)} is selected with ${formatStatus(data.subscription.billing_status || "trial")} status.` : "No subscription plan is selected yet.", "Review Plan", "subscription.html", "foundation", true),
+    step("Confirm Company Owner", "Confirm at least one active owner or admin user exists.", data.companyUsers > 0, `${data.companyUsers} company user${data.companyUsers === 1 ? "" : "s"} added.`, "Manage Users", "company-admin.html", "foundation", true),
     step("Invite team", "Invite dispatch, accounting, maintenance, or management users.", teamReady, teamReady ? `${data.companyUsers} active user${data.companyUsers === 1 ? "" : "s"} and ${data.invites} invite${data.invites === 1 ? "" : "s"} found.` : "No additional users or pending invites found.", "Invite User", "company-admin.html", "foundation", false)
   ];
 
   const fleet = [
-    step("Drivers", "Create driver profiles and start compliance tracking.", data.drivers > 0, `${data.drivers} driver${data.drivers === 1 ? "" : "s"} saved.`, "Add Driver", "index.html", "workflow", true),
-    step("Trucks", "Create equipment records for dispatch and maintenance.", data.trucks > 0, `${data.trucks} truck${data.trucks === 1 ? "" : "s"} saved.`, "Add Truck", "create-vehicle.html", "workflow", true),
+    step("Add First Driver", "Create the first driver profile and start compliance tracking.", data.drivers > 0, `${data.drivers} driver${data.drivers === 1 ? "" : "s"} saved.`, "Add Driver", "index.html", "workflow", true),
+    step("Add First Vehicle", "Create the first truck or vehicle record for dispatch and maintenance.", data.trucks > 0, `${data.trucks} truck${data.trucks === 1 ? "" : "s"} saved.`, "Add Vehicle", "create-vehicle.html", "workflow", true),
     step("Maintenance readiness", "Create maintenance schedules or service history for downtime prevention.", maintenanceReady, `${data.maintenanceSchedules} schedule${data.maintenanceSchedules === 1 ? "" : "s"} and ${data.maintenanceLogs} service record${data.maintenanceLogs === 1 ? "" : "s"} saved.`, "Open Maintenance", "create-maintenance.html", "golive", false)
   ];
 
   const customersAndLoads = [
-    step("Customers", "Add shippers, brokers, or direct customers.", data.customers > 0, `${data.customers} customer${data.customers === 1 ? "" : "s"} saved.`, "Add Customer", "create-customer.html", "workflow", true),
-    step("Loads", "Create the first load to start live operations.", data.loads > 0, `${data.loads} load${data.loads === 1 ? "" : "s"} saved.`, "Create Load", "create-load.html", "workflow", true)
+    step("Add First Customer", "Add the first shipper, broker, or direct customer.", data.customers > 0, `${data.customers} customer${data.customers === 1 ? "" : "s"} saved.`, "Add Customer", "create-customer.html", "workflow", true),
+    step("Create First Load", "Create the first load to start live operations.", data.loads > 0, `${data.loads} load${data.loads === 1 ? "" : "s"} saved.`, "Create Load", "create-load.html", "workflow", true)
   ];
 
   const brokerage = [
@@ -246,7 +248,7 @@ function buildSteps(data) {
 
   const operations = [
     step("Communication log", "Record customer, carrier, driver, or internal load communications.", data.loadCommunications > 0, `${data.loadCommunications} communication record${data.loadCommunications === 1 ? "" : "s"} saved.`, "Open Loads", "loads.html", "golive", false),
-    step("Documents", "Upload PODs, insurance, compliance, or equipment documents.", data.documents > 0, `${data.documents} document${data.documents === 1 ? "" : "s"} uploaded.`, "Open Documents", "documents.html", "golive", false),
+    step("Upload First Document", "Upload a POD, insurance file, compliance record, or equipment document.", data.documents > 0, `${data.documents} document${data.documents === 1 ? "" : "s"} uploaded.`, "Open Documents", "documents.html", "golive", false),
     step("Issues and claims", "Track exceptions such as late delivery, missing POD, damage, or disputes.", data.loadIssues > 0, `${data.loadIssues} issue or claim record${data.loadIssues === 1 ? "" : "s"} saved.`, "Open Loads", "loads.html", "golive", false)
   ];
 
@@ -423,6 +425,20 @@ function formatPlanName(value) {
   return String(value || "")
     .replace(/[_-]+/g, " ")
     .replace(/\b\w/g, char => char.toUpperCase());
+}
+
+function formatOperationType(value) {
+  const labels = {
+    carrier: "Fleet / Carrier",
+    broker_3pl: "3PL / Broker",
+    dispatcher: "Dispatcher",
+    hybrid: "Hybrid"
+  };
+  return labels[value] || "Fleet / Carrier";
+}
+
+function formatStatus(value) {
+  return String(value || "N/A").replace(/[_-]+/g, " ");
 }
 
 initOnboarding().catch(error => {
