@@ -86,6 +86,7 @@ async function initSubscription() {
 
     currentOperationType = await loadCurrentOperationType();
     plans = buildPlans(currentOperationType);
+    setupOperationTypeSelector();
     await ensureSubscription();
     await syncTrialPlanToCompanyType();
     await loadUsage();
@@ -103,6 +104,64 @@ async function initSubscription() {
     }
   } catch (err) {
     console.error(err);
+    msg.textContent = getSubscriptionError(err.message);
+    msg.style.color = "#ef4444";
+  }
+}
+
+function setupOperationTypeSelector() {
+  const select = document.getElementById("subscriptionOperationType");
+  if (!select) return;
+
+  select.value = currentOperationType;
+  select.onchange = () => changeOperationType(select.value);
+}
+
+async function changeOperationType(operationType) {
+  if (!planCatalog[operationType]) return;
+
+  const msg = document.getElementById("subscriptionMessage");
+  const previousType = currentOperationType;
+  currentOperationType = operationType;
+  plans = buildPlans(currentOperationType);
+
+  if (subscription) {
+    const nextPlanName = normalizePlanName(subscription.plan_name);
+    const nextPlan = plans[nextPlanName] || plans[getDefaultPlanName()];
+    subscription.plan_name = nextPlanName;
+    subscription.monthly_price = nextPlan.price;
+  }
+
+  renderPlans();
+  renderSummary();
+  renderUsage();
+  msg.textContent = "Updating pricing category...";
+  msg.style.color = "";
+
+  try {
+    const companyId = window.CompanyContext.getCompanyId();
+    const companyRes = await fetch(`${BASE_URL}/rest/v1/companies?id=eq.${companyId}`, {
+      method: "PATCH",
+      headers: getHeaders({
+        "Content-Type": "application/json",
+        Prefer: "return=representation"
+      }),
+      body: JSON.stringify({ operation_type: operationType })
+    });
+
+    if (!companyRes.ok) throw new Error(await companyRes.text());
+    await syncTrialPlanToCompanyType({ force: true });
+    msg.textContent = `${operationLabels[operationType]} pricing loaded.`;
+    msg.style.color = "#047857";
+  } catch (err) {
+    console.error(err);
+    currentOperationType = previousType;
+    plans = buildPlans(currentOperationType);
+    const select = document.getElementById("subscriptionOperationType");
+    if (select) select.value = currentOperationType;
+    renderPlans();
+    renderSummary();
+    renderUsage();
     msg.textContent = getSubscriptionError(err.message);
     msg.style.color = "#ef4444";
   }
@@ -164,11 +223,11 @@ async function loadCurrentOperationType() {
   return planCatalog[contextOperationType] ? contextOperationType : "carrier";
 }
 
-async function syncTrialPlanToCompanyType() {
+async function syncTrialPlanToCompanyType(options = {}) {
   if (!subscription) return;
 
   const normalizedPlanName = normalizePlanName(subscription.plan_name);
-  if (normalizedPlanName === subscription.plan_name) return;
+  if (!options.force && normalizedPlanName === subscription.plan_name) return;
 
   const plan = plans[normalizedPlanName];
   if (!plan) return;
