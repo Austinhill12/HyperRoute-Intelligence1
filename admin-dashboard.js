@@ -1,9 +1,9 @@
-import { supabase } from "./supabaseClient.js";
+import { supabase } from "../supabaseClient.js";
 
 // Wait for session to load
 supabase.auth.onAuthStateChange(async (event, session) => {
   if (!session || !session.user) {
-    window.location.href = "login.html";
+    window.location.href = "../login.html";
     return;
   }
 
@@ -18,5 +18,5 @@ document.getElementById("logoutBtn").addEventListener("click", async () => {
   await supabase.auth.signOut();
   localStorage.clear();
   sessionStorage.clear();
-  window.location.href = "login.html";
+  window.location.href = "../login.html";
 });
