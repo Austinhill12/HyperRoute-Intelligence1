@@ -7,6 +7,7 @@ let currentCompany = null;
 let companyUsers = [];
 let userInvites = [];
 let isCreatingCompany = false;
+let isPlatformAdminView = false;
 
 async function initCompanyAdmin() {
   const msg = document.getElementById("companyAdminMessage");
@@ -15,11 +16,15 @@ async function initCompanyAdmin() {
 
   try {
     await window.CompanyContext?.ready();
+    isPlatformAdminView = Boolean(window.CompanyContext?.isPlatformAdmin?.());
+    applyCompanyAdminVisibility();
     await loadCompanies();
 
     if (!companies.length) {
-      startNewCompany();
-      msg.textContent = "No company found. Create the first company or run the multi-company SQL.";
+      if (isPlatformAdminView) startNewCompany();
+      msg.textContent = isPlatformAdminView
+        ? "No company found. Create the first company or run the multi-company SQL."
+        : "No company profile found for this account.";
       msg.style.color = "#ef4444";
       return;
     }
@@ -36,10 +41,37 @@ async function initCompanyAdmin() {
 }
 
 async function loadCompanies(selectedId = null) {
-  companies = await fetchRows("companies", "select=*&order=company_name.asc");
+  const rows = await fetchRows("companies", "select=*&order=company_name.asc");
+  companies = getVisibleCompanies(rows);
   fillCompanySelect(selectedId);
   renderCompaniesTable();
   updateKpis();
+}
+
+function getVisibleCompanies(rows) {
+  if (isPlatformAdminView) return rows;
+
+  const activeCompanyId = window.CompanyContext?.getCompanyId?.();
+  const activeCompany = window.CompanyContext?.getCompany?.();
+  const scopedRows = rows.filter(company => String(company.id) === String(activeCompanyId));
+
+  if (scopedRows.length) return scopedRows;
+  if (activeCompany?.id) return [activeCompany];
+  return [];
+}
+
+function applyCompanyAdminVisibility() {
+  const createCompanyCard = document.getElementById("createCompanyForm")?.closest(".card");
+  const companiesTableCard = document.getElementById("companiesTableBody")?.closest(".card");
+  const newCompanyButton = document.getElementById("newCompanyBtn");
+  const companySelect = document.getElementById("companySelect");
+
+  if (!isPlatformAdminView) {
+    if (createCompanyCard) createCompanyCard.style.display = "none";
+    if (companiesTableCard) companiesTableCard.style.display = "none";
+    if (newCompanyButton) newCompanyButton.style.display = "none";
+    if (companySelect) companySelect.disabled = true;
+  }
 }
 
 async function fetchRows(table, query) {
