@@ -6,10 +6,10 @@ async function loadDrivers() {
   msg.textContent = "Loading drivers...";
 
   try {
-    await window.CompanyContext?.ready();
+    const companyContext = await window.CompanyContext?.ready();
     const res = await fetch(
       window.CompanyContext?.scopedUrl("drivers", "select=*&order=created_at.desc") || `${BASE_URL}/rest/v1/drivers?select=*&order=created_at.desc`,
-      { headers: { apikey: API_KEY, Authorization: "Bearer " + API_KEY } }
+      { headers: companyContext?.authHeaders || { apikey: API_KEY, Authorization: "Bearer " + API_KEY } }
     );
 
     if (!res.ok) throw new Error(await res.text());
