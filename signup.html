@@ -33,33 +33,33 @@
       <form id="signupForm" class="form signup-form">
         <div class="field">
           <label>Plan</label>
-          <div class="plan-grid">
+          <div class="plan-grid" id="signupPlanGrid">
             <label class="plan-option">
-              <input type="radio" name="plan_name" value="starter" />
-              <span>Starter</span>
+              <input type="radio" name="plan_size" value="small" />
+              <span>Small</span>
               <strong>$99/mo</strong>
             </label>
             <label class="plan-option selected">
-              <input type="radio" name="plan_name" value="professional" checked />
-              <span>Professional</span>
+              <input type="radio" name="plan_size" value="medium" checked />
+              <span>Medium</span>
               <strong>$199/mo</strong>
             </label>
             <label class="plan-option">
-              <input type="radio" name="plan_name" value="business" />
-              <span>Business</span>
-              <strong>$399/mo</strong>
+              <input type="radio" name="plan_size" value="large" />
+              <span>Large</span>
+              <strong>$349/mo</strong>
             </label>
             <label class="plan-option">
-              <input type="radio" name="plan_name" value="enterprise" />
-              <span>Enterprise</span>
-              <strong>Custom</strong>
+              <input type="radio" name="plan_size" value="unlimited" />
+              <span>Unlimited</span>
+              <strong>$599/mo</strong>
             </label>
           </div>
         </div>
 
         <div class="field">
           <label>Transportation Company Type</label>
-          <select name="operation_type">
+          <select name="operation_type" id="signupOperationType">
             <option value="carrier">Carrier / Fleet</option>
             <option value="dispatcher">Dispatch Service</option>
             <option value="broker_3pl">Broker / 3PL</option>

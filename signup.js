@@ -3,9 +3,38 @@ import { supabase } from "./supabaseClient.js";
 const form = document.getElementById("signupForm");
 const message = document.getElementById("signupMessage");
 const submitButton = document.getElementById("signupSubmitBtn");
+const operationTypeSelect = document.getElementById("signupOperationType");
+const planGrid = document.getElementById("signupPlanGrid");
 
 const pendingSignupKey = "hyperroute_pending_signup";
 const emailRedirectTo = `${window.location.origin}/login.html?next=onboarding.html`;
+
+const signupPlans = {
+  dispatcher: {
+    small: { label: "Small", price: 49 },
+    medium: { label: "Medium", price: 99 },
+    large: { label: "Large", price: 149 },
+    unlimited: { label: "Unlimited", price: 249 }
+  },
+  carrier: {
+    small: { label: "Small", price: 99 },
+    medium: { label: "Medium", price: 199 },
+    large: { label: "Large", price: 349 },
+    unlimited: { label: "Unlimited", price: 599 }
+  },
+  broker_3pl: {
+    small: { label: "Small", price: 99 },
+    medium: { label: "Medium", price: 249 },
+    large: { label: "Large", price: 499 },
+    unlimited: { label: "Unlimited", price: 799 }
+  },
+  hybrid: {
+    small: { label: "Small", price: 149 },
+    medium: { label: "Medium", price: 299 },
+    large: { label: "Large", price: 599 },
+    unlimited: { label: "Unlimited", price: 999 }
+  }
+};
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -14,13 +43,15 @@ form.addEventListener("submit", async (event) => {
   setLoading(true);
 
   const formData = Object.fromEntries(new FormData(form).entries());
+  const operationType = formData.operation_type || "carrier";
+  const planSize = formData.plan_size || "medium";
   const signupData = {
     company_name: formData.company_name,
     legal_name: formData.legal_name || "",
     phone: formData.phone || "",
     company_email: formData.company_email || formData.email,
-    plan_name: formData.plan_name || "professional",
-    operation_type: formData.operation_type || "carrier"
+    plan_name: `${operationType}_${planSize}`,
+    operation_type: operationType
   };
 
   localStorage.setItem(pendingSignupKey, JSON.stringify(signupData));
@@ -98,9 +129,33 @@ function setLoading(isLoading) {
   submitButton.textContent = isLoading ? "Starting Trial..." : "Start Trial Workspace";
 }
 
-document.querySelectorAll(".plan-option input").forEach(input => {
-  input.addEventListener("change", () => {
-    document.querySelectorAll(".plan-option").forEach(option => option.classList.remove("selected"));
-    input.closest(".plan-option")?.classList.add("selected");
+function renderSignupPlans() {
+  const operationType = operationTypeSelect?.value || "carrier";
+  const selectedSize = document.querySelector(".plan-option input:checked")?.value || "medium";
+  const plans = signupPlans[operationType] || signupPlans.carrier;
+
+  document.querySelectorAll(".plan-option").forEach(option => {
+    const input = option.querySelector("input");
+    if (!input) return;
+
+    const plan = plans[input.value];
+    option.querySelector("span").textContent = plan.label;
+    option.querySelector("strong").textContent = `$${plan.price}/mo`;
+    input.checked = input.value === selectedSize;
+    option.classList.toggle("selected", input.checked);
   });
-});
+}
+
+function bindSignupPlans() {
+  document.querySelectorAll(".plan-option input").forEach(input => {
+    input.addEventListener("change", () => {
+      document.querySelectorAll(".plan-option").forEach(option => option.classList.remove("selected"));
+      input.closest(".plan-option")?.classList.add("selected");
+    });
+  });
+
+  operationTypeSelect?.addEventListener("change", renderSignupPlans);
+  renderSignupPlans();
+}
+
+bindSignupPlans();
