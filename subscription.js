@@ -4,28 +4,28 @@ const fallbackHeaders = { apikey: API_KEY, Authorization: "Bearer " + API_KEY };
 
 const planCatalog = {
   dispatcher: {
-    small: { price: 49, limits: { drivers: 25, trucks: 0, loads: 25, documents: 150, users: 2 } },
-    medium: { price: 99, limits: { drivers: 75, trucks: 0, loads: 75, documents: 500, users: 5 } },
-    large: { price: 149, limits: { drivers: 200, trucks: 0, loads: 200, documents: 1500, users: 10 } },
-    unlimited: { price: 249, limits: { drivers: null, trucks: 0, loads: null, documents: null, users: 25 } }
+    small: { price: 49, limitText: "Up to 25 loads/month", limits: { drivers: 25, trucks: 0, loads: 25, documents: 150, users: 2 } },
+    medium: { price: 99, limitText: "Up to 75 loads/month", limits: { drivers: 75, trucks: 0, loads: 75, documents: 500, users: 5 } },
+    large: { price: 149, limitText: "Up to 200 loads/month", limits: { drivers: 200, trucks: 0, loads: 200, documents: 1500, users: 10 } },
+    unlimited: { price: 249, limitText: "Unlimited loads", limits: { drivers: null, trucks: 0, loads: null, documents: null, users: 25 } }
   },
   carrier: {
-    small: { price: 99, limits: { drivers: 10, trucks: 5, loads: 100, documents: 500, users: 5 } },
-    medium: { price: 199, limits: { drivers: 30, trucks: 15, loads: 300, documents: 1500, users: 12 } },
-    large: { price: 349, limits: { drivers: 100, trucks: 50, loads: 1000, documents: 5000, users: 30 } },
-    unlimited: { price: 599, limits: { drivers: null, trucks: null, loads: null, documents: null, users: 75 } }
+    small: { price: 99, limitText: "Up to 5 trucks", limits: { drivers: 10, trucks: 5, loads: 100, documents: 500, users: 5 } },
+    medium: { price: 199, limitText: "Up to 15 trucks", limits: { drivers: 30, trucks: 15, loads: 300, documents: 1500, users: 12 } },
+    large: { price: 349, limitText: "Up to 50 trucks", limits: { drivers: 100, trucks: 50, loads: 1000, documents: 5000, users: 30 } },
+    unlimited: { price: 599, limitText: "Unlimited trucks", limits: { drivers: null, trucks: null, loads: null, documents: null, users: 75 } }
   },
   broker_3pl: {
-    small: { price: 99, limits: { drivers: 0, trucks: 0, loads: 50, documents: 500, users: 5 } },
-    medium: { price: 249, limits: { drivers: 0, trucks: 0, loads: 150, documents: 2000, users: 15 } },
-    large: { price: 499, limits: { drivers: 0, trucks: 0, loads: 500, documents: 7500, users: 40 } },
-    unlimited: { price: 799, limits: { drivers: 0, trucks: 0, loads: null, documents: null, users: 100 } }
+    small: { price: 99, limitText: "Up to 50 loads/month", limits: { drivers: 0, trucks: 0, loads: 50, documents: 500, users: 5 } },
+    medium: { price: 249, limitText: "Up to 150 loads/month", limits: { drivers: 0, trucks: 0, loads: 150, documents: 2000, users: 15 } },
+    large: { price: 499, limitText: "Up to 500 loads/month", limits: { drivers: 0, trucks: 0, loads: 500, documents: 7500, users: 40 } },
+    unlimited: { price: 799, limitText: "Unlimited loads", limits: { drivers: 0, trucks: 0, loads: null, documents: null, users: 100 } }
   },
   hybrid: {
-    small: { price: 149, limits: { drivers: 10, trucks: 5, loads: 50, documents: 750, users: 6 } },
-    medium: { price: 299, limits: { drivers: 30, trucks: 15, loads: 150, documents: 2500, users: 18 } },
-    large: { price: 599, limits: { drivers: 100, trucks: 50, loads: 500, documents: 10000, users: 50 } },
-    unlimited: { price: 999, limits: { drivers: null, trucks: null, loads: null, documents: null, users: 125 } }
+    small: { price: 149, limitText: "Up to 5 trucks + 50 loads/month", limits: { drivers: 10, trucks: 5, loads: 50, documents: 750, users: 6 } },
+    medium: { price: 299, limitText: "Up to 15 trucks + 150 loads/month", limits: { drivers: 30, trucks: 15, loads: 150, documents: 2500, users: 18 } },
+    large: { price: 599, limitText: "Up to 50 trucks + 500 loads/month", limits: { drivers: 100, trucks: 50, loads: 500, documents: 10000, users: 50 } },
+    unlimited: { price: 999, limitText: "Unlimited trucks + loads", limits: { drivers: null, trucks: null, loads: null, documents: null, users: 125 } }
   }
 };
 
@@ -51,6 +51,7 @@ function buildPlans(operationType = "carrier") {
       label,
       price: plan.price,
       description: sizeDescriptions[size],
+      limitText: plan.limitText,
       limits: plan.limits,
       features: getPlanFeatures(normalizedType, size)
     }];
@@ -302,6 +303,7 @@ function renderPlans() {
         <p>${plan.description}</p>
       </div>
       <strong>${plan.price ? `$${plan.price}` : "Custom"}<span>${plan.price ? "/mo" : ""}</span></strong>
+      <p class="plan-limit">${plan.limitText}</p>
       <ul>
         ${plan.features.map(feature => `<li>${feature}</li>`).join("")}
       </ul>

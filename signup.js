@@ -11,28 +11,28 @@ const emailRedirectTo = `${window.location.origin}/login.html?next=onboarding.ht
 
 const signupPlans = {
   dispatcher: {
-    small: { label: "Small", price: 49 },
-    medium: { label: "Medium", price: 99 },
-    large: { label: "Large", price: 149 },
-    unlimited: { label: "Unlimited", price: 249 }
+    small: { label: "Small", price: 49, limitText: "Up to 25 loads/month" },
+    medium: { label: "Medium", price: 99, limitText: "Up to 75 loads/month" },
+    large: { label: "Large", price: 149, limitText: "Up to 200 loads/month" },
+    unlimited: { label: "Unlimited", price: 249, limitText: "Unlimited loads" }
   },
   carrier: {
-    small: { label: "Small", price: 99 },
-    medium: { label: "Medium", price: 199 },
-    large: { label: "Large", price: 349 },
-    unlimited: { label: "Unlimited", price: 599 }
+    small: { label: "Small", price: 99, limitText: "Up to 5 trucks" },
+    medium: { label: "Medium", price: 199, limitText: "Up to 15 trucks" },
+    large: { label: "Large", price: 349, limitText: "Up to 50 trucks" },
+    unlimited: { label: "Unlimited", price: 599, limitText: "Unlimited trucks" }
   },
   broker_3pl: {
-    small: { label: "Small", price: 99 },
-    medium: { label: "Medium", price: 249 },
-    large: { label: "Large", price: 499 },
-    unlimited: { label: "Unlimited", price: 799 }
+    small: { label: "Small", price: 99, limitText: "Up to 50 loads/month" },
+    medium: { label: "Medium", price: 249, limitText: "Up to 150 loads/month" },
+    large: { label: "Large", price: 499, limitText: "Up to 500 loads/month" },
+    unlimited: { label: "Unlimited", price: 799, limitText: "Unlimited loads" }
   },
   hybrid: {
-    small: { label: "Small", price: 149 },
-    medium: { label: "Medium", price: 299 },
-    large: { label: "Large", price: 599 },
-    unlimited: { label: "Unlimited", price: 999 }
+    small: { label: "Small", price: 149, limitText: "Up to 5 trucks + 50 loads/month" },
+    medium: { label: "Medium", price: 299, limitText: "Up to 15 trucks + 150 loads/month" },
+    large: { label: "Large", price: 599, limitText: "Up to 50 trucks + 500 loads/month" },
+    unlimited: { label: "Unlimited", price: 999, limitText: "Unlimited trucks + loads" }
   }
 };
 
@@ -141,6 +141,13 @@ function renderSignupPlans() {
     const plan = plans[input.value];
     option.querySelector("span").textContent = plan.label;
     option.querySelector("strong").textContent = `$${plan.price}/mo`;
+    let limit = option.querySelector(".plan-limit");
+    if (!limit) {
+      limit = document.createElement("small");
+      limit.className = "plan-limit";
+      option.appendChild(limit);
+    }
+    limit.textContent = plan.limitText;
     input.checked = input.value === selectedSize;
     option.classList.toggle("selected", input.checked);
   });
