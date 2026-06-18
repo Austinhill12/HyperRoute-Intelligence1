@@ -120,6 +120,7 @@
 
     context.role = await fetchCompanyRole(context.companyId, authContext);
 
+    renderSidebarControls();
     renderCompanySwitcher();
     renderGlobalLogoutButton();
     renderGlobalNavigationLinks();
@@ -133,8 +134,9 @@
   async function fetchAuthContext() {
     try {
       const parsed = getStoredSupabaseSession();
-      const accessToken = parsed?.access_token;
-      const userId = parsed?.user?.id || null;
+      const session = normalizeStoredSession(parsed);
+      const accessToken = session?.access_token || null;
+      const userId = session?.user?.id || session?.user_id || null;
       const authHeaders = accessToken
         ? { apikey: SUPABASE_KEY, Authorization: `Bearer ${accessToken}` }
         : requestHeaders;
@@ -197,6 +199,15 @@
     return null;
   }
 
+  function normalizeStoredSession(value) {
+    if (!value) return null;
+    if (value.access_token) return value;
+    if (value.currentSession?.access_token) return value.currentSession;
+    if (value.session?.access_token) return value.session;
+    if (value.state?.session?.access_token) return value.state.session;
+    return value;
+  }
+
   async function fetchCompanyRole(companyId, authContext) {
     if (authContext.isPlatformAdmin) return "platform_admin";
     if (!companyId || !authContext.userId || !authContext.accessToken) return "dispatcher";
@@ -257,6 +268,49 @@
 
     document.getElementById("globalCompanySelect").addEventListener("change", (event) => {
       setCompanyId(event.target.value, { reload: true });
+    });
+  }
+
+  function renderSidebarControls() {
+    const sidebar = document.querySelector(".sidebar");
+    if (!sidebar || document.getElementById("sidebarCollapseBtn")) return;
+    if (window.location.pathname.endsWith("login.html") || window.location.pathname.endsWith("logout.html")) return;
+
+    const logo = sidebar.querySelector(".logo, h2");
+    const controls = document.createElement("div");
+    controls.className = "sidebar-controls";
+    controls.innerHTML = `
+      <button type="button" id="sidebarCollapseBtn" class="sidebar-control-btn">Hide Menu</button>
+      <button type="button" id="sidebarBackBtn" class="sidebar-control-btn sidebar-back-btn">Back</button>
+    `;
+
+    if (logo?.nextSibling) {
+      sidebar.insertBefore(controls, logo.nextSibling);
+    } else {
+      sidebar.insertBefore(controls, sidebar.firstChild);
+    }
+
+    const collapseBtn = document.getElementById("sidebarCollapseBtn");
+    const backBtn = document.getElementById("sidebarBackBtn");
+
+    const setCollapsed = (collapsed) => {
+      document.body.classList.toggle("sidebar-collapsed", collapsed);
+      localStorage.setItem("hyperroute_sidebar_collapsed", String(collapsed));
+      collapseBtn.textContent = collapsed ? "Show Menu" : "Hide Menu";
+    };
+
+    setCollapsed(localStorage.getItem("hyperroute_sidebar_collapsed") === "true");
+
+    collapseBtn.addEventListener("click", () => {
+      setCollapsed(!document.body.classList.contains("sidebar-collapsed"));
+    });
+
+    backBtn.addEventListener("click", () => {
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        window.location.href = getFallbackPage();
+      }
     });
   }
 
