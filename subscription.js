@@ -60,6 +60,7 @@ function buildPlans(operationType = "carrier") {
 let subscription = null;
 let usage = {};
 let plans = buildPlans("carrier");
+let currentOperationType = "carrier";
 
 function getHeaders(extra = {}) {
   return {
@@ -83,8 +84,10 @@ async function initSubscription() {
       return;
     }
 
-    plans = buildPlans(window.CompanyContext?.getOperationType?.() || "carrier");
+    currentOperationType = await loadCurrentOperationType();
+    plans = buildPlans(currentOperationType);
     await ensureSubscription();
+    await syncTrialPlanToCompanyType();
     await loadUsage();
     renderPlans();
     renderSummary();
@@ -138,6 +141,68 @@ async function ensureSubscription() {
   const result = await createRes.json();
   if (!createRes.ok) throw new Error(JSON.stringify(result));
   subscription = Array.isArray(result) ? result[0] : result;
+}
+
+async function loadCurrentOperationType() {
+  const companyId = window.CompanyContext.getCompanyId();
+
+  try {
+    const res = await fetch(`${BASE_URL}/rest/v1/companies?id=eq.${companyId}&select=operation_type&limit=1`, {
+      headers: getHeaders()
+    });
+
+    if (res.ok) {
+      const rows = await res.json();
+      const operationType = rows[0]?.operation_type;
+      if (planCatalog[operationType]) return operationType;
+    }
+  } catch (err) {
+    console.warn("Company operation type unavailable:", err);
+  }
+
+  const contextOperationType = window.CompanyContext?.getOperationType?.() || "carrier";
+  return planCatalog[contextOperationType] ? contextOperationType : "carrier";
+}
+
+async function syncTrialPlanToCompanyType() {
+  if (!subscription) return;
+
+  const normalizedPlanName = normalizePlanName(subscription.plan_name);
+  if (normalizedPlanName === subscription.plan_name) return;
+
+  const plan = plans[normalizedPlanName];
+  if (!plan) return;
+
+  subscription.plan_name = normalizedPlanName;
+  subscription.monthly_price = plan.price;
+
+  if (!["trial", "not_started", "pending"].includes(String(subscription.billing_status || "").toLowerCase())) {
+    return;
+  }
+
+  try {
+    const res = await fetch(window.CompanyContext.scopedUrl("company_subscriptions", "select=id&limit=1"), {
+      headers: getHeaders()
+    });
+    if (!res.ok) return;
+    const rows = await res.json();
+    const subscriptionId = rows[0]?.id;
+    if (!subscriptionId) return;
+
+    await fetch(`${BASE_URL}/rest/v1/company_subscriptions?id=eq.${subscriptionId}`, {
+      method: "PATCH",
+      headers: getHeaders({
+        "Content-Type": "application/json",
+        Prefer: "return=representation"
+      }),
+      body: JSON.stringify({
+        plan_name: normalizedPlanName,
+        monthly_price: plan.price
+      })
+    });
+  } catch (err) {
+    console.warn("Trial plan sync skipped:", err);
+  }
 }
 
 async function loadUsage() {
@@ -262,22 +327,35 @@ async function updatePlan(planName) {
 }
 
 function getDefaultPlanName() {
-  const operationType = window.CompanyContext?.getOperationType?.() || "carrier";
+  const operationType = currentOperationType || window.CompanyContext?.getOperationType?.() || "carrier";
   const normalizedType = planCatalog[operationType] ? operationType : "carrier";
   return `${normalizedType}_small`;
 }
 
 function normalizePlanName(planName) {
   if (plans[planName]) return planName;
+  const size = getPlanSize(planName);
+  const operationType = currentOperationType || window.CompanyContext?.getOperationType?.() || "carrier";
+  const normalizedType = planCatalog[operationType] ? operationType : "carrier";
+  const sameTierPlan = `${normalizedType}_${size}`;
+  if (plans[sameTierPlan]) return sameTierPlan;
 
   const legacyMap = {
-    starter: `${window.CompanyContext?.getOperationType?.() || "carrier"}_small`,
-    professional: `${window.CompanyContext?.getOperationType?.() || "carrier"}_medium`,
-    business: `${window.CompanyContext?.getOperationType?.() || "carrier"}_large`,
-    enterprise: `${window.CompanyContext?.getOperationType?.() || "carrier"}_unlimited`
+    starter: `${normalizedType}_small`,
+    professional: `${normalizedType}_medium`,
+    business: `${normalizedType}_large`,
+    enterprise: `${normalizedType}_unlimited`
   };
 
   return plans[legacyMap[planName]] ? legacyMap[planName] : getDefaultPlanName();
+}
+
+function getPlanSize(planName) {
+  const text = String(planName || "").toLowerCase();
+  if (text.includes("unlimited") || text === "enterprise") return "unlimited";
+  if (text.includes("large") || text === "business") return "large";
+  if (text.includes("medium") || text === "professional") return "medium";
+  return "small";
 }
 
 function getPlanFeatures(operationType, size) {
