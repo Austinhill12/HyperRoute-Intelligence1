@@ -13,11 +13,46 @@ let companyQualityWarnings = [];
 let selectedAccountCompanyId = null;
 
 const PLAN_PRICES = {
+  dispatcher_small: 49,
+  dispatcher_medium: 99,
+  dispatcher_large: 149,
+  dispatcher_unlimited: 249,
+  carrier_small: 99,
+  carrier_medium: 199,
+  carrier_large: 349,
+  carrier_unlimited: 599,
+  broker_3pl_small: 99,
+  broker_3pl_medium: 249,
+  broker_3pl_large: 499,
+  broker_3pl_unlimited: 799,
+  hybrid_small: 149,
+  hybrid_medium: 299,
+  hybrid_large: 599,
+  hybrid_unlimited: 999,
   starter: 99,
   professional: 199,
   business: 399,
   enterprise: 0
 };
+
+const PLAN_OPTIONS = [
+  "dispatcher_small",
+  "dispatcher_medium",
+  "dispatcher_large",
+  "dispatcher_unlimited",
+  "carrier_small",
+  "carrier_medium",
+  "carrier_large",
+  "carrier_unlimited",
+  "broker_3pl_small",
+  "broker_3pl_medium",
+  "broker_3pl_large",
+  "broker_3pl_unlimited",
+  "hybrid_small",
+  "hybrid_medium",
+  "hybrid_large",
+  "hybrid_unlimited"
+];
 
 const PAYMENT_SETUP_STATUSES = ["not_started", "payment_link_sent", "payment_method_on_file", "auto_billing_ready"];
 const CUSTOMER_LIFECYCLE_STAGES = ["lead", "trial", "onboarding", "live", "at_risk", "canceled"];
@@ -931,12 +966,12 @@ function renderSubscriptions() {
       <td>${escapeHtml(company.company_name)}</td>
       <td>
         <select data-subscription-field="plan_name" data-plan-select="${escapeHtml(company.id)}" data-subscription-company="${escapeHtml(company.id)}">
-          ${["starter", "professional", "business", "enterprise"].map(plan => (
-            `<option value="${plan}" ${(subscription.plan_name || "professional") === plan ? "selected" : ""}>${formatPlanLabel(plan)}</option>`
+          ${PLAN_OPTIONS.map(plan => (
+            `<option value="${plan}" ${normalizeSubscriptionPlan(subscription.plan_name || getDefaultPlanForCompany(company), company) === plan ? "selected" : ""}>${formatPlanLabel(plan)}</option>`
           )).join("")}
         </select>
       </td>
-      <td><input class="compact-input" type="number" min="0" step="0.01" data-subscription-field="monthly_price" data-price-input="${escapeHtml(company.id)}" data-subscription-company="${escapeHtml(company.id)}" value="${escapeHtml(subscription.monthly_price ?? PLAN_PRICES[subscription.plan_name || "professional"])}" /></td>
+      <td><input class="compact-input" type="number" min="0" step="0.01" data-subscription-field="monthly_price" data-price-input="${escapeHtml(company.id)}" data-subscription-company="${escapeHtml(company.id)}" value="${escapeHtml(subscription.monthly_price ?? PLAN_PRICES[normalizeSubscriptionPlan(subscription.plan_name || getDefaultPlanForCompany(company), company)])}" /></td>
       <td>
         <select data-subscription-field="billing_status" data-subscription-company="${escapeHtml(company.id)}">
           ${["trial", "active", "past_due", "suspended", "canceled"].map(status => (
@@ -2600,12 +2635,52 @@ function formatStatus(value) {
 
 function formatPlanLabel(plan) {
   const labels = {
+    dispatcher_small: "Dispatcher Small - $49/mo",
+    dispatcher_medium: "Dispatcher Medium - $99/mo",
+    dispatcher_large: "Dispatcher Large - $149/mo",
+    dispatcher_unlimited: "Dispatcher Unlimited - $249/mo",
+    carrier_small: "Fleet Small - $99/mo",
+    carrier_medium: "Fleet Medium - $199/mo",
+    carrier_large: "Fleet Large - $349/mo",
+    carrier_unlimited: "Fleet Unlimited - $599/mo",
+    broker_3pl_small: "3PL Small - $99/mo",
+    broker_3pl_medium: "3PL Medium - $249/mo",
+    broker_3pl_large: "3PL Large - $499/mo",
+    broker_3pl_unlimited: "3PL Unlimited - $799/mo",
+    hybrid_small: "Hybrid Small - $149/mo",
+    hybrid_medium: "Hybrid Medium - $299/mo",
+    hybrid_large: "Hybrid Large - $599/mo",
+    hybrid_unlimited: "Hybrid Unlimited - $999/mo",
     starter: "Starter - $99/mo",
     professional: "Professional - $199/mo",
     business: "Business - $399/mo",
     enterprise: "Enterprise - Custom"
   };
   return labels[plan] || formatStatus(plan);
+}
+
+function getDefaultPlanForCompany(company = {}) {
+  const operationType = ["dispatcher", "carrier", "broker_3pl", "hybrid"].includes(company.operation_type)
+    ? company.operation_type
+    : "carrier";
+  return `${operationType}_small`;
+}
+
+function normalizeSubscriptionPlan(plan, company = {}) {
+  if (PLAN_PRICES[plan] !== undefined && PLAN_OPTIONS.includes(plan)) return plan;
+
+  const operationType = ["dispatcher", "carrier", "broker_3pl", "hybrid"].includes(company.operation_type)
+    ? company.operation_type
+    : "carrier";
+
+  const legacyMap = {
+    starter: `${operationType}_small`,
+    professional: `${operationType}_medium`,
+    business: `${operationType}_large`,
+    enterprise: `${operationType}_unlimited`
+  };
+
+  return legacyMap[plan] || getDefaultPlanForCompany(company);
 }
 
 function formatCurrency(value) {

@@ -2,39 +2,64 @@ const API_KEY = "sb_publishable_vw7voiBA2V5_attC2dkUqw_PuOx468W";
 const BASE_URL = "https://ygrikxlbfmtkovktwhdp.supabase.co";
 const fallbackHeaders = { apikey: API_KEY, Authorization: "Bearer " + API_KEY };
 
-const plans = {
-  starter: {
-    label: "Starter",
-    price: 99,
-    description: "For small carriers getting organized.",
-    limits: { drivers: 10, trucks: 10, loads: 100, documents: 250, users: 3 },
-    features: ["Dispatch basics", "Driver and vehicle records", "Documents", "Basic reports"]
+const planCatalog = {
+  dispatcher: {
+    small: { price: 49, limits: { drivers: 25, trucks: 0, loads: 25, documents: 150, users: 2 } },
+    medium: { price: 99, limits: { drivers: 75, trucks: 0, loads: 75, documents: 500, users: 5 } },
+    large: { price: 149, limits: { drivers: 200, trucks: 0, loads: 200, documents: 1500, users: 10 } },
+    unlimited: { price: 249, limits: { drivers: null, trucks: 0, loads: null, documents: null, users: 25 } }
   },
-  professional: {
-    label: "Professional",
-    price: 199,
-    description: "For active dispatch teams and growing fleets.",
-    limits: { drivers: 50, trucks: 50, loads: 500, documents: 1500, users: 10 },
-    features: ["Maintenance alerts", "Customer tracking", "Invoices", "Company admin"]
+  carrier: {
+    small: { price: 99, limits: { drivers: 10, trucks: 5, loads: 100, documents: 500, users: 5 } },
+    medium: { price: 199, limits: { drivers: 30, trucks: 15, loads: 300, documents: 1500, users: 12 } },
+    large: { price: 349, limits: { drivers: 100, trucks: 50, loads: 1000, documents: 5000, users: 30 } },
+    unlimited: { price: 599, limits: { drivers: null, trucks: null, loads: null, documents: null, users: 75 } }
   },
-  business: {
-    label: "Business",
-    price: 399,
-    description: "For multi-role operations with heavier volume.",
-    limits: { drivers: 200, trucks: 200, loads: 2500, documents: 8000, users: 35 },
-    features: ["Advanced operations", "Higher limits", "Role workflows", "Priority setup"]
+  broker_3pl: {
+    small: { price: 99, limits: { drivers: 0, trucks: 0, loads: 50, documents: 500, users: 5 } },
+    medium: { price: 249, limits: { drivers: 0, trucks: 0, loads: 150, documents: 2000, users: 15 } },
+    large: { price: 499, limits: { drivers: 0, trucks: 0, loads: 500, documents: 7500, users: 40 } },
+    unlimited: { price: 799, limits: { drivers: 0, trucks: 0, loads: null, documents: null, users: 100 } }
   },
-  enterprise: {
-    label: "Enterprise",
-    price: 0,
-    description: "For custom networks and larger logistics teams.",
-    limits: { drivers: null, trucks: null, loads: null, documents: null, users: null },
-    features: ["Custom pricing", "Custom limits", "Dedicated onboarding", "Custom integrations"]
+  hybrid: {
+    small: { price: 149, limits: { drivers: 10, trucks: 5, loads: 50, documents: 750, users: 6 } },
+    medium: { price: 299, limits: { drivers: 30, trucks: 15, loads: 150, documents: 2500, users: 18 } },
+    large: { price: 599, limits: { drivers: 100, trucks: 50, loads: 500, documents: 10000, users: 50 } },
+    unlimited: { price: 999, limits: { drivers: null, trucks: null, loads: null, documents: null, users: 125 } }
   }
 };
 
+const operationLabels = {
+  dispatcher: "Dispatcher",
+  carrier: "Fleet / Carrier",
+  broker_3pl: "3PL / Broker",
+  hybrid: "Hybrid"
+};
+
+const sizeDescriptions = {
+  small: "For lean teams getting organized.",
+  medium: "For growing teams with steady volume.",
+  large: "For established operations with heavier usage.",
+  unlimited: "For companies that want room to scale without monthly limits."
+};
+
+function buildPlans(operationType = "carrier") {
+  const normalizedType = planCatalog[operationType] ? operationType : "carrier";
+  return Object.fromEntries(Object.entries(planCatalog[normalizedType]).map(([size, plan]) => {
+    const label = `${operationLabels[normalizedType]} ${capitalize(size)}`;
+    return [`${normalizedType}_${size}`, {
+      label,
+      price: plan.price,
+      description: sizeDescriptions[size],
+      limits: plan.limits,
+      features: getPlanFeatures(normalizedType, size)
+    }];
+  }));
+}
+
 let subscription = null;
 let usage = {};
+let plans = buildPlans("carrier");
 
 function getHeaders(extra = {}) {
   return {
@@ -58,6 +83,7 @@ async function initSubscription() {
       return;
     }
 
+    plans = buildPlans(window.CompanyContext?.getOperationType?.() || "carrier");
     await ensureSubscription();
     await loadUsage();
     renderPlans();
@@ -93,8 +119,8 @@ async function ensureSubscription() {
 
   const defaultSubscription = {
     company_id: companyId,
-    plan_name: "professional",
-    monthly_price: plans.professional.price,
+    plan_name: getDefaultPlanName(),
+    monthly_price: plans[getDefaultPlanName()].price,
     billing_status: "trial",
     trial_ends_at: addDays(new Date(), 14),
     renews_at: addDays(new Date(), 14)
@@ -137,13 +163,12 @@ async function countRows(table) {
 
 function renderPlans() {
   const grid = document.getElementById("planGrid");
-  const currentPlan = subscription?.plan_name || "professional";
+  const currentPlan = normalizePlanName(subscription?.plan_name);
   const billingStatus = subscription?.billing_status || "trial";
   grid.innerHTML = "";
 
   Object.entries(plans).forEach(([key, plan]) => {
     const isCurrent = key === currentPlan;
-    const isEnterprise = key === "enterprise";
     const card = document.createElement("section");
     card.className = `subscription-plan ${isCurrent ? "active" : ""}`;
     card.innerHTML = `
@@ -157,7 +182,7 @@ function renderPlans() {
         ${plan.features.map(feature => `<li>${feature}</li>`).join("")}
       </ul>
       <button class="view" type="button" data-select-plan="${key}" ${isCurrent && billingStatus === "active" ? "disabled" : ""}>
-        ${isEnterprise ? "Contact HyperRoute" : isCurrent && billingStatus === "active" ? "Active Plan" : "Start Checkout"}
+        ${isCurrent && billingStatus === "active" ? "Active Plan" : "Start Checkout"}
       </button>
     `;
     grid.appendChild(card);
@@ -169,7 +194,7 @@ function renderPlans() {
 }
 
 function renderSummary() {
-  const plan = plans[subscription?.plan_name] || plans.professional;
+  const plan = plans[normalizePlanName(subscription?.plan_name)] || plans[getDefaultPlanName()];
   document.getElementById("currentPlan").textContent = plan.label;
   document.getElementById("billingStatus").textContent = formatStatus(subscription?.billing_status || "trial");
   document.getElementById("monthlyPrice").textContent = plan.price ? `$${plan.price}` : "Custom";
@@ -178,7 +203,7 @@ function renderSummary() {
 
 function renderUsage() {
   const tbody = document.getElementById("usageTableBody");
-  const plan = plans[subscription?.plan_name] || plans.professional;
+  const plan = plans[normalizePlanName(subscription?.plan_name)] || plans[getDefaultPlanName()];
   const labels = {
     drivers: "Drivers",
     trucks: "Vehicles",
@@ -209,12 +234,6 @@ async function updatePlan(planName) {
   if (!plan || !subscription) return;
 
   const msg = document.getElementById("subscriptionMessage");
-  if (planName === "enterprise") {
-    msg.textContent = "Enterprise plans require HyperRoute setup. Contact HyperRoute from the support page.";
-    msg.style.color = "#334155";
-    return;
-  }
-
   msg.textContent = "Opening secure Stripe Checkout...";
   msg.style.color = "";
 
@@ -240,6 +259,47 @@ async function updatePlan(planName) {
     msg.textContent = getSubscriptionError(err.message);
     msg.style.color = "#ef4444";
   }
+}
+
+function getDefaultPlanName() {
+  const operationType = window.CompanyContext?.getOperationType?.() || "carrier";
+  const normalizedType = planCatalog[operationType] ? operationType : "carrier";
+  return `${normalizedType}_small`;
+}
+
+function normalizePlanName(planName) {
+  if (plans[planName]) return planName;
+
+  const legacyMap = {
+    starter: `${window.CompanyContext?.getOperationType?.() || "carrier"}_small`,
+    professional: `${window.CompanyContext?.getOperationType?.() || "carrier"}_medium`,
+    business: `${window.CompanyContext?.getOperationType?.() || "carrier"}_large`,
+    enterprise: `${window.CompanyContext?.getOperationType?.() || "carrier"}_unlimited`
+  };
+
+  return plans[legacyMap[planName]] ? legacyMap[planName] : getDefaultPlanName();
+}
+
+function getPlanFeatures(operationType, size) {
+  const base = {
+    dispatcher: ["Dispatch board", "Customer and load records", "Documents", "Basic reports"],
+    carrier: ["Drivers and vehicles", "Maintenance and compliance", "Loads and documents", "Dashboard reporting"],
+    broker_3pl: ["Customers and carriers", "Quotes and tenders", "Load tracking", "Invoices and documents"],
+    hybrid: ["Fleet tools", "Brokerage tools", "Billing workflows", "Operational reporting"]
+  };
+
+  const tierFeature = {
+    small: "Small team limits",
+    medium: "Higher monthly capacity",
+    large: "Expanded users and documents",
+    unlimited: "Unlimited core usage"
+  };
+
+  return [...(base[operationType] || base.carrier), tierFeature[size]];
+}
+
+function capitalize(value) {
+  return String(value || "").charAt(0).toUpperCase() + String(value || "").slice(1);
 }
 
 function addDays(date, days) {
