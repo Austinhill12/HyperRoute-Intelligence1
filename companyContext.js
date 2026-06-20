@@ -593,9 +593,9 @@
     if (COMPANY_ADMIN_PAGES.includes(page)) {
       return context.role === "platform_admin" || ["owner", "company_owner", "admin", "company_admin"].includes(context.role);
     }
-    if (!canAccessOperationPage(page)) return false;
 
     if (context.role === "platform_admin") return true;
+    if (!canAccessOperationPage(page)) return false;
 
     const access = ROLE_ACCESS[context.role] || ROLE_ACCESS.dispatcher;
     if (access === "all" || access === "all_company") return true;
