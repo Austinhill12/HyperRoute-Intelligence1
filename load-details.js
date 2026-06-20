@@ -78,6 +78,7 @@ async function loadDetails() {
     await loadIssues(load.id);
     await loadEvents(load.id);
     await loadDocuments(load.id);
+    await loadExpenses(load.id);
     companySettings = await fetchCompanySettings();
     await loadInvoices(load.id);
     setupInvoiceDefaults(load);
@@ -577,6 +578,89 @@ async function loadDocuments(loadId) {
     console.error(err);
     tbody.innerHTML = `<tr><td colspan="4">Error loading documents.</td></tr>`;
   }
+}
+
+async function loadExpenses(loadId) {
+  const tbody = document.getElementById("loadExpensesTableBody");
+  if (!tbody) return;
+  tbody.innerHTML = `<tr><td colspan="6">Loading expenses...</td></tr>`;
+
+  try {
+    const res = await fetch(
+      window.CompanyContext?.scopedUrl("load_expenses", `load_id=eq.${loadId}&select=*&order=created_at.desc`) || `${BASE_URL}/rest/v1/load_expenses?load_id=eq.${loadId}&select=*&order=created_at.desc`,
+      { headers: getHeaders() }
+    );
+
+    if (!res.ok) {
+      tbody.innerHTML = `<tr><td colspan="6">Run Profit Intelligence v2 SQL to enable expense review.</td></tr>`;
+      return;
+    }
+
+    renderExpenses(await res.json());
+  } catch (err) {
+    console.error(err);
+    tbody.innerHTML = `<tr><td colspan="6">Error loading expenses.</td></tr>`;
+  }
+}
+
+function renderExpenses(expenses) {
+  const tbody = document.getElementById("loadExpensesTableBody");
+  tbody.innerHTML = "";
+
+  if (!expenses.length) {
+    tbody.innerHTML = `<tr><td colspan="6">No driver expenses submitted.</td></tr>`;
+    return;
+  }
+
+  expenses.forEach(expense => {
+    const status = normalizeStatus(expense.status || "unreviewed");
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>
+        <strong>${escapeHtml(formatStatus(expense.category))}</strong>
+        <span class="muted-line">${escapeHtml(expense.notes || "")}</span>
+      </td>
+      <td>${formatCurrency(expense.amount)}</td>
+      <td><span class="status-pill ${getExpenseStatusClass(status)}">${escapeHtml(formatStatus(status))}</span></td>
+      <td>${formatTimestamp(expense.created_at)}</td>
+      <td>${expense.receipt_url ? `<a class="view secondary-action" href="${escapeHtml(expense.receipt_url)}" target="_blank" rel="noopener">Receipt</a>` : "N/A"}</td>
+      <td>
+        ${status !== "approved" ? `<button class="view" type="button" data-expense-action="approved" data-expense-id="${escapeHtml(expense.id)}">Approve</button>` : ""}
+        ${status !== "rejected" ? `<button class="delete" type="button" data-expense-action="rejected" data-expense-id="${escapeHtml(expense.id)}">Reject</button>` : ""}
+      </td>
+    `;
+    tbody.appendChild(row);
+  });
+
+  tbody.querySelectorAll("[data-expense-action]").forEach(button => {
+    button.addEventListener("click", () => updateExpenseStatus(button.dataset.expenseId, button.dataset.expenseAction));
+  });
+}
+
+function getExpenseStatusClass(status) {
+  if (status === "approved") return "success";
+  if (status === "rejected") return "warning";
+  return "caution";
+}
+
+async function updateExpenseStatus(expenseId, status) {
+  const loadId = getLoadId();
+  const res = await fetch(`${BASE_URL}/rest/v1/load_expenses?id=eq.${expenseId}`, {
+    method: "PATCH",
+    headers: getHeaders({
+      "Content-Type": "application/json",
+      Prefer: "return=representation"
+    }),
+    body: JSON.stringify({ status })
+  });
+
+  if (!res.ok) {
+    alert(`Error updating expense: ${await res.text()}`);
+    return;
+  }
+
+  await loadExpenses(loadId);
+  await loadEvents(loadId);
 }
 
 function renderDocuments(documents) {

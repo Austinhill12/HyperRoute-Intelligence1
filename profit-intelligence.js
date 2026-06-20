@@ -411,6 +411,8 @@
   function groupExpensesByLoad(expenses) {
     const map = new Map();
     expenses.forEach(expense => {
+      const status = normalize(expense.status || "unreviewed");
+      if (!["approved", "reviewed"].includes(status)) return;
       const key = String(expense.load_id || "");
       if (!key) return;
       map.set(key, toNumber(map.get(key)) + toNumber(expense.amount));
