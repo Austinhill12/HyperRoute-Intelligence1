@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profit Intelligence</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
+  <script src="auth-guard.js"></script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <h2 class="logo">HyperRoute Intelligence</h2>
+      <nav>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="onboarding.html">Onboarding</a>
+        <a href="activity.html">Activity</a>
+        <a href="dispatch.html">Dispatch Board</a>
+        <a href="driver-portal.html">Driver Portal</a>
+        <a href="reports.html">Reports</a>
+        <a href="profit-intelligence.html" class="active">Profit Intelligence</a>
+        <a href="alerts.html">Alerts</a>
+        <a href="index.html">Create Driver</a>
+        <a href="drivers.html">View Drivers</a>
+        <a href="create-load.html">Create Load</a>
+        <a href="loads.html">View Loads</a>
+        <a href="customers.html">Customers</a>
+        <a href="invoices.html">Invoices</a>
+        <a href="settlements.html">Settlements</a>
+        <a href="documents.html">Documents</a>
+        <a href="create-vehicle.html">Create Vehicle</a>
+        <a href="vehicles.html">View Vehicles</a>
+        <a href="create-maintenance.html">Create Maintenance</a>
+        <a href="maintenance.html">Maintenance Logs</a>
+        <a href="assign-vehicle.html">Assign Vehicle</a>
+        <a href="compliance.html">Driver Compliance</a>
+        <a href="company-admin.html">Company Admin</a>
+        <a href="platform-admin.html">Platform Admin</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <div class="page-header">
+        <div>
+          <h1>Profit Intelligence</h1>
+          <p id="profitSubtitle">Find profit leaks, cash risk, and operational actions from current company data.</p>
+        </div>
+        <div class="quick-actions no-print">
+          <button id="refreshProfitBtn" class="view" type="button">Refresh</button>
+        </div>
+      </div>
+
+      <section id="profitMessage" class="empty-state">Loading profit intelligence...</section>
+
+      <section class="kpi-grid dashboard-kpis">
+        <div class="kpi-card">
+          <span>Month Revenue</span>
+          <strong id="profitRevenue">$0</strong>
+          <small>Loads picked up this month</small>
+        </div>
+        <div class="kpi-card">
+          <span>Open Receivables</span>
+          <strong id="profitReceivables">$0</strong>
+          <small>Unpaid invoice balance</small>
+        </div>
+        <div class="kpi-card">
+          <span>Profit Leak Estimate</span>
+          <strong id="profitLeakEstimate">$0</strong>
+          <small>Revenue or cash at risk</small>
+        </div>
+        <div class="kpi-card">
+          <span>Action Items</span>
+          <strong id="profitActionCount">0</strong>
+          <small>Items needing attention</small>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-header">
+          <div>
+            <p class="section-eyebrow">Profit Leak Engine</p>
+            <h2>This Month's Leak Analysis</h2>
+          </div>
+        </div>
+        <div id="leakGrid" class="quick-start-grid"></div>
+      </section>
+
+      <section class="dashboard-two-column">
+        <div class="card">
+          <div class="section-header">
+            <div>
+              <p class="section-eyebrow">Recommended Actions</p>
+              <h2>What To Fix First</h2>
+            </div>
+          </div>
+          <div id="recommendationsList" class="dashboard-list"></div>
+        </div>
+
+        <div class="card">
+          <div class="section-header">
+            <div>
+              <p class="section-eyebrow">Customer Profitability</p>
+              <h2>Lowest Margin Customers</h2>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>Revenue</th>
+                  <th>Cost</th>
+                  <th>Margin</th>
+                </tr>
+              </thead>
+              <tbody id="customerProfitRows">
+                <tr><td colspan="4">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-header">
+          <div>
+            <p class="section-eyebrow">Details</p>
+            <h2>Leak Details</h2>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Area</th>
+                <th>Count</th>
+                <th>Estimated Impact</th>
+                <th>Suggested Fix</th>
+              </tr>
+            </thead>
+            <tbody id="leakDetailsRows">
+              <tr><td colspan="4">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="companyContext.js"></script>
+  <script src="profit-intelligence.js"></script>
+</body>
+</html>

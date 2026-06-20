@@ -20,7 +20,7 @@
     admin: "all_company",
     company_admin: "all_company",
     dispatcher: [
-      "dashboard.html", "onboarding.html", "activity.html", "dispatch.html", "reports.html", "alerts.html",
+      "dashboard.html", "onboarding.html", "activity.html", "dispatch.html", "reports.html", "profit-intelligence.html", "alerts.html",
       "index.html", "drivers.html", "driver-details.html", "edit-driver.html",
       "create-load.html", "loads.html", "load-details.html", "edit-load.html", "tender-load.html", "rate-confirmation.html",
       "quotes.html", "customers.html", "create-customer.html", "customer-details.html", "edit-customer.html",
@@ -30,7 +30,7 @@
       "support-contact.html", "privacy.html", "terms.html", "login.html", "logout.html"
     ],
     accounting: [
-      "dashboard.html", "onboarding.html", "activity.html", "reports.html", "customers.html", "create-customer.html",
+      "dashboard.html", "onboarding.html", "activity.html", "reports.html", "profit-intelligence.html", "customers.html", "create-customer.html",
       "customer-details.html", "edit-customer.html", "invoices.html", "invoice-details.html",
       "edit-invoice.html", "settlements.html", "quotes.html", "loads.html", "load-details.html", "tender-load.html", "rate-confirmation.html", "carriers.html", "documents.html", "support.html",
       "notifications.html", "subscription.html", "support-contact.html", "privacy.html", "terms.html", "login.html", "logout.html"
@@ -38,7 +38,7 @@
     maintenance: [
       "dashboard.html", "onboarding.html", "activity.html", "alerts.html", "create-vehicle.html", "vehicles.html",
       "vehicle-details.html", "edit-vehicle.html", "create-maintenance.html", "maintenance.html",
-      "reports.html", "documents.html", "support.html", "notifications.html", "support-contact.html", "privacy.html", "terms.html", "login.html", "logout.html"
+      "reports.html", "profit-intelligence.html", "documents.html", "support.html", "notifications.html", "support-contact.html", "privacy.html", "terms.html", "login.html", "logout.html"
     ],
     driver: [
       "driver-portal.html", "support.html", "notifications.html", "support-contact.html", "privacy.html", "terms.html", "login.html", "logout.html"
@@ -49,7 +49,7 @@
   const PLATFORM_ADMIN_PAGES = ["platform-admin.html", "demo-center.html"];
   const FEATURE_GROUPS = {
     core: [
-      "dashboard.html", "onboarding.html", "activity.html", "reports.html", "alerts.html",
+      "dashboard.html", "onboarding.html", "activity.html", "reports.html", "profit-intelligence.html", "alerts.html",
       "loads.html", "load-details.html", "edit-load.html", "create-load.html",
       "customers.html", "create-customer.html", "customer-details.html", "edit-customer.html",
       "documents.html", "notifications.html", "support.html", "subscription.html",
