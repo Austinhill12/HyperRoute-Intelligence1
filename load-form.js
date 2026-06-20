@@ -175,6 +175,19 @@ function normalizeLoadData(data) {
   if (data.weight) data.weight = Number(data.weight);
   if (data.rate) data.rate = Number(data.rate);
   if (data.carrier_rate) data.carrier_rate = Number(data.carrier_rate);
+  [
+    "loaded_miles",
+    "empty_miles",
+    "fuel_cost",
+    "toll_cost",
+    "detention_billed",
+    "detention_paid",
+    "lumper_cost",
+    "accessorial_billed",
+    "other_costs"
+  ].forEach(key => {
+    if (data[key]) data[key] = Number(data[key]);
+  });
   if (data.driver_id) data.driver_id = Number(data.driver_id);
   if (data.truck_id) data.truck_id = Number(data.truck_id);
 

@@ -3,6 +3,7 @@
     "documents",
     "driver_compliance",
     "invoices",
+    "load_expenses",
     "load_issues",
     "maintenance_schedules"
   ]);
@@ -26,14 +27,15 @@
       document.getElementById("profitSubtitle").textContent =
         `${context.company?.company_name || "Current company"} profit leak analysis`;
 
-      const [loads, invoices, documents, maintenanceSchedules, driverCompliance, drivers, loadIssues] = await Promise.all([
+      const [loads, invoices, documents, maintenanceSchedules, driverCompliance, drivers, loadIssues, loadExpenses] = await Promise.all([
         fetchRows("loads"),
         fetchRows("invoices"),
         fetchRows("documents"),
         fetchRows("maintenance_schedules"),
         fetchRows("driver_compliance"),
         fetchRows("drivers"),
-        fetchRows("load_issues")
+        fetchRows("load_issues"),
+        fetchRows("load_expenses")
       ]);
 
       const intelligence = buildProfitIntelligence({
@@ -43,7 +45,8 @@
         maintenanceSchedules,
         driverCompliance,
         drivers,
-        loadIssues
+        loadIssues,
+        loadExpenses
       });
 
       renderKpis(intelligence);
@@ -90,6 +93,8 @@
     const driverCompliance = data.driverCompliance || [];
     const drivers = data.drivers || [];
     const loadIssues = data.loadIssues || [];
+    const loadExpenses = data.loadExpenses || [];
+    const expenseByLoad = groupExpensesByLoad(loadExpenses);
 
     const monthLoads = loads.filter(load => {
       const date = parseDate(load.pickup_date || load.created_at);
@@ -108,12 +113,31 @@
       return dueDate && dueDate < today;
     });
 
-    const missingRateLoads = loads.filter(load => toNumber(load.rate) <= 0);
+    const missingRateLoads = loads.filter(load => totalLoadRevenue(load) <= 0);
     const lowMarginLoads = loads.filter(load => {
-      const revenue = toNumber(load.rate);
-      const cost = toNumber(load.carrier_rate);
+      const revenue = totalLoadRevenue(load);
+      const cost = totalLoadCost(load, expenseByLoad);
       if (!revenue || !cost) return false;
       return ((revenue - cost) / revenue) < 0.12;
+    });
+
+    const highDeadheadLoads = loads.filter(load => {
+      const loadedMiles = toNumber(load.loaded_miles);
+      const emptyMiles = toNumber(load.empty_miles);
+      if (!loadedMiles || !emptyMiles) return false;
+      return emptyMiles / (loadedMiles + emptyMiles) > 0.2;
+    });
+
+    const unrecoveredExpenseLoads = loads.filter(load => {
+      const cost = toNumber(load.fuel_cost) + toNumber(load.toll_cost) + toNumber(load.lumper_cost) + toNumber(load.other_costs) + toNumber(expenseByLoad.get(String(load.id)));
+      const recovery = toNumber(load.accessorial_billed);
+      return cost > 0 && recovery < cost * 0.25;
+    });
+
+    const detentionLeakLoads = loads.filter(load => {
+      const paid = toNumber(load.detention_paid);
+      const billed = toNumber(load.detention_billed);
+      return paid > billed;
     });
 
     const maintenanceDue = maintenanceSchedules.filter(item => {
@@ -137,8 +161,8 @@
 
     const issueImpact = sum(loadIssues, issue => toNumber(issue.claim_amount || issue.estimated_cost || issue.cost));
     const lowMarginGap = lowMarginLoads.reduce((total, load) => {
-      const revenue = toNumber(load.rate);
-      const cost = toNumber(load.carrier_rate);
+      const revenue = totalLoadRevenue(load);
+      const cost = totalLoadCost(load, expenseByLoad);
       const targetRevenue = cost / 0.88;
       return total + Math.max(0, targetRevenue - revenue);
     }, 0);
@@ -147,14 +171,14 @@
       {
         area: "Delivered Not Invoiced",
         count: deliveredNotInvoiced.length,
-        impact: sum(deliveredNotInvoiced, load => toNumber(load.rate)),
+        impact: sum(deliveredNotInvoiced, totalLoadRevenue),
         severity: "critical",
         fix: "Create invoices for delivered loads so revenue does not sit unbilled."
       },
       {
         area: "Missing POD / Documents",
         count: missingPodLoads.length,
-        impact: sum(missingPodLoads, load => toNumber(load.rate)),
+        impact: sum(missingPodLoads, totalLoadRevenue),
         severity: "warning",
         fix: "Attach POD or delivery documents before collection problems start."
       },
@@ -178,6 +202,34 @@
         impact: lowMarginGap,
         severity: "warning",
         fix: "Review pricing on loads below a 12% target margin."
+      },
+      {
+        area: "High Deadhead Miles",
+        count: highDeadheadLoads.length,
+        impact: sum(highDeadheadLoads, load => {
+          const totalMiles = toNumber(load.loaded_miles) + toNumber(load.empty_miles);
+          const costPerMile = totalMiles ? totalLoadCost(load, expenseByLoad) / totalMiles : 0;
+          return toNumber(load.empty_miles) * costPerMile;
+        }),
+        severity: "warning",
+        fix: "Reduce unpaid empty miles or price lanes to cover deadhead."
+      },
+      {
+        area: "Unrecovered Expenses",
+        count: unrecoveredExpenseLoads.length,
+        impact: sum(unrecoveredExpenseLoads, load => {
+          const cost = toNumber(load.fuel_cost) + toNumber(load.toll_cost) + toNumber(load.lumper_cost) + toNumber(load.other_costs) + toNumber(expenseByLoad.get(String(load.id)));
+          return Math.max(0, cost - toNumber(load.accessorial_billed));
+        }),
+        severity: "warning",
+        fix: "Review fuel, toll, lumper, and receipt costs that are not being recovered."
+      },
+      {
+        area: "Detention Not Recovered",
+        count: detentionLeakLoads.length,
+        impact: sum(detentionLeakLoads, load => Math.max(0, toNumber(load.detention_paid) - toNumber(load.detention_billed))),
+        severity: "warning",
+        fix: "Bill detention or adjust customer terms when detention paid is higher than detention billed."
       },
       {
         area: "Maintenance Due",
@@ -204,7 +256,7 @@
 
     const actionableLeaks = leaks.filter(leak => leak.count > 0 || leak.impact > 0);
     const leakEstimate = actionableLeaks.reduce((total, leak) => total + toNumber(leak.impact), 0);
-    const revenue = sum(monthLoads, load => toNumber(load.rate));
+    const revenue = sum(monthLoads, totalLoadRevenue);
     const receivables = sum(openInvoices, invoiceTotal);
     const customerProfitability = buildCustomerProfitability(loads);
 
@@ -218,21 +270,21 @@
         .slice()
         .sort((a, b) => (severityRank(b.severity) - severityRank(a.severity)) || (b.impact - a.impact))
         .slice(0, 5),
-      customerProfitability,
+      customerProfitability: buildCustomerProfitability(loads, expenseByLoad),
       summary: actionableLeaks.length
         ? `${actionableLeaks.length} profit leak areas need attention. Estimated revenue or cash at risk: ${formatCurrency(leakEstimate)}.`
         : "No major profit leaks found from current company data."
     };
   }
 
-  function buildCustomerProfitability(loads) {
+  function buildCustomerProfitability(loads, expenseByLoad) {
     const map = new Map();
 
     loads.forEach(load => {
       const customer = load.customer_name || load.customer || "Unassigned Customer";
       const current = map.get(customer) || { customer, revenue: 0, cost: 0, loads: 0 };
-      current.revenue += toNumber(load.rate);
-      current.cost += toNumber(load.carrier_rate);
+      current.revenue += totalLoadRevenue(load);
+      current.cost += totalLoadCost(load, expenseByLoad);
       current.loads += 1;
       map.set(customer, current);
     });
@@ -340,6 +392,30 @@
     if (invoice.amount !== undefined && invoice.amount !== null) return toNumber(invoice.amount);
     if (invoice.invoice_total !== undefined && invoice.invoice_total !== null) return toNumber(invoice.invoice_total);
     return toNumber(invoice.linehaul_amount) + toNumber(invoice.accessorial_amount);
+  }
+
+  function totalLoadRevenue(load) {
+    return toNumber(load.rate) + toNumber(load.detention_billed) + toNumber(load.accessorial_billed);
+  }
+
+  function totalLoadCost(load, expenseByLoad = new Map()) {
+    return toNumber(load.carrier_rate) +
+      toNumber(load.fuel_cost) +
+      toNumber(load.toll_cost) +
+      toNumber(load.detention_paid) +
+      toNumber(load.lumper_cost) +
+      toNumber(load.other_costs) +
+      toNumber(expenseByLoad.get(String(load.id)));
+  }
+
+  function groupExpensesByLoad(expenses) {
+    const map = new Map();
+    expenses.forEach(expense => {
+      const key = String(expense.load_id || "");
+      if (!key) return;
+      map.set(key, toNumber(map.get(key)) + toNumber(expense.amount));
+    });
+    return map;
   }
 
   function sum(rows, selector) {

@@ -62,6 +62,7 @@ async function loadDetails() {
     document.getElementById("commodity").textContent = load.commodity || "N/A";
     document.getElementById("weight").textContent = load.weight ? Number(load.weight).toLocaleString() : "N/A";
     document.getElementById("rate").textContent = load.rate ? `$${Number(load.rate).toLocaleString()}` : "N/A";
+    renderProfitSummary(load);
     document.getElementById("driverName").textContent = await getDriverName(load.driver_id);
     const assignment = await getLoadAssignment(load.id);
     document.getElementById("truckName").textContent = await getTruckName(assignment?.truck_id);
@@ -85,6 +86,32 @@ async function loadDetails() {
     msg.textContent = `Error loading load: ${err.message}`;
     msg.style.color = "#ef4444";
   }
+}
+
+function renderProfitSummary(load) {
+  const revenue = toNumber(load.rate) + toNumber(load.detention_billed) + toNumber(load.accessorial_billed);
+  const cost = toNumber(load.carrier_rate) + toNumber(load.fuel_cost) + toNumber(load.toll_cost) +
+    toNumber(load.detention_paid) + toNumber(load.lumper_cost) + toNumber(load.other_costs);
+  const profit = revenue - cost;
+  const loadedMiles = toNumber(load.loaded_miles);
+  const emptyMiles = toNumber(load.empty_miles);
+  const totalMiles = loadedMiles + emptyMiles;
+  const profitPerMile = totalMiles ? profit / totalMiles : 0;
+
+  setText("estimatedProfit", `${formatCurrency(profit)}${totalMiles ? ` (${formatCurrency(profitPerMile)}/mi)` : ""}`);
+  setText("loadMiles", totalMiles ? `${loadedMiles.toLocaleString()} loaded / ${emptyMiles.toLocaleString()} empty` : "N/A");
+  setText("costBreakdown", [
+    `Carrier ${formatCurrency(load.carrier_rate)}`,
+    `Fuel ${formatCurrency(load.fuel_cost)}`,
+    `Tolls ${formatCurrency(load.toll_cost)}`,
+    `Detention paid ${formatCurrency(load.detention_paid)}`,
+    `Other ${formatCurrency(toNumber(load.lumper_cost) + toNumber(load.other_costs))}`
+  ].join(" | "));
+}
+
+function setText(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = value;
 }
 
 async function loadCommunications(loadId) {
@@ -671,6 +698,11 @@ function formatTimestamp(value) {
 
 function formatCurrency(value) {
   return value ? `$${Number(value).toLocaleString()}` : "$0";
+}
+
+function toNumber(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function escapeHtml(value) {
