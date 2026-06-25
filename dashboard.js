@@ -493,7 +493,7 @@ function renderOwnerCustomers(metrics) {
   }
 
   list.innerHTML = rows.map(row => `
-    <a class="dashboard-list-item" href="profit-intelligence.html">
+    <a class="dashboard-list-item" href="customer-profitability.html?customer=${encodeURIComponent(row.customer)}">
       <span class="status-count">${Math.round(row.marginPercent)}%</span>
       <span>
         <strong>${escapeHtml(row.customer)}</strong>

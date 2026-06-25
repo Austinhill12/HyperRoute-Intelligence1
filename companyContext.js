@@ -23,14 +23,14 @@
       "dashboard.html", "onboarding.html", "activity.html", "dispatch.html", "reports.html", "profit-intelligence.html", "alerts.html",
       "index.html", "drivers.html", "driver-details.html", "edit-driver.html",
       "create-load.html", "loads.html", "load-details.html", "edit-load.html", "tender-load.html", "rate-confirmation.html",
-      "quotes.html", "customers.html", "create-customer.html", "customer-details.html", "edit-customer.html",
+      "quotes.html", "customers.html", "customer-profitability.html", "create-customer.html", "customer-details.html", "edit-customer.html",
       "carriers.html",
       "create-vehicle.html", "vehicles.html", "vehicle-details.html", "edit-vehicle.html",
       "assign-vehicle.html", "compliance.html", "documents.html", "expense-review.html", "support.html", "notifications.html", "subscription.html",
       "support-contact.html", "privacy.html", "terms.html", "login.html", "logout.html"
     ],
     accounting: [
-      "dashboard.html", "onboarding.html", "activity.html", "reports.html", "profit-intelligence.html", "customers.html", "create-customer.html",
+      "dashboard.html", "onboarding.html", "activity.html", "reports.html", "profit-intelligence.html", "customers.html", "customer-profitability.html", "create-customer.html",
       "customer-details.html", "edit-customer.html", "invoices.html", "invoice-details.html",
       "edit-invoice.html", "settlements.html", "quotes.html", "loads.html", "load-details.html", "tender-load.html", "rate-confirmation.html", "carriers.html", "documents.html", "expense-review.html", "support.html",
       "notifications.html", "subscription.html", "support-contact.html", "privacy.html", "terms.html", "login.html", "logout.html"
@@ -51,7 +51,7 @@
     core: [
       "dashboard.html", "onboarding.html", "activity.html", "reports.html", "profit-intelligence.html", "alerts.html",
       "loads.html", "load-details.html", "edit-load.html", "create-load.html",
-      "customers.html", "create-customer.html", "customer-details.html", "edit-customer.html",
+      "customers.html", "customer-profitability.html", "create-customer.html", "customer-details.html", "edit-customer.html",
       "documents.html", "expense-review.html", "notifications.html", "support.html", "subscription.html",
       "support-contact.html", "privacy.html", "terms.html", "track-load.html",
       "signup.html", "login.html", "logout.html"
