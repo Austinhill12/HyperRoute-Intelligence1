@@ -26,13 +26,13 @@
       "quotes.html", "customers.html", "create-customer.html", "customer-details.html", "edit-customer.html",
       "carriers.html",
       "create-vehicle.html", "vehicles.html", "vehicle-details.html", "edit-vehicle.html",
-      "assign-vehicle.html", "compliance.html", "documents.html", "support.html", "notifications.html", "subscription.html",
+      "assign-vehicle.html", "compliance.html", "documents.html", "expense-review.html", "support.html", "notifications.html", "subscription.html",
       "support-contact.html", "privacy.html", "terms.html", "login.html", "logout.html"
     ],
     accounting: [
       "dashboard.html", "onboarding.html", "activity.html", "reports.html", "profit-intelligence.html", "customers.html", "create-customer.html",
       "customer-details.html", "edit-customer.html", "invoices.html", "invoice-details.html",
-      "edit-invoice.html", "settlements.html", "quotes.html", "loads.html", "load-details.html", "tender-load.html", "rate-confirmation.html", "carriers.html", "documents.html", "support.html",
+      "edit-invoice.html", "settlements.html", "quotes.html", "loads.html", "load-details.html", "tender-load.html", "rate-confirmation.html", "carriers.html", "documents.html", "expense-review.html", "support.html",
       "notifications.html", "subscription.html", "support-contact.html", "privacy.html", "terms.html", "login.html", "logout.html"
     ],
     maintenance: [
@@ -68,7 +68,7 @@
       "quotes.html", "carriers.html", "tender-load.html", "rate-confirmation.html"
     ],
     billing: [
-      "invoices.html", "invoice-details.html", "edit-invoice.html", "settlements.html"
+      "invoices.html", "invoice-details.html", "edit-invoice.html", "settlements.html", "expense-review.html"
     ],
     dispatcherTools: [
       "dispatch.html"

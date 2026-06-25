@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Expense Review</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
+  <script src="auth-guard.js"></script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <h2 class="logo">HyperRoute Intelligence</h2>
+      <nav>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="onboarding.html">Onboarding</a>
+        <a href="activity.html">Activity</a>
+        <a href="dispatch.html">Dispatch Board</a>
+        <a href="driver-portal.html">Driver Portal</a>
+        <a href="reports.html">Reports</a>
+        <a href="profit-intelligence.html">Profit Intelligence</a>
+        <a href="expense-review.html" class="active">Expense Review</a>
+        <a href="alerts.html">Alerts</a>
+        <a href="index.html">Create Driver</a>
+        <a href="drivers.html">View Drivers</a>
+        <a href="create-load.html">Create Load</a>
+        <a href="loads.html">View Loads</a>
+        <a href="customers.html">Customers</a>
+        <a href="invoices.html">Invoices</a>
+        <a href="settlements.html">Settlements</a>
+        <a href="documents.html">Documents</a>
+        <a href="create-vehicle.html">Create Vehicle</a>
+        <a href="vehicles.html">View Vehicles</a>
+        <a href="create-maintenance.html">Create Maintenance</a>
+        <a href="maintenance.html">Maintenance Logs</a>
+        <a href="assign-vehicle.html">Assign Vehicle</a>
+        <a href="compliance.html">Driver Compliance</a>
+        <a href="company-admin.html">Company Admin</a>
+        <a href="platform-admin.html">Platform Admin</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <div class="page-header">
+        <div>
+          <h1>Expense Review</h1>
+          <p id="expenseReviewSubtitle">Review driver-submitted fuel, tolls, miles, and other trip expenses.</p>
+        </div>
+        <div class="quick-actions no-print">
+          <button id="refreshExpensesBtn" class="view" type="button">Refresh</button>
+        </div>
+      </div>
+
+      <section class="kpi-grid dashboard-kpis">
+        <div class="kpi-card">
+          <span>Pending Review</span>
+          <strong id="pendingExpenseCount">0</strong>
+          <small>Expenses waiting for action</small>
+        </div>
+        <div class="kpi-card">
+          <span>Pending Amount</span>
+          <strong id="pendingExpenseAmount">$0</strong>
+          <small>Unapproved cost submitted</small>
+        </div>
+        <div class="kpi-card">
+          <span>Approved This Month</span>
+          <strong id="approvedExpenseAmount">$0</strong>
+          <small>Costs included in profit</small>
+        </div>
+        <div class="kpi-card">
+          <span>Rejected</span>
+          <strong id="rejectedExpenseCount">0</strong>
+          <small>Denied expense submissions</small>
+        </div>
+      </section>
+
+      <section class="card reports-toolbar">
+        <div class="field">
+          <label for="expenseStatusFilter">Status</label>
+          <select id="expenseStatusFilter">
+            <option value="">All Statuses</option>
+            <option value="unreviewed" selected>Pending Review</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="expenseTypeFilter">Type</label>
+          <select id="expenseTypeFilter">
+            <option value="">All Types</option>
+            <option value="fuel">Fuel</option>
+            <option value="toll">Tolls</option>
+            <option value="lumper">Lumper</option>
+            <option value="detention">Detention</option>
+            <option value="scale">Scale Ticket</option>
+            <option value="parking">Parking</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="expenseSearch">Search</label>
+          <input id="expenseSearch" type="search" placeholder="Load, type, notes..." />
+        </div>
+        <button id="clearExpenseFiltersBtn" class="btn" type="button">Clear</button>
+      </section>
+
+      <section class="card">
+        <div class="section-header">
+          <div>
+            <p class="section-eyebrow">Office Review</p>
+            <h2>Submitted Expenses</h2>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Load</th>
+              <th>Type</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Submitted</th>
+              <th>Receipt</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="expenseReviewTableBody">
+            <tr><td colspan="7">Loading expenses...</td></tr>
+          </tbody>
+        </table>
+        <p id="expenseReviewMessage" class="message"></p>
+      </section>
+    </main>
+  </div>
+
+  <script src="companyContext.js"></script>
+  <script src="expense-review.js"></script>
+</body>
+</html>
