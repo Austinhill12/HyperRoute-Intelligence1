@@ -2748,6 +2748,53 @@ textarea {
   margin-bottom: 20px;
 }
 
+.owner-command-center {
+  margin: 20px 0;
+}
+
+.owner-command-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.owner-command-metric {
+  display: grid;
+  gap: 6px;
+  min-height: 116px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.owner-command-metric span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.owner-command-metric strong {
+  color: #0b1220;
+  font-size: 26px;
+  line-height: 1;
+}
+
+.owner-command-metric small {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.owner-command-lists {
+  margin-top: 18px;
+}
+
+.owner-command-lists h3 {
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+
 .dashboard-two-column {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2892,6 +2939,7 @@ textarea {
 
   .dashboard-command-grid,
   .dashboard-two-column,
+  .owner-command-grid,
   .readiness-grid,
   .readiness-mini-grid,
   .launch-revenue-grid,

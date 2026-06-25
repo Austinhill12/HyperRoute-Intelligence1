@@ -137,6 +137,48 @@
         </article>
       </section>
 
+      <section class="card owner-command-center" data-dashboard-section="owner">
+        <div class="section-header">
+          <div>
+            <p class="section-eyebrow">Owner Command Center</p>
+            <h2>Profit, Cash, and Action Priorities</h2>
+          </div>
+          <a class="view secondary-action" href="profit-intelligence.html">Profit Intelligence</a>
+        </div>
+        <div class="owner-command-grid">
+          <div class="owner-command-metric">
+            <span>Estimated Profit</span>
+            <strong id="ownerEstimatedProfit">$0</strong>
+            <small id="ownerProfitPerMile">$0/mi</small>
+          </div>
+          <div class="owner-command-metric">
+            <span>Cash Waiting</span>
+            <strong id="ownerCashWaiting">$0</strong>
+            <small>Open receivables</small>
+          </div>
+          <div class="owner-command-metric">
+            <span>Unbilled Work</span>
+            <strong id="ownerUnbilledWork">$0</strong>
+            <small>Delivered not invoiced</small>
+          </div>
+          <div class="owner-command-metric">
+            <span>Pending Expenses</span>
+            <strong id="ownerPendingExpenses">$0</strong>
+            <small id="ownerPendingExpenseCount">0 waiting review</small>
+          </div>
+        </div>
+        <div class="dashboard-two-column owner-command-lists">
+          <div>
+            <h3>Top Actions</h3>
+            <div id="ownerActionList" class="dashboard-list"></div>
+          </div>
+          <div>
+            <h3>Lowest Margin Customers</h3>
+            <div id="ownerCustomerList" class="dashboard-list"></div>
+          </div>
+        </div>
+      </section>
+
       <section class="kpi-grid dashboard-kpis">
         <div class="kpi-card"><h3 id="kpiLoadPipeline">0</h3><p>Loads In Pipeline</p></div>
         <div class="kpi-card success"><h3 id="kpiDeliveredMonth">0</h3><p>Delivered This Month</p></div>

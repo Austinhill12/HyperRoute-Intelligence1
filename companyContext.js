@@ -52,7 +52,7 @@
       "dashboard.html", "onboarding.html", "activity.html", "reports.html", "profit-intelligence.html", "alerts.html",
       "loads.html", "load-details.html", "edit-load.html", "create-load.html",
       "customers.html", "create-customer.html", "customer-details.html", "edit-customer.html",
-      "documents.html", "notifications.html", "support.html", "subscription.html",
+      "documents.html", "expense-review.html", "notifications.html", "support.html", "subscription.html",
       "support-contact.html", "privacy.html", "terms.html", "track-load.html",
       "signup.html", "login.html", "logout.html"
     ],

@@ -83,7 +83,7 @@ const ROLE_DASHBOARD_PROFILES = {
     titleSuffix: "Dispatch View",
     summaryFocus: "load movement, dispatch activity, customer updates, documents, and open risks",
     hiddenKpis: ["kpiGrossMargin", "kpiMarginPercent", "kpiProfitRisks", "kpiClaimExposure", "kpiOpenReceivables", "kpiOverdueInvoices", "kpiQuoteWinRate", "kpiQuotedValue"],
-    hiddenSections: ["quotes", "revenue"],
+    hiddenSections: ["quotes", "revenue", "owner"],
     hiddenMiniStats: ["revenue"]
   },
   accounting: {
@@ -91,14 +91,14 @@ const ROLE_DASHBOARD_PROFILES = {
     title: "Billing Intelligence",
     summaryFocus: "invoices, settlements, receivables, delivered loads, customer billing, and documents",
     hiddenKpis: ["kpiAvailableTrucks", "kpiComplianceRisk", "kpiMaintenanceDue", "kpiOpenQuotes", "kpiQuoteWinRate", "kpiQuotedValue", "kpiQuotesExpiring"],
-    hiddenSections: ["quotes"]
+    hiddenSections: ["quotes", "owner"]
   },
   maintenance: {
     label: "Maintenance",
     title: "Maintenance Intelligence",
     summaryFocus: "vehicle status, maintenance due, compliance exposure, documents, and service activity",
     hiddenKpis: ["kpiGrossMargin", "kpiMarginPercent", "kpiProfitRisks", "kpiClaimExposure", "kpiOpenReceivables", "kpiOverdueInvoices", "kpiOpenQuotes", "kpiQuoteWinRate", "kpiQuotedValue", "kpiQuotesExpiring"],
-    hiddenSections: ["quotes", "revenue"],
+    hiddenSections: ["quotes", "revenue", "owner"],
     hiddenMiniStats: ["revenue"]
   }
 };
@@ -138,6 +138,7 @@ async function loadDashboard() {
       maintenanceSchedules,
       assignments,
       loadIssues,
+      loadExpenses,
       activityLogs
     ] = await Promise.all([
       fetchRows("drivers", "select=*", headers),
@@ -150,6 +151,7 @@ async function loadDashboard() {
       fetchRows("maintenance_schedules", "select=*", headers),
       fetchRows("assignments", "select=*", headers),
       fetchRows("load_issues", "select=*", headers),
+      fetchRows("load_expenses", "select=*", headers),
       fetchRows("activity_logs", "select=*&order=created_at.desc&limit=8", headers)
     ]);
 
@@ -163,10 +165,12 @@ async function loadDashboard() {
       maintenanceLogs,
       maintenanceSchedules,
       assignments,
-      loadIssues
+      loadIssues,
+      loadExpenses
     });
 
     renderKpis(metrics);
+    renderOwnerCommandCenter(metrics);
     renderHealth(metrics);
     renderAttention(metrics);
     renderQuotePipeline(metrics);
@@ -275,19 +279,36 @@ function calculateMetrics(data) {
     issueExposureByLoad.set(issue.load_id, (issueExposureByLoad.get(issue.load_id) || 0) + Number(issue.claim_amount || 0));
   });
 
+  const approvedExpenses = (data.loadExpenses || []).filter(expense => ["approved", "reviewed"].includes(normalizeStatus(expense.status)));
+  const pendingExpenses = (data.loadExpenses || []).filter(expense => normalizeStatus(expense.status) === "unreviewed");
+  const expenseByLoad = new Map();
+  approvedExpenses.forEach(expense => {
+    const loadId = String(expense.load_id || "");
+    if (!loadId) return;
+    expenseByLoad.set(loadId, (expenseByLoad.get(loadId) || 0) + Number(expense.amount || 0));
+  });
+
   const profitabilityRows = data.loads.map(load => {
-    const revenue = Number(load.rate || 0);
-    const carrierCost = Number(load.carrier_rate || 0);
+    const revenue = getLoadRevenue(load);
+    const carrierCost = getLoadCost(load, expenseByLoad);
     const claimExposure = issueExposureByLoad.get(load.id) || 0;
     const grossMargin = revenue - carrierCost - claimExposure;
     const marginPercent = revenue ? (grossMargin / revenue) * 100 : 0;
-    return { load, revenue, carrierCost, claimExposure, grossMargin, marginPercent };
+    const totalMiles = Number(load.loaded_miles || 0) + Number(load.empty_miles || 0);
+    return { load, revenue, carrierCost, claimExposure, grossMargin, marginPercent, totalMiles };
   });
   const grossRevenue = profitabilityRows.reduce((sum, row) => sum + row.revenue, 0);
   const carrierCost = profitabilityRows.reduce((sum, row) => sum + row.carrierCost, 0);
   const claimExposure = profitabilityRows.reduce((sum, row) => sum + row.claimExposure, 0);
   const grossMargin = profitabilityRows.reduce((sum, row) => sum + row.grossMargin, 0);
   const marginPercent = grossRevenue ? Math.round((grossMargin / grossRevenue) * 100) : 0;
+  const totalMiles = profitabilityRows.reduce((sum, row) => sum + row.totalMiles, 0);
+  const profitPerMile = totalMiles ? grossMargin / totalMiles : 0;
+  const pendingExpenseAmount = pendingExpenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+  const deliveredNotInvoicedValue = data.loads
+    .filter(load => deliveredNotInvoiced.map(String).includes(String(load.id)))
+    .reduce((sum, load) => sum + getLoadRevenue(load), 0);
+  const customerProfitability = buildCustomerProfitability(profitabilityRows);
   const profitRisks = profitabilityRows.filter(row =>
     row.claimExposure > 0 ||
     (row.revenue > 0 && row.grossMargin < 0) ||
@@ -321,15 +342,58 @@ function calculateMetrics(data) {
     deliveredNotInvoiced,
     deliveredMissingPod,
     openIssues,
+    approvedExpenses,
+    pendingExpenses,
+    pendingExpenseAmount,
+    deliveredNotInvoicedValue,
     grossRevenue,
     carrierCost,
     claimExposure,
     grossMargin,
     marginPercent,
+    profitPerMile,
+    customerProfitability,
     profitRisks,
     openRisks,
     healthScore
   };
+}
+
+function getLoadRevenue(load) {
+  return Number(load.rate || 0) +
+    Number(load.detention_billed || 0) +
+    Number(load.accessorial_billed || 0);
+}
+
+function getLoadCost(load, expenseByLoad = new Map()) {
+  return Number(load.carrier_rate || 0) +
+    Number(load.fuel_cost || 0) +
+    Number(load.toll_cost || 0) +
+    Number(load.detention_paid || 0) +
+    Number(load.lumper_cost || 0) +
+    Number(load.other_costs || 0) +
+    Number(expenseByLoad.get(String(load.id)) || 0);
+}
+
+function buildCustomerProfitability(rows) {
+  const map = new Map();
+
+  rows.forEach(row => {
+    const customer = row.load.customer_name || row.load.customer || "Unassigned Customer";
+    const current = map.get(customer) || { customer, revenue: 0, cost: 0, margin: 0, loads: 0 };
+    current.revenue += row.revenue;
+    current.cost += row.carrierCost;
+    current.margin += row.grossMargin;
+    current.loads += 1;
+    map.set(customer, current);
+  });
+
+  return Array.from(map.values())
+    .map(row => ({
+      ...row,
+      marginPercent: row.revenue ? (row.margin / row.revenue) * 100 : 0
+    }))
+    .sort((a, b) => a.marginPercent - b.marginPercent);
 }
 
 function renderKpis(metrics) {
@@ -352,6 +416,91 @@ function renderKpis(metrics) {
   setText("kpiQuoteWinRate", `${metrics.quoteWinRate}%`);
   setText("kpiQuotedValue", formatCurrency(metrics.openQuotedValue));
   setText("kpiQuotesExpiring", metrics.quotesExpiring.length);
+}
+
+function renderOwnerCommandCenter(metrics) {
+  setText("ownerEstimatedProfit", formatCurrency(metrics.grossMargin));
+  setText("ownerProfitPerMile", `${formatCurrency(metrics.profitPerMile)}/mi`);
+  setText("ownerCashWaiting", formatCurrency(metrics.openReceivables));
+  setText("ownerUnbilledWork", formatCurrency(metrics.deliveredNotInvoicedValue));
+  setText("ownerPendingExpenses", formatCurrency(metrics.pendingExpenseAmount));
+  setText("ownerPendingExpenseCount", `${metrics.pendingExpenses.length} waiting review`);
+
+  renderOwnerActions(metrics);
+  renderOwnerCustomers(metrics);
+}
+
+function renderOwnerActions(metrics) {
+  const actions = [
+    {
+      title: "Review pending expenses",
+      count: metrics.pendingExpenses.length,
+      detail: `${formatCurrency(metrics.pendingExpenseAmount)} waiting for approval before profit is final.`,
+      href: "expense-review.html"
+    },
+    {
+      title: "Invoice delivered loads",
+      count: metrics.deliveredNotInvoiced.length,
+      detail: `${formatCurrency(metrics.deliveredNotInvoicedValue)} delivered but not invoiced.`,
+      href: "invoices.html"
+    },
+    {
+      title: "Collect overdue invoices",
+      count: metrics.overdueInvoices.length,
+      detail: `${metrics.overdueInvoices.length} invoice${metrics.overdueInvoices.length === 1 ? "" : "s"} past due.`,
+      href: "invoices.html"
+    },
+    {
+      title: "Fix low-margin loads",
+      count: metrics.profitRisks.length,
+      detail: "Loads below margin target or exposed to claims need review.",
+      href: "profit-intelligence.html"
+    },
+    {
+      title: "Attach missing PODs",
+      count: metrics.deliveredMissingPod.length,
+      detail: "Missing delivery paperwork slows invoicing and collections.",
+      href: "documents.html"
+    }
+  ].filter(action => action.count > 0);
+
+  const list = document.getElementById("ownerActionList");
+  if (!list) return;
+  if (!actions.length) {
+    list.innerHTML = `<div class="empty-state">No owner-level action items found.</div>`;
+    return;
+  }
+
+  list.innerHTML = actions.slice(0, 5).map(action => `
+    <a class="dashboard-list-item" href="${action.href}">
+      <span class="status-count">${action.count}</span>
+      <span>
+        <strong>${escapeHtml(action.title)}</strong>
+        <small>${escapeHtml(action.detail)}</small>
+      </span>
+    </a>
+  `).join("");
+}
+
+function renderOwnerCustomers(metrics) {
+  const list = document.getElementById("ownerCustomerList");
+  if (!list) return;
+  const rows = metrics.customerProfitability.filter(row => row.revenue > 0).slice(0, 5);
+
+  if (!rows.length) {
+    list.innerHTML = `<div class="empty-state">No customer profitability data yet.</div>`;
+    return;
+  }
+
+  list.innerHTML = rows.map(row => `
+    <a class="dashboard-list-item" href="profit-intelligence.html">
+      <span class="status-count">${Math.round(row.marginPercent)}%</span>
+      <span>
+        <strong>${escapeHtml(row.customer)}</strong>
+        <small>${formatCurrency(row.margin)} margin on ${formatCurrency(row.revenue)} revenue.</small>
+      </span>
+    </a>
+  `).join("");
 }
 
 function applyDashboardProfile(company) {
