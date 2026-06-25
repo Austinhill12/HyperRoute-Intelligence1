@@ -31,7 +31,7 @@ const DASHBOARD_PROFILES = {
   },
   dispatcher: {
     label: "Dispatcher",
-    title: "Dispatch Operations Intelligence",
+    title: "Dispatch Workspace",
     summaryFocus: "loads, dispatch board activity, drivers, trucks, customer updates, and documents",
     demoScript: [
       "1. Start on Dispatch Operations Intelligence: show active loads, dispatch status, available trucks, and documents.",
@@ -40,8 +40,13 @@ const DASHBOARD_PROFILES = {
       "4. Open Drivers and Vehicles: show the operating roster used to assign work.",
       "5. Open Documents: show how proof of delivery and load paperwork stay attached to the work."
     ],
-    hiddenKpis: ["kpiOpenQuotes", "kpiQuoteWinRate", "kpiQuotedValue", "kpiQuotesExpiring", "kpiGrossMargin", "kpiMarginPercent", "kpiProfitRisks", "kpiClaimExposure"],
-    hiddenSections: ["quotes"]
+    hiddenKpis: [
+      "kpiOpenQuotes", "kpiQuoteWinRate", "kpiQuotedValue", "kpiQuotesExpiring",
+      "kpiGrossMargin", "kpiMarginPercent", "kpiProfitRisks", "kpiClaimExposure",
+      "kpiOpenReceivables", "kpiOverdueInvoices", "kpiComplianceRisk", "kpiMaintenanceDue"
+    ],
+    hiddenSections: ["quotes", "revenue", "owner"],
+    hiddenMiniStats: ["revenue"]
   },
   hybrid: {
     label: "Hybrid",
@@ -80,9 +85,9 @@ const ROLE_DASHBOARD_PROFILES = {
   },
   dispatcher: {
     label: "Dispatcher",
-    titleSuffix: "Dispatch View",
+    title: "Dispatch Workspace",
     summaryFocus: "load movement, dispatch activity, customer updates, documents, and open risks",
-    hiddenKpis: ["kpiGrossMargin", "kpiMarginPercent", "kpiProfitRisks", "kpiClaimExposure", "kpiOpenReceivables", "kpiOverdueInvoices", "kpiQuoteWinRate", "kpiQuotedValue"],
+    hiddenKpis: ["kpiGrossMargin", "kpiMarginPercent", "kpiProfitRisks", "kpiClaimExposure", "kpiOpenReceivables", "kpiOverdueInvoices", "kpiQuoteWinRate", "kpiQuotedValue", "kpiComplianceRisk", "kpiMaintenanceDue"],
     hiddenSections: ["quotes", "revenue", "owner"],
     hiddenMiniStats: ["revenue"]
   },
@@ -139,6 +144,8 @@ async function loadDashboard() {
       assignments,
       loadIssues,
       loadExpenses,
+      customers,
+      carriers,
       activityLogs
     ] = await Promise.all([
       fetchRows("drivers", "select=*", headers),
@@ -152,6 +159,8 @@ async function loadDashboard() {
       fetchRows("assignments", "select=*", headers),
       fetchRows("load_issues", "select=*", headers),
       fetchRows("load_expenses", "select=*", headers),
+      fetchRows("customers", "select=*", headers),
+      fetchRows("carriers", "select=*", headers),
       fetchRows("activity_logs", "select=*&order=created_at.desc&limit=8", headers)
     ]);
 
@@ -166,10 +175,13 @@ async function loadDashboard() {
       maintenanceSchedules,
       assignments,
       loadIssues,
-      loadExpenses
+      loadExpenses,
+      customers,
+      carriers
     });
 
     renderKpis(metrics);
+    renderDispatcherWorkspace(metrics);
     renderOwnerCommandCenter(metrics);
     renderHealth(metrics);
     renderAttention(metrics);
@@ -210,6 +222,19 @@ function calculateMetrics(data) {
 
   const pipelineStatuses = ["booked", "assigned", "dispatched", "picked_up", "in_transit"];
   const activeLoads = data.loads.filter(load => pipelineStatuses.includes(normalizeStatus(load.status)));
+  const attentionStatuses = ["booked", "assigned", "dispatched", "delayed", "issue", "at_risk"];
+  const todayPickups = data.loads.filter(load => isSameDay(load.pickup_date, today));
+  const todayDeliveries = data.loads.filter(load => isSameDay(load.delivery_date || load.dropoff_date, today));
+  const loadIssueIds = new Set((data.loadIssues || [])
+    .filter(issue => !["resolved", "closed"].includes(normalizeStatus(issue.status)))
+    .map(issue => String(issue.load_id)));
+  const attentionLoads = data.loads.filter(load => {
+    const status = normalizeStatus(load.status);
+    return attentionStatuses.includes(status) ||
+      loadIssueIds.has(String(load.id)) ||
+      (load.pickup_date && startOfDay(new Date(load.pickup_date)) < today && !["picked_up", "in_transit", "delivered", "invoiced", "paid", "cancelled"].includes(status)) ||
+      ((load.delivery_date || load.dropoff_date) && startOfDay(new Date(load.delivery_date || load.dropoff_date)) < today && !["delivered", "invoiced", "paid", "cancelled"].includes(status));
+  });
   const deliveredThisMonth = data.loads.filter(load =>
     normalizeStatus(load.status) === "delivered" &&
     dateOnOrAfter(load.delivery_date || load.dropoff_date || load.updated_at || load.created_at, firstOfMonth)
@@ -324,6 +349,9 @@ function calculateMetrics(data) {
     invoiceStatus,
     quoteStatus,
     activeLoads,
+    todayPickups,
+    todayDeliveries,
+    attentionLoads,
     deliveredThisMonth,
     openReceivables,
     monthRevenue,
@@ -416,6 +444,180 @@ function renderKpis(metrics) {
   setText("kpiQuoteWinRate", `${metrics.quoteWinRate}%`);
   setText("kpiQuotedValue", formatCurrency(metrics.openQuotedValue));
   setText("kpiQuotesExpiring", metrics.quotesExpiring.length);
+}
+
+function renderDispatcherWorkspace(metrics) {
+  setText("dispatchActiveLoads", metrics.activeLoads.length);
+  setText("dispatchPickupsToday", metrics.todayPickups.length);
+  setText("dispatchDeliveriesToday", metrics.todayDeliveries.length);
+  setText("dispatchAttentionLoads", metrics.attentionLoads.length);
+
+  renderDispatcherLoadList("dispatcherAttentionList", metrics.attentionLoads, "No loads need attention right now.");
+  renderDispatcherLoadList("dispatcherActiveLoadList", metrics.activeLoads, "No active loads moving right now.");
+  bindDispatcherSearch(metrics);
+}
+
+function renderDispatcherLoadList(elementId, loads, emptyText) {
+  const list = document.getElementById(elementId);
+  if (!list) return;
+
+  if (!loads.length) {
+    list.innerHTML = `<div class="empty-state">${escapeHtml(emptyText)}</div>`;
+    return;
+  }
+
+  list.innerHTML = loads.slice(0, 8).map(load => `
+    <a class="dispatcher-load-item" href="load-details.html?id=${encodeURIComponent(load.id)}">
+      <span class="dispatcher-load-main">
+        <strong>${escapeHtml(load.load_number || `Load ${load.id}`)}</strong>
+        <small>${escapeHtml(getLoadLane(load))}</small>
+      </span>
+      <span class="dispatcher-load-meta">
+        <span class="status-pill ${getLoadStatusClass(load.status)}">${escapeHtml(displayStatus(load.status || "open"))}</span>
+        <small>${escapeHtml(getLoadTiming(load))}</small>
+      </span>
+    </a>
+  `).join("");
+}
+
+function bindDispatcherSearch(metrics) {
+  const input = document.getElementById("globalDispatchSearch");
+  const results = document.getElementById("dispatchSearchResults");
+  if (!input || !results || input.dataset.bound === "true") return;
+  input.dataset.bound = "true";
+
+  const searchable = buildSearchIndex(metrics);
+  input.addEventListener("input", () => {
+    const term = input.value.trim().toLowerCase();
+    if (term.length < 2) {
+      results.hidden = true;
+      results.innerHTML = "";
+      return;
+    }
+
+    const matches = searchable
+      .filter(item => item.keywords.includes(term))
+      .slice(0, 8);
+
+    if (!matches.length) {
+      results.hidden = false;
+      results.innerHTML = `<div class="dispatch-search-empty">No matching loads, customers, carriers, drivers, or MC numbers.</div>`;
+      return;
+    }
+
+    results.hidden = false;
+    results.innerHTML = matches.map(item => `
+      <a href="${item.href}">
+        <span>${escapeHtml(item.type)}</span>
+        <strong>${escapeHtml(item.title)}</strong>
+        <small>${escapeHtml(item.detail)}</small>
+      </a>
+    `).join("");
+  });
+
+  document.addEventListener("click", event => {
+    if (!event.target.closest(".dispatcher-search")) {
+      results.hidden = true;
+    }
+  });
+}
+
+function buildSearchIndex(metrics) {
+  const items = [];
+
+  (metrics.loads || []).forEach(load => {
+    const title = load.load_number || `Load ${load.id}`;
+    const detail = `${getLoadLane(load)} | ${displayStatus(load.status)}`;
+    items.push({
+      type: "Load",
+      title,
+      detail,
+      href: `load-details.html?id=${encodeURIComponent(load.id)}`,
+      keywords: [
+        title,
+        detail,
+        load.tracking_code,
+        load.customer_name,
+        load.customer,
+        load.broker_name,
+        load.carrier_name,
+        load.pickup_location,
+        load.delivery_location,
+        load.dropoff_location,
+        load.shipper_name,
+        load.consignee_name
+      ].filter(Boolean).join(" ").toLowerCase()
+    });
+  });
+
+  (metrics.customers || []).forEach(customer => {
+    const title = customer.company_name || customer.customer_name || customer.name || `Customer ${customer.id}`;
+    items.push({
+      type: "Customer",
+      title,
+      detail: [customer.mc_number, customer.dot_number, customer.phone, customer.email].filter(Boolean).join(" | "),
+      href: `customer-details.html?id=${encodeURIComponent(customer.id)}`,
+      keywords: Object.values(customer).filter(value => typeof value !== "object").join(" ").toLowerCase()
+    });
+  });
+
+  (metrics.carriers || []).forEach(carrier => {
+    const title = carrier.carrier_name || carrier.company_name || carrier.name || `Carrier ${carrier.id}`;
+    items.push({
+      type: "Carrier",
+      title,
+      detail: [carrier.mc_number, carrier.dot_number, carrier.phone, carrier.email].filter(Boolean).join(" | "),
+      href: "carriers.html",
+      keywords: Object.values(carrier).filter(value => typeof value !== "object").join(" ").toLowerCase()
+    });
+  });
+
+  (metrics.drivers || []).forEach(driver => {
+    const title = [driver.first_name, driver.last_name].filter(Boolean).join(" ") || `Driver ${driver.id}`;
+    items.push({
+      type: "Driver",
+      title,
+      detail: [driver.phone, driver.email, driver.license_number].filter(Boolean).join(" | "),
+      href: `driver-details.html?id=${encodeURIComponent(driver.id)}`,
+      keywords: Object.values(driver).filter(value => typeof value !== "object").join(" ").toLowerCase()
+    });
+  });
+
+  (metrics.trucks || []).forEach(truck => {
+    const title = truck.truck_number || truck.unit_number || `Truck ${truck.id}`;
+    items.push({
+      type: "Truck",
+      title,
+      detail: [truck.vin, truck.status].filter(Boolean).join(" | "),
+      href: `vehicle-details.html?id=${encodeURIComponent(truck.id)}`,
+      keywords: Object.values(truck).filter(value => typeof value !== "object").join(" ").toLowerCase()
+    });
+  });
+
+  return items;
+}
+
+function getLoadLane(load) {
+  const pickup = load.pickup_location || load.shipper_name || "Pickup TBD";
+  const delivery = load.delivery_location || load.dropoff_location || load.consignee_name || "Delivery TBD";
+  return `${pickup} to ${delivery}`;
+}
+
+function getLoadTiming(load) {
+  const pickup = formatDate(load.pickup_date);
+  const delivery = formatDate(load.delivery_date || load.dropoff_date);
+  if (pickup && delivery) return `${pickup} -> ${delivery}`;
+  if (pickup) return `Pickup ${pickup}`;
+  if (delivery) return `Delivery ${delivery}`;
+  return "Dates TBD";
+}
+
+function getLoadStatusClass(status) {
+  const normalized = normalizeStatus(status);
+  if (["delayed", "issue", "at_risk", "cancelled"].includes(normalized)) return "warning";
+  if (["delivered", "invoiced", "paid"].includes(normalized)) return "success";
+  if (["picked_up", "in_transit", "dispatched"].includes(normalized)) return "caution";
+  return "neutral";
 }
 
 function renderOwnerCommandCenter(metrics) {
@@ -738,7 +940,9 @@ function getDashboardProfile() {
   const operationType = window.CompanyContext?.getOperationType?.() || "carrier";
   const role = window.CompanyContext?.getRole?.() || "dispatcher";
   const operationProfile = DASHBOARD_PROFILES[operationType] || DASHBOARD_PROFILES.carrier;
-  const roleProfile = ROLE_DASHBOARD_PROFILES[role] || {};
+  const roleProfile = operationType === "dispatcher" && ["owner", "company_owner", "admin", "company_admin"].includes(role)
+    ? {}
+    : ROLE_DASHBOARD_PROFILES[role] || {};
   const title = roleProfile.title || (roleProfile.titleSuffix ? `${operationProfile.title} - ${roleProfile.titleSuffix}` : operationProfile.title);
 
   return {
@@ -824,6 +1028,13 @@ function dateOnOrAfter(value, minimumDate) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return false;
   return date >= minimumDate;
+}
+
+function isSameDay(value, targetDate) {
+  if (!value) return false;
+  const date = startOfDay(new Date(value));
+  if (Number.isNaN(date.getTime())) return false;
+  return date.getTime() === targetDate.getTime();
 }
 
 function addDays(date, days) {

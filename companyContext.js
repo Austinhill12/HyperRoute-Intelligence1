@@ -20,19 +20,19 @@
     admin: "all_company",
     company_admin: "all_company",
     dispatcher: [
-      "dashboard.html", "onboarding.html", "activity.html", "dispatch.html", "reports.html", "profit-intelligence.html", "alerts.html",
+      "dashboard.html", "onboarding.html", "activity.html", "dispatch.html", "alerts.html",
       "index.html", "drivers.html", "driver-details.html", "edit-driver.html",
       "create-load.html", "loads.html", "load-details.html", "edit-load.html", "tender-load.html", "rate-confirmation.html",
-      "quotes.html", "customers.html", "customer-profitability.html", "create-customer.html", "customer-details.html", "edit-customer.html",
+      "quotes.html", "customers.html", "create-customer.html", "customer-details.html", "edit-customer.html",
       "carriers.html",
       "create-vehicle.html", "vehicles.html", "vehicle-details.html", "edit-vehicle.html",
-      "assign-vehicle.html", "compliance.html", "documents.html", "expense-review.html", "integrations.html", "support.html", "notifications.html", "subscription.html",
+      "assign-vehicle.html", "documents.html", "support.html", "notifications.html",
       "support-contact.html", "privacy.html", "terms.html", "login.html", "logout.html"
     ],
     accounting: [
       "dashboard.html", "onboarding.html", "activity.html", "reports.html", "profit-intelligence.html", "customers.html", "customer-profitability.html", "create-customer.html",
       "customer-details.html", "edit-customer.html", "invoices.html", "invoice-details.html",
-      "edit-invoice.html", "settlements.html", "quotes.html", "loads.html", "load-details.html", "tender-load.html", "rate-confirmation.html", "carriers.html", "documents.html", "expense-review.html", "integrations.html", "support.html",
+      "edit-invoice.html", "settlements.html", "accounting-sync.html", "quotes.html", "loads.html", "load-details.html", "tender-load.html", "rate-confirmation.html", "carriers.html", "documents.html", "expense-review.html", "integrations.html", "support.html",
       "notifications.html", "subscription.html", "support-contact.html", "privacy.html", "terms.html", "login.html", "logout.html"
     ],
     maintenance: [
@@ -68,7 +68,7 @@
       "quotes.html", "carriers.html", "tender-load.html", "rate-confirmation.html"
     ],
     billing: [
-      "invoices.html", "invoice-details.html", "edit-invoice.html", "settlements.html", "expense-review.html"
+      "invoices.html", "invoice-details.html", "edit-invoice.html", "settlements.html", "accounting-sync.html", "expense-review.html"
     ],
     dispatcherTools: [
       "dispatch.html"
@@ -125,6 +125,7 @@
     renderGlobalLogoutButton();
     renderGlobalNavigationLinks();
     applyRoleNavigation();
+    organizeSidebarNavigation();
     applyFeatureVisibility();
     loadNotificationBadge();
     enforcePageAccess();
@@ -439,6 +440,24 @@
       }
     }
 
+    if (!nav.querySelector('a[href="accounting-sync.html"]')) {
+      const settlementsLink = nav.querySelector('a[href="settlements.html"]');
+      const invoicesLink = nav.querySelector('a[href="invoices.html"]');
+      const accountingSyncLink = document.createElement("a");
+      accountingSyncLink.href = "accounting-sync.html";
+      accountingSyncLink.textContent = "Accounting Sync";
+      if (normalizePage(window.location.pathname.split("/").pop()) === "accounting-sync.html") {
+        accountingSyncLink.className = "active";
+      }
+
+      const anchor = settlementsLink || invoicesLink;
+      if (anchor?.nextSibling) {
+        nav.insertBefore(accountingSyncLink, anchor.nextSibling);
+      } else {
+        nav.appendChild(accountingSyncLink);
+      }
+    }
+
     addUtilityNavLink(nav, "support-contact.html", "Support Contact");
     addUtilityNavLink(nav, "privacy.html", "Privacy");
     addUtilityNavLink(nav, "terms.html", "Terms");
@@ -571,6 +590,64 @@
         link.removeAttribute("tabindex");
       }
     });
+  }
+
+  function organizeSidebarNavigation() {
+    const nav = document.querySelector(".sidebar nav");
+    if (!nav || nav.dataset.organized === "true") return;
+
+    const isDispatcherWorkspace = getOperationType() === "dispatcher" && context.role !== "platform_admin";
+    const dailyPages = new Set([
+      "dashboard.html",
+      "dispatch.html",
+      "create-load.html",
+      "loads.html",
+      "customers.html",
+      "carriers.html",
+      "drivers.html",
+      "index.html",
+      "vehicles.html",
+      "documents.html",
+      "notifications.html",
+      "support.html"
+    ]);
+    if (!isDispatcherWorkspace) {
+      ["reports.html", "alerts.html"].forEach(page => dailyPages.add(page));
+    }
+    const utilityPages = new Set(["support-contact.html", "privacy.html", "terms.html", "login.html", "logout.html"]);
+    const links = Array.from(nav.querySelectorAll(":scope > a[href]"));
+    const advancedLinks = links.filter(link => {
+      const page = normalizePage(link.getAttribute("href"));
+      return page && !dailyPages.has(page) && !utilityPages.has(page);
+    });
+
+    if (!advancedLinks.length) {
+      nav.dataset.organized = "true";
+      return;
+    }
+
+    const details = document.createElement("details");
+    details.className = "sidebar-more";
+    const currentPage = normalizePage(window.location.pathname.split("/").pop());
+    const hasActiveAdvanced = advancedLinks.some(link => normalizePage(link.getAttribute("href")) === currentPage);
+    if (hasActiveAdvanced || context.role === "platform_admin") details.open = hasActiveAdvanced;
+
+    const summary = document.createElement("summary");
+    summary.textContent = context.role === "platform_admin" || ["owner", "company_owner", "admin", "company_admin"].includes(context.role)
+      ? "Admin & More"
+      : "More";
+    details.appendChild(summary);
+
+    advancedLinks.forEach(link => details.appendChild(link));
+
+    const supportLink = nav.querySelector('a[href="support.html"]');
+    if (supportLink?.nextSibling) {
+      nav.insertBefore(details, supportLink.nextSibling);
+    } else {
+      nav.appendChild(details);
+    }
+
+    nav.dataset.organized = "true";
   }
 
   function applyFeatureVisibility() {
