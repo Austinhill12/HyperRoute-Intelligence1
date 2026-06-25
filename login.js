@@ -3,6 +3,7 @@ import { supabase } from "../supabaseClient.js";
 const form = document.getElementById("loginForm");
 const message = document.getElementById("loginMessage");
 const submitButton = document.getElementById("loginSubmitBtn");
+const nextPage = new URLSearchParams(window.location.search).get("next") || "dashboard.html";
 const pendingSignupKey = "hyperroute_pending_signup";
 
 form.addEventListener("submit", async (e) => {
@@ -37,7 +38,7 @@ form.addEventListener("submit", async (e) => {
   const acceptedInvite = await acceptPendingInvite();
   if (acceptedInvite) return;
 
-  location.href = await getPostLoginPage();
+  location.href = nextPage;
 });
 
 function setLoading(isLoading) {
@@ -100,54 +101,6 @@ async function acceptPendingInvite() {
   localStorage.setItem("hyperroute_active_company_id", companyId);
   message.textContent = "Invite accepted. Opening your company workspace...";
   message.style.color = "#047857";
-  window.location.href = await getPostLoginPage();
+  window.location.href = nextPage;
   return true;
-}
-
-async function getPostLoginPage() {
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
-
-  if (!user?.id) return "dashboard.html";
-
-  const { data: platformRows } = await supabase
-    .from("platform_admins")
-    .select("id")
-    .eq("user_id", user.id)
-    .eq("status", "active")
-    .limit(1);
-
-  if (platformRows?.length) return "platform-admin.html";
-
-  const savedCompanyId = localStorage.getItem("hyperroute_active_company_id");
-  const { data: memberships, error } = await supabase
-    .from("company_users")
-    .select("company_id, role, companies(id, company_name, operation_type, status)")
-    .eq("user_id", user.id)
-    .eq("status", "active")
-    .order("created_at", { ascending: true });
-
-  if (error) {
-    console.warn("Could not load company memberships:", error);
-    return "dashboard.html";
-  }
-
-  const activeMemberships = (memberships || []).filter(row => {
-    const company = Array.isArray(row.companies) ? row.companies[0] : row.companies;
-    return (company?.status || "active") === "active";
-  });
-
-  if (!activeMemberships.length) return "onboarding.html";
-
-  const membership = activeMemberships.find(row => String(row.company_id) === String(savedCompanyId)) || activeMemberships[0];
-  localStorage.setItem("hyperroute_active_company_id", membership.company_id);
-
-  const role = String(membership.role || "").toLowerCase();
-  if (role === "driver") return "driver-portal.html";
-  if (role === "accounting") return "invoices.html";
-  if (role === "maintenance") return "maintenance.html";
-  if (role === "dispatcher") return "dispatch.html";
-
-  return "dashboard.html";
 }

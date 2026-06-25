@@ -62,7 +62,6 @@ async function loadDetails() {
     document.getElementById("commodity").textContent = load.commodity || "N/A";
     document.getElementById("weight").textContent = load.weight ? Number(load.weight).toLocaleString() : "N/A";
     document.getElementById("rate").textContent = load.rate ? `$${Number(load.rate).toLocaleString()}` : "N/A";
-    renderProfitSummary(load);
     document.getElementById("driverName").textContent = await getDriverName(load.driver_id);
     const assignment = await getLoadAssignment(load.id);
     document.getElementById("truckName").textContent = await getTruckName(assignment?.truck_id);
@@ -78,7 +77,6 @@ async function loadDetails() {
     await loadIssues(load.id);
     await loadEvents(load.id);
     await loadDocuments(load.id);
-    await loadExpenses(load.id);
     companySettings = await fetchCompanySettings();
     await loadInvoices(load.id);
     setupInvoiceDefaults(load);
@@ -87,32 +85,6 @@ async function loadDetails() {
     msg.textContent = `Error loading load: ${err.message}`;
     msg.style.color = "#ef4444";
   }
-}
-
-function renderProfitSummary(load) {
-  const revenue = toNumber(load.rate) + toNumber(load.detention_billed) + toNumber(load.accessorial_billed);
-  const cost = toNumber(load.carrier_rate) + toNumber(load.fuel_cost) + toNumber(load.toll_cost) +
-    toNumber(load.detention_paid) + toNumber(load.lumper_cost) + toNumber(load.other_costs);
-  const profit = revenue - cost;
-  const loadedMiles = toNumber(load.loaded_miles);
-  const emptyMiles = toNumber(load.empty_miles);
-  const totalMiles = loadedMiles + emptyMiles;
-  const profitPerMile = totalMiles ? profit / totalMiles : 0;
-
-  setText("estimatedProfit", `${formatCurrency(profit)}${totalMiles ? ` (${formatCurrency(profitPerMile)}/mi)` : ""}`);
-  setText("loadMiles", totalMiles ? `${loadedMiles.toLocaleString()} loaded / ${emptyMiles.toLocaleString()} empty` : "N/A");
-  setText("costBreakdown", [
-    `Carrier ${formatCurrency(load.carrier_rate)}`,
-    `Fuel ${formatCurrency(load.fuel_cost)}`,
-    `Tolls ${formatCurrency(load.toll_cost)}`,
-    `Detention paid ${formatCurrency(load.detention_paid)}`,
-    `Other ${formatCurrency(toNumber(load.lumper_cost) + toNumber(load.other_costs))}`
-  ].join(" | "));
-}
-
-function setText(id, value) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = value;
 }
 
 async function loadCommunications(loadId) {
@@ -580,89 +552,6 @@ async function loadDocuments(loadId) {
   }
 }
 
-async function loadExpenses(loadId) {
-  const tbody = document.getElementById("loadExpensesTableBody");
-  if (!tbody) return;
-  tbody.innerHTML = `<tr><td colspan="6">Loading expenses...</td></tr>`;
-
-  try {
-    const res = await fetch(
-      window.CompanyContext?.scopedUrl("load_expenses", `load_id=eq.${loadId}&select=*&order=created_at.desc`) || `${BASE_URL}/rest/v1/load_expenses?load_id=eq.${loadId}&select=*&order=created_at.desc`,
-      { headers: getHeaders() }
-    );
-
-    if (!res.ok) {
-      tbody.innerHTML = `<tr><td colspan="6">Run Profit Intelligence v2 SQL to enable expense review.</td></tr>`;
-      return;
-    }
-
-    renderExpenses(await res.json());
-  } catch (err) {
-    console.error(err);
-    tbody.innerHTML = `<tr><td colspan="6">Error loading expenses.</td></tr>`;
-  }
-}
-
-function renderExpenses(expenses) {
-  const tbody = document.getElementById("loadExpensesTableBody");
-  tbody.innerHTML = "";
-
-  if (!expenses.length) {
-    tbody.innerHTML = `<tr><td colspan="6">No driver expenses submitted.</td></tr>`;
-    return;
-  }
-
-  expenses.forEach(expense => {
-    const status = normalizeStatus(expense.status || "unreviewed");
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>
-        <strong>${escapeHtml(formatStatus(expense.category))}</strong>
-        <span class="muted-line">${escapeHtml(expense.notes || "")}</span>
-      </td>
-      <td>${formatCurrency(expense.amount)}</td>
-      <td><span class="status-pill ${getExpenseStatusClass(status)}">${escapeHtml(formatStatus(status))}</span></td>
-      <td>${formatTimestamp(expense.created_at)}</td>
-      <td>${expense.receipt_url ? `<a class="view secondary-action" href="${escapeHtml(expense.receipt_url)}" target="_blank" rel="noopener">Receipt</a>` : "N/A"}</td>
-      <td>
-        ${status !== "approved" ? `<button class="view" type="button" data-expense-action="approved" data-expense-id="${escapeHtml(expense.id)}">Approve</button>` : ""}
-        ${status !== "rejected" ? `<button class="delete" type="button" data-expense-action="rejected" data-expense-id="${escapeHtml(expense.id)}">Reject</button>` : ""}
-      </td>
-    `;
-    tbody.appendChild(row);
-  });
-
-  tbody.querySelectorAll("[data-expense-action]").forEach(button => {
-    button.addEventListener("click", () => updateExpenseStatus(button.dataset.expenseId, button.dataset.expenseAction));
-  });
-}
-
-function getExpenseStatusClass(status) {
-  if (status === "approved") return "success";
-  if (status === "rejected") return "warning";
-  return "caution";
-}
-
-async function updateExpenseStatus(expenseId, status) {
-  const loadId = getLoadId();
-  const res = await fetch(`${BASE_URL}/rest/v1/load_expenses?id=eq.${expenseId}`, {
-    method: "PATCH",
-    headers: getHeaders({
-      "Content-Type": "application/json",
-      Prefer: "return=representation"
-    }),
-    body: JSON.stringify({ status })
-  });
-
-  if (!res.ok) {
-    alert(`Error updating expense: ${await res.text()}`);
-    return;
-  }
-
-  await loadExpenses(loadId);
-  await loadEvents(loadId);
-}
-
 function renderDocuments(documents) {
   const tbody = document.getElementById("loadDocumentsTableBody");
   tbody.innerHTML = "";
@@ -782,11 +671,6 @@ function formatTimestamp(value) {
 
 function formatCurrency(value) {
   return value ? `$${Number(value).toLocaleString()}` : "$0";
-}
-
-function toNumber(value) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function escapeHtml(value) {

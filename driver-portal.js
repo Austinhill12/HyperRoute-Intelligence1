@@ -36,16 +36,9 @@ async function initDriverPortal() {
 
 async function fetchRows(table, query) {
   const url = window.CompanyContext?.scopedUrl(table, query) || `${BASE_URL}/rest/v1/${table}?${query}`;
-  const res = await fetch(url, { headers: getHeaders() });
+  const res = await fetch(url, { headers });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
-}
-
-function getHeaders(extra = {}) {
-  return {
-    ...(window.CompanyContext?.getHeaders?.() || headers),
-    ...extra
-  };
 }
 
 function fillDriverSelect(driverRows) {
@@ -125,11 +118,6 @@ function renderLoads(loads) {
   list.querySelectorAll("[data-pod-form]").forEach(form => {
     form.addEventListener("submit", savePodUpload);
   });
-
-  list.querySelectorAll("[data-expense-form]").forEach(form => {
-    form.addEventListener("submit", saveDriverExpense);
-    setupExpenseTypeButtons(form);
-  });
 }
 
 function createDriverLoadCard(load) {
@@ -175,159 +163,9 @@ function createDriverLoadCard(load) {
       <div class="field"><label>Document Notes</label><textarea name="notes" placeholder="Optional document notes"></textarea></div>
       <button type="submit" class="btn">Upload POD</button>
     </form>
-
-    <form class="form driver-expense-form" data-expense-form data-load-id="${load.id}">
-      <div class="driver-expense-header">
-        <strong>Submit Trip Expense</strong>
-        <span>Choose what happened, add the amount or miles, then submit.</span>
-      </div>
-      <input name="category" type="hidden" value="fuel" />
-      <div class="driver-expense-types" role="group" aria-label="Expense type">
-        <button class="driver-expense-type active" type="button" data-expense-type="fuel">Fuel</button>
-        <button class="driver-expense-type" type="button" data-expense-type="miles">Miles</button>
-        <button class="driver-expense-type" type="button" data-expense-type="toll">Tolls</button>
-        <button class="driver-expense-type" type="button" data-expense-type="other">Other</button>
-      </div>
-      <div class="driver-expense-money-fields">
-        <div class="field"><label data-amount-label>Fuel Amount</label><input name="amount" type="number" step="0.01" min="0" placeholder="0.00" required /></div>
-        <div class="field"><label>Receipt</label><input name="receipt_file" type="file" /></div>
-      </div>
-      <div class="driver-expense-mile-fields" hidden>
-        <div class="field"><label>Loaded Miles</label><input name="loaded_miles" type="number" step="0.1" min="0" placeholder="Loaded miles" /></div>
-        <div class="field"><label>Empty Miles</label><input name="empty_miles" type="number" step="0.1" min="0" placeholder="Empty miles" /></div>
-      </div>
-      <div class="field"><label data-notes-label>Notes</label><textarea name="notes" placeholder="Fuel stop, toll road, mileage note, or other details"></textarea></div>
-      <button type="submit" class="btn">Submit Expense</button>
-    </form>
   `;
 
   return card;
-}
-
-function setupExpenseTypeButtons(form) {
-  form.querySelectorAll("[data-expense-type]").forEach(button => {
-    button.addEventListener("click", () => setExpenseType(form, button.dataset.expenseType));
-  });
-  setExpenseType(form, form.querySelector('input[name="category"]')?.value || "fuel");
-}
-
-function setExpenseType(form, type) {
-  const categoryInput = form.querySelector('input[name="category"]');
-  const amountInput = form.querySelector('input[name="amount"]');
-  const amountLabel = form.querySelector("[data-amount-label]");
-  const notesLabel = form.querySelector("[data-notes-label]");
-  const moneyFields = form.querySelector(".driver-expense-money-fields");
-  const mileFields = form.querySelector(".driver-expense-mile-fields");
-
-  if (categoryInput) categoryInput.value = type;
-
-  form.querySelectorAll("[data-expense-type]").forEach(button => {
-    button.classList.toggle("active", button.dataset.expenseType === type);
-  });
-
-  const isMiles = type === "miles";
-  if (moneyFields) moneyFields.hidden = isMiles;
-  if (mileFields) mileFields.hidden = !isMiles;
-  if (amountInput) amountInput.required = !isMiles;
-
-  const labels = {
-    fuel: ["Fuel Amount", "Fuel Notes"],
-    toll: ["Toll Amount", "Toll Notes"],
-    other: ["Expense Amount", "Expense Notes"],
-    miles: ["Amount", "Mileage Notes"]
-  };
-  const [amountText, notesText] = labels[type] || labels.other;
-  if (amountLabel) amountLabel.textContent = amountText;
-  if (notesLabel) notesLabel.textContent = notesText;
-}
-
-async function saveDriverExpense(e) {
-  e.preventDefault();
-  const loadId = e.target.dataset.loadId;
-  const formData = new FormData(e.target);
-  const category = formData.get("category");
-  const amount = Number(formData.get("amount"));
-  const notes = formData.get("notes");
-  const file = formData.get("receipt_file");
-
-  if (category === "miles") {
-    await saveDriverMiles(e.target, loadId, formData);
-    return;
-  }
-
-  if (!amount || amount < 0) {
-    msg.textContent = "Enter a valid expense amount.";
-    msg.style.color = "#ef4444";
-    return;
-  }
-
-  msg.textContent = "Submitting expense...";
-  msg.style.color = "";
-
-  try {
-    let receiptUrl = null;
-    if (file && file.name) {
-      receiptUrl = await uploadDriverDocument(loadId, `expense-${category}`, file);
-      await saveLoadDocument(loadId, `expense_${category}`, receiptUrl, notes || `Driver submitted ${category} receipt.`);
-    }
-
-    await saveLoadExpense(loadId, {
-      category,
-      amount,
-      receipt_url: receiptUrl,
-      notes: notes || null,
-      paid_by: "driver",
-      status: "unreviewed"
-    });
-
-    await saveLoadEvent(loadId, "expense_submitted", null, `Driver submitted ${formatCurrency(amount)} ${category} expense.`);
-    e.target.reset();
-    setExpenseType(e.target, "fuel");
-    msg.textContent = "Expense submitted for review.";
-    msg.style.color = "#047857";
-  } catch (err) {
-    console.error(err);
-    msg.textContent = `Error submitting expense: ${err.message}`;
-    msg.style.color = "#ef4444";
-  }
-}
-
-async function saveDriverMiles(form, loadId, formData) {
-  const loadedMiles = Number(formData.get("loaded_miles"));
-  const emptyMiles = Number(formData.get("empty_miles"));
-  const notes = formData.get("notes");
-
-  if ((!loadedMiles && !emptyMiles) || loadedMiles < 0 || emptyMiles < 0) {
-    msg.textContent = "Enter loaded miles, empty miles, or both.";
-    msg.style.color = "#ef4444";
-    return;
-  }
-
-  msg.textContent = "Saving miles...";
-  msg.style.color = "";
-
-  try {
-    await updateLoadMiles(loadId, {
-      loaded_miles: Number.isFinite(loadedMiles) ? loadedMiles : null,
-      empty_miles: Number.isFinite(emptyMiles) ? emptyMiles : null
-    });
-
-    const mileText = [
-      Number.isFinite(loadedMiles) && loadedMiles > 0 ? `${loadedMiles} loaded miles` : "",
-      Number.isFinite(emptyMiles) && emptyMiles > 0 ? `${emptyMiles} empty miles` : ""
-    ].filter(Boolean).join(" / ");
-
-    await saveLoadEvent(loadId, "miles_submitted", null, notes || `Driver submitted ${mileText}.`);
-    form.reset();
-    setExpenseType(form, "fuel");
-    msg.textContent = "Miles saved.";
-    msg.style.color = "#047857";
-    await loadDriverAssignments();
-  } catch (err) {
-    console.error(err);
-    msg.textContent = `Error saving miles: ${err.message}`;
-    msg.style.color = "#ef4444";
-  }
 }
 
 async function saveDriverStatus(loadId, eventType) {
@@ -420,10 +258,12 @@ async function saveLoadEvent(loadId, eventType, location, notes) {
 
   const res = await fetch(`${BASE_URL}/rest/v1/load_events`, {
     method: "POST",
-    headers: getHeaders({
+    headers: {
       "Content-Type": "application/json",
+      apikey: API_KEY,
+      Authorization: "Bearer " + API_KEY,
       Prefer: "return=representation"
-    }),
+    },
     body: JSON.stringify(eventData)
   });
 
@@ -433,28 +273,13 @@ async function saveLoadEvent(loadId, eventType, location, notes) {
 async function updateLoadStatus(loadId, status) {
   const res = await fetch(`${BASE_URL}/rest/v1/loads?id=eq.${loadId}`, {
     method: "PATCH",
-    headers: getHeaders({
+    headers: {
       "Content-Type": "application/json",
+      apikey: API_KEY,
+      Authorization: "Bearer " + API_KEY,
       Prefer: "return=representation"
-    }),
+    },
     body: JSON.stringify({ status })
-  });
-
-  if (!res.ok) throw new Error(await res.text());
-}
-
-async function updateLoadMiles(loadId, miles) {
-  const payload = {};
-  if (miles.loaded_miles !== null) payload.loaded_miles = miles.loaded_miles;
-  if (miles.empty_miles !== null) payload.empty_miles = miles.empty_miles;
-
-  const res = await fetch(`${BASE_URL}/rest/v1/loads?id=eq.${loadId}`, {
-    method: "PATCH",
-    headers: getHeaders({
-      "Content-Type": "application/json",
-      Prefer: "return=representation"
-    }),
-    body: JSON.stringify(payload)
   });
 
   if (!res.ok) throw new Error(await res.text());
@@ -475,57 +300,16 @@ async function saveLoadDocument(loadId, documentType, documentUrl, notes) {
 
   const res = await fetch(`${BASE_URL}/rest/v1/load_documents`, {
     method: "POST",
-    headers: getHeaders({
+    headers: {
       "Content-Type": "application/json",
+      apikey: API_KEY,
+      Authorization: "Bearer " + API_KEY,
       Prefer: "return=representation"
-    }),
+    },
     body: JSON.stringify(documentData)
   });
 
   if (!res.ok) throw new Error(await res.text());
-}
-
-async function saveLoadExpense(loadId, expense) {
-  const expenseData = window.CompanyContext?.withCompanyId({
-    load_id: Number(loadId),
-    expense_date: getToday(),
-    category: expense.category || "other",
-    amount: Number(expense.amount) || 0,
-    billable: ["toll", "lumper", "detention", "scale", "parking"].includes(expense.category),
-    reimbursable: true,
-    paid_by: expense.paid_by || "driver",
-    receipt_url: expense.receipt_url || null,
-    status: expense.status || "unreviewed",
-    notes: expense.notes || null
-  }) || {
-    load_id: Number(loadId),
-    expense_date: getToday(),
-    category: expense.category || "other",
-    amount: Number(expense.amount) || 0,
-    billable: ["toll", "lumper", "detention", "scale", "parking"].includes(expense.category),
-    reimbursable: true,
-    paid_by: expense.paid_by || "driver",
-    receipt_url: expense.receipt_url || null,
-    status: expense.status || "unreviewed",
-    notes: expense.notes || null
-  };
-
-  const res = await fetch(`${BASE_URL}/rest/v1/load_expenses`, {
-    method: "POST",
-    headers: getHeaders({
-      "Content-Type": "application/json",
-      Prefer: "return=representation"
-    }),
-    body: JSON.stringify(expenseData)
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    if (text.includes("load_expenses")) {
-      throw new Error("Run the Profit Intelligence v2 SQL first so load expenses can be saved.");
-    }
-    throw new Error(text);
-  }
 }
 
 async function uploadDriverDocument(loadId, documentType, file) {
@@ -533,7 +317,8 @@ async function uploadDriverDocument(loadId, documentType, file) {
   const res = await fetch(`${BASE_URL}/storage/v1/object/${DOCUMENT_BUCKET}/${path}`, {
     method: "POST",
     headers: {
-      ...getHeaders(),
+      apikey: API_KEY,
+      Authorization: "Bearer " + API_KEY,
       "Content-Type": file.type || "application/octet-stream",
       "x-upsert": "true"
     },
@@ -602,14 +387,6 @@ function formatDateTime(date, time) {
 
 function formatDate(value) {
   return value ? new Date(`${value}T00:00:00`).toLocaleDateString() : "N/A";
-}
-
-function formatCurrency(value) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 2
-  }).format(Number(value) || 0);
 }
 
 function getToday() {

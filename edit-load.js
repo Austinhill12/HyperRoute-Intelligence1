@@ -67,26 +67,12 @@ function fillForm(load, assignment) {
   if (carrierSelect) carrierSelect.value = load.carrier_id || "";
   const carrierRate = document.getElementById("carrierRate");
   if (carrierRate) carrierRate.value = load.carrier_rate || "";
-  setValue("loadedMiles", load.loaded_miles);
-  setValue("emptyMiles", load.empty_miles);
-  setValue("fuelCost", load.fuel_cost);
-  setValue("tollCost", load.toll_cost);
-  setValue("detentionBilled", load.detention_billed);
-  setValue("detentionPaid", load.detention_paid);
-  setValue("lumperCost", load.lumper_cost);
-  setValue("accessorialBilled", load.accessorial_billed);
-  setValue("otherCosts", load.other_costs);
   document.getElementById("weight").value = load.weight || "";
   document.getElementById("trailerType").value = load.trailer_type || "";
   document.getElementById("trailerLength").value = load.trailer_length || "";
   document.getElementById("driverSelect").value = load.driver_id || "";
   document.getElementById("truckSelect").value = assignment?.truck_id || "";
   document.getElementById("notes").value = load.notes || "";
-}
-
-function setValue(id, value) {
-  const el = document.getElementById(id);
-  if (el) el.value = value ?? "";
 }
 
 async function fillDrivers() {
@@ -247,19 +233,6 @@ function normalizeLoadData(data) {
   if (data.weight) data.weight = Number(data.weight);
   if (data.rate) data.rate = Number(data.rate);
   if (data.carrier_rate) data.carrier_rate = Number(data.carrier_rate);
-  [
-    "loaded_miles",
-    "empty_miles",
-    "fuel_cost",
-    "toll_cost",
-    "detention_billed",
-    "detention_paid",
-    "lumper_cost",
-    "accessorial_billed",
-    "other_costs"
-  ].forEach(key => {
-    if (data[key]) data[key] = Number(data[key]);
-  });
   if (data.driver_id) data.driver_id = Number(data.driver_id);
   if (data.truck_id) data.truck_id = Number(data.truck_id);
 
