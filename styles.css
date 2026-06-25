@@ -2795,6 +2795,65 @@ textarea {
   font-size: 16px;
 }
 
+.rate-intelligence-panel {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-left: 4px solid #0788e8;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.rate-intelligence-panel h2 {
+  margin: 4px 0;
+  font-size: 18px;
+}
+
+.rate-intelligence-panel p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.rate-intelligence-panel.rate-good {
+  border-left-color: var(--success);
+  background: #f0fdf4;
+}
+
+.rate-intelligence-panel.rate-watch {
+  border-left-color: var(--warning);
+  background: #fffbeb;
+}
+
+.rate-intelligence-panel.rate-danger {
+  border-left-color: var(--danger);
+  background: #fef2f2;
+}
+
+.rate-intelligence-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.rate-intelligence-grid span {
+  display: grid;
+  gap: 4px;
+  min-height: 72px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.rate-intelligence-grid strong {
+  color: #0f172a;
+  font-size: 18px;
+}
+
 .dashboard-two-column {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2940,6 +2999,7 @@ textarea {
   .dashboard-command-grid,
   .dashboard-two-column,
   .owner-command-grid,
+  .rate-intelligence-grid,
   .readiness-grid,
   .readiness-mini-grid,
   .launch-revenue-grid,

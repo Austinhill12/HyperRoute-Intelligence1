@@ -201,7 +201,7 @@
         count: lowMarginLoads.length,
         impact: lowMarginGap,
         severity: "warning",
-        fix: "Review pricing on loads below a 12% target margin."
+        fix: "Review pricing on loads below a 12% target margin. Use Rate Intelligence to find the 20% target rate."
       },
       {
         area: "High Deadhead Miles",

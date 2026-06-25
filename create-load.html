@@ -180,6 +180,21 @@
             <label>Notes</label>
             <textarea name="notes"></textarea>
           </div>
+          <section class="rate-intelligence-panel">
+            <div>
+              <p class="section-eyebrow">Rate Intelligence</p>
+              <h2 id="rateIntelligenceStatus">Enter rate and costs</h2>
+              <p id="rateIntelligenceSummary">HyperRoute will estimate profit, margin, and target rates before you save.</p>
+            </div>
+            <div class="rate-intelligence-grid">
+              <span><strong id="rateProfit">$0</strong> Est. Profit</span>
+              <span><strong id="rateMargin">0%</strong> Margin</span>
+              <span><strong id="rateProfitPerMile">$0/mi</strong> Profit / Mile</span>
+              <span><strong id="targetRate15">$0</strong> 15% Target</span>
+              <span><strong id="targetRate20">$0</strong> 20% Target</span>
+              <span><strong id="targetRate25">$0</strong> 25% Target</span>
+            </div>
+          </section>
           <button type="submit" class="btn">Save Load</button>
         </form>
         <p id="loadMessage" class="message"></p>
@@ -189,5 +204,6 @@
 
   <script src="companyContext.js"></script>
 <script src="load-form.js"></script>
+<script src="rate-intelligence.js"></script>
 </body>
 </html>
