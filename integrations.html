@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Integrations</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
+  <script src="auth-guard.js"></script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <h2 class="logo">HyperRoute Intelligence</h2>
+      <nav>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="onboarding.html">Onboarding</a>
+        <a href="activity.html">Activity</a>
+        <a href="dispatch.html">Dispatch Board</a>
+        <a href="driver-portal.html">Driver Portal</a>
+        <a href="reports.html">Reports</a>
+        <a href="profit-intelligence.html">Profit Intelligence</a>
+        <a href="expense-review.html">Expense Review</a>
+        <a href="alerts.html">Alerts</a>
+        <a href="index.html">Create Driver</a>
+        <a href="drivers.html">View Drivers</a>
+        <a href="create-load.html">Create Load</a>
+        <a href="loads.html">View Loads</a>
+        <a href="customers.html">Customers</a>
+        <a href="customer-profitability.html">Customer Profitability</a>
+        <a href="invoices.html">Invoices</a>
+        <a href="settlements.html">Settlements</a>
+        <a href="documents.html">Documents</a>
+        <a href="integrations.html" class="active">Integrations</a>
+        <a href="create-vehicle.html">Create Vehicle</a>
+        <a href="vehicles.html">View Vehicles</a>
+        <a href="create-maintenance.html">Create Maintenance</a>
+        <a href="maintenance.html">Maintenance Logs</a>
+        <a href="assign-vehicle.html">Assign Vehicle</a>
+        <a href="compliance.html">Driver Compliance</a>
+        <a href="company-admin.html">Company Admin</a>
+        <a href="platform-admin.html">Platform Admin</a>
+        <a href="support.html">Support</a>
+        <a href="notifications.html">Notifications</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <div class="page-header">
+        <div>
+          <h1>Integration Hub</h1>
+          <p id="integrationsCompanyName">Connect accounting, ELD/GPS, fuel cards, load boards, messaging, and webhooks.</p>
+        </div>
+        <div class="quick-actions">
+          <button id="refreshIntegrationsBtn" class="view secondary-action" type="button">Refresh</button>
+        </div>
+      </div>
+
+      <section class="kpi-grid">
+        <div class="kpi-card success"><h3 id="connectedCount">0</h3><p>Connected</p></div>
+        <div class="kpi-card warning"><h3 id="attentionCount">0</h3><p>Needs Attention</p></div>
+        <div class="kpi-card"><h3 id="lastSyncValue">None</h3><p>Last Sync</p></div>
+        <div class="kpi-card caution"><h3 id="eventCount">0</h3><p>Recent Events</p></div>
+      </section>
+
+      <section class="grid-2" style="margin-top: 30px;">
+        <div class="card">
+          <h2>Register Integration</h2>
+          <form id="integrationForm" class="form-grid">
+            <label>Provider
+              <select id="provider" required>
+                <option value="quickbooks">QuickBooks</option>
+                <option value="stripe">Stripe</option>
+                <option value="motive">Motive</option>
+                <option value="samsara">Samsara</option>
+                <option value="geotab">Geotab</option>
+                <option value="fuel_card">Fuel Card</option>
+                <option value="dat">DAT</option>
+                <option value="truckstop">Truckstop</option>
+                <option value="twilio">Twilio</option>
+                <option value="email">Email</option>
+                <option value="custom_api">Custom API</option>
+                <option value="webhook">Webhook</option>
+              </select>
+            </label>
+            <label>Display Name
+              <input id="displayName" type="text" placeholder="Example: QuickBooks Online" required />
+            </label>
+            <label>Category
+              <select id="category" required>
+                <option value="accounting">Accounting</option>
+                <option value="billing">Billing</option>
+                <option value="eld_gps">ELD / GPS</option>
+                <option value="fuel">Fuel</option>
+                <option value="load_board">Load Board</option>
+                <option value="messaging">Messaging</option>
+                <option value="documents">Documents</option>
+                <option value="custom">Custom</option>
+              </select>
+            </label>
+            <label>Sync Direction
+              <select id="syncDirection">
+                <option value="both">Import and Export</option>
+                <option value="import">Import Only</option>
+                <option value="export">Export Only</option>
+              </select>
+            </label>
+            <label>Endpoint / Base URL
+              <input id="baseUrl" type="url" placeholder="https://api.example.com" />
+            </label>
+            <label>External Account ID
+              <input id="externalAccountId" type="text" placeholder="Optional account identifier" />
+            </label>
+            <label class="full-width">Internal Notes
+              <textarea id="notes" rows="4" placeholder="Setup notes, owner, next API step, or webhook details"></textarea>
+            </label>
+            <button class="btn" type="submit">Save Integration</button>
+          </form>
+          <p id="integrationsMessage" class="message"></p>
+        </div>
+
+        <div class="card">
+          <h2>Recommended Connections</h2>
+          <div class="stack-list">
+            <div class="status-row"><span>Accounting</span><strong>QuickBooks for invoices, payments, and revenue.</strong></div>
+            <div class="status-row"><span>ELD / GPS</span><strong>Motive, Samsara, or Geotab for miles and equipment visibility.</strong></div>
+            <div class="status-row"><span>Fuel</span><strong>Fuel cards for fuel spend, MPG, and profit leak accuracy.</strong></div>
+            <div class="status-row"><span>Load Boards</span><strong>DAT or Truckstop for rate intelligence and tender workflow.</strong></div>
+            <div class="status-row"><span>Messaging</span><strong>Email or SMS for driver/customer updates.</strong></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" style="margin-top: 30px;">
+        <h2>Connected Systems</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Provider</th>
+                <th>Category</th>
+                <th>Status</th>
+                <th>Direction</th>
+                <th>Last Sync</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="integrationsTableBody">
+              <tr><td colspan="7">Loading integrations...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card" style="margin-top: 30px;">
+        <h2>Webhook / Sync Events</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Provider</th>
+                <th>Event</th>
+                <th>Status</th>
+                <th>Message</th>
+              </tr>
+            </thead>
+            <tbody id="integrationEventsBody">
+              <tr><td colspan="5">No events yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="companyContext.js"></script>
+  <script type="module" src="integrations.js"></script>
+</body>
+</html>

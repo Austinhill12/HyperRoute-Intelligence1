@@ -4189,6 +4189,74 @@ td .secondary-action:hover {
   color: #0f172a;
 }
 
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.form-grid label {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.form-grid .full-width {
+  grid-column: 1 / -1;
+}
+
+.stack-list {
+  display: grid;
+  gap: 12px;
+}
+
+.status-row {
+  align-items: flex-start;
+  background: #f8fbff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+}
+
+.status-row span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.status-row strong {
+  color: #172033;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.danger-text {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.status-pill.danger {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.status-pill.neutral {
+  background: #eef2f7;
+  color: #334155;
+}
+
 @media (max-width: 900px) {
   .sidebar {
     padding: 18px;
@@ -4211,6 +4279,11 @@ td .secondary-action:hover {
   }
 
   .carrier-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .grid-2,
+  .form-grid {
     grid-template-columns: 1fr;
   }
 }
