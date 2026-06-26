@@ -467,6 +467,13 @@ tbody tr:hover {
   color: var(--success);
 }
 
+.muted-copy {
+  color: var(--muted);
+  line-height: 1.6;
+  margin: 0;
+  max-width: 900px;
+}
+
 /* ==========================================
    MOBILE
 ========================================== */

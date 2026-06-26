@@ -40,6 +40,18 @@
         <article class="kpi-card success"><h3 id="carrierReady">0</h3><p>Ready To Tender</p></article>
         <article class="kpi-card caution"><h3 id="carrierReview">0</h3><p>Needs Review</p></article>
         <article class="kpi-card warning"><h3 id="carrierBlocked">0</h3><p>Blocked / Inactive</p></article>
+        <article class="kpi-card success"><h3 id="carrierFmcsaVerified">0</h3><p>FMCSA Verified</p></article>
+      </section>
+
+      <section class="card fmcsa-info-card">
+        <div class="section-header">
+          <div>
+            <p class="section-eyebrow">Authority Verification</p>
+            <h2>FMCSA Carrier Verification</h2>
+          </div>
+        </div>
+        <p class="muted-copy">Use DOT/MC numbers to record operating authority, safety rating, and tendering risk before assigning freight. Live FMCSA API lookup should run through a Supabase Edge Function so private keys stay off the website.</p>
+        <p id="carrierFmcsaMessage" class="message"></p>
       </section>
 
       <section class="card">
@@ -106,6 +118,7 @@
             <tr>
               <th>Carrier</th>
               <th>Authority</th>
+              <th>FMCSA</th>
               <th>Contact</th>
               <th>Insurance</th>
               <th>Packet</th>

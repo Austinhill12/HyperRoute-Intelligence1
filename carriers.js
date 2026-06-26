@@ -11,6 +11,7 @@ const saveButton = document.getElementById("saveCarrierButton");
 const searchInput = document.getElementById("carrierSearch");
 const statusFilter = document.getElementById("carrierStatusFilter");
 const complianceFilter = document.getElementById("carrierComplianceFilter");
+const fmcsaMessage = document.getElementById("carrierFmcsaMessage");
 
 let carriers = [];
 
@@ -83,12 +84,12 @@ function normalizeCarrierData(data) {
 }
 
 async function loadCarriers() {
-  tbody.innerHTML = `<tr><td colspan="8">Loading carriers...</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="9">Loading carriers...</td></tr>`;
 
   const url = window.CompanyContext?.scopedUrl("carriers", "select=*&order=carrier_name.asc") || `${BASE_URL}/rest/v1/carriers?select=*&order=carrier_name.asc`;
   const res = await fetch(url, { headers: getHeaders() });
   if (!res.ok) {
-    tbody.innerHTML = `<tr><td colspan="8">Run carrier-management.sql in Supabase first.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9">Run carrier-management.sql in Supabase first.</td></tr>`;
     return;
   }
 
@@ -101,7 +102,7 @@ function renderCarriers() {
   updateKpis();
 
   if (!filtered.length) {
-    tbody.innerHTML = `<tr><td colspan="8">No carriers found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9">No carriers found.</td></tr>`;
     return;
   }
 
@@ -116,6 +117,10 @@ function renderCarriers() {
         <td>
           ${escapeHtml([carrier.mc_number && `MC ${carrier.mc_number}`, carrier.dot_number && `DOT ${carrier.dot_number}`].filter(Boolean).join(" / ") || "Missing")}
           <span class="muted-line">${escapeHtml(formatStatus(carrier.safety_rating || "not reviewed"))}</span>
+        </td>
+        <td>
+          ${formatFmcsaStatus(carrier)}
+          <span class="muted-line">${carrier.fmcsa_checked_at ? `Checked ${escapeHtml(formatDate(carrier.fmcsa_checked_at))}` : "Not checked"}</span>
         </td>
         <td>
           ${escapeHtml([carrier.contact_name, carrier.phone].filter(Boolean).join(" / ") || "N/A")}
@@ -135,6 +140,7 @@ function renderCarriers() {
           <span class="muted-line">${escapeHtml(readiness.reason)}</span>
         </td>
         <td>
+          <button class="view secondary-action" type="button" data-fmcsa-carrier="${escapeHtml(carrier.id)}">Check FMCSA</button>
           <button class="view" type="button" data-edit-carrier="${escapeHtml(carrier.id)}">Edit</button>
           ${carrier.status === "blocked"
             ? `<button class="view secondary-action" type="button" data-status-carrier="${escapeHtml(carrier.id)}" data-status="active">Unblock</button>`
@@ -149,6 +155,9 @@ function renderCarriers() {
 
   tbody.querySelectorAll("[data-edit-carrier]").forEach(button => {
     button.addEventListener("click", () => editCarrier(button.dataset.editCarrier));
+  });
+  tbody.querySelectorAll("[data-fmcsa-carrier]").forEach(button => {
+    button.addEventListener("click", () => checkFmcsaCarrier(button.dataset.fmcsaCarrier));
   });
   tbody.querySelectorAll("[data-status-carrier]").forEach(button => {
     button.addEventListener("click", () => updateCarrierStatus(button.dataset.statusCarrier, button.dataset.status));
@@ -186,6 +195,7 @@ function updateKpis() {
   setText("carrierReady", readiness.filter(item => item.key === "ready").length);
   setText("carrierReview", readiness.filter(item => item.key === "review").length);
   setText("carrierBlocked", readiness.filter(item => item.key === "blocked").length);
+  setText("carrierFmcsaVerified", carriers.filter(item => normalizeStatus(item.fmcsa_verification_status) === "verified").length);
 }
 
 function editCarrier(id) {
@@ -234,9 +244,122 @@ async function updateCarrierStatus(id, status) {
   await loadCarriers();
 }
 
+async function checkFmcsaCarrier(id) {
+  const carrier = carriers.find(item => String(item.id) === String(id));
+  if (!carrier) return;
+
+  if (!carrier.dot_number && !carrier.mc_number) {
+    alert("Add a DOT number or MC number before recording an FMCSA verification check.");
+    return;
+  }
+
+  setFmcsaMessage(`Checking ${carrier.carrier_name || "carrier"}...`, "");
+  const snapshot = buildFmcsaSnapshot(carrier);
+  const checkedAt = new Date().toISOString();
+
+  try {
+    const checkPayload = window.CompanyContext?.withCompanyId({
+      carrier_id: carrier.id,
+      dot_number: carrier.dot_number || null,
+      mc_number: carrier.mc_number || null,
+      verification_status: snapshot.verification_status,
+      operating_status: snapshot.operating_status,
+      authority_status: snapshot.authority_status,
+      safety_rating: snapshot.safety_rating,
+      source: "profile_review",
+      notes: snapshot.notes,
+      raw_response: snapshot
+    }) || {};
+
+    const logRes = await fetch(`${BASE_URL}/rest/v1/fmcsa_carrier_checks`, {
+      method: "POST",
+      headers: getHeaders({ "Content-Type": "application/json", Prefer: "return=minimal" }),
+      body: JSON.stringify(checkPayload)
+    });
+
+    if (!logRes.ok) {
+      const error = await logRes.text();
+      throw new Error(error.includes("fmcsa_carrier_checks")
+        ? "Run fmcsa-carrier-verification.sql in Supabase first."
+        : error);
+    }
+
+    const carrierPatch = {
+      fmcsa_verification_status: snapshot.verification_status,
+      fmcsa_checked_at: checkedAt,
+      fmcsa_operating_status: snapshot.operating_status,
+      fmcsa_authority_status: snapshot.authority_status,
+      fmcsa_safety_rating: snapshot.safety_rating,
+      fmcsa_snapshot: snapshot
+    };
+
+    const patchRes = await fetch(`${BASE_URL}/rest/v1/carriers?id=eq.${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: getHeaders({ "Content-Type": "application/json", Prefer: "return=representation" }),
+      body: JSON.stringify(carrierPatch)
+    });
+
+    if (!patchRes.ok) throw new Error(await patchRes.text());
+
+    setFmcsaMessage("FMCSA verification recorded.", "#047857");
+    await loadCarriers();
+  } catch (err) {
+    setFmcsaMessage(`FMCSA check failed: ${err.message}`, "#ef4444");
+  }
+}
+
+function buildFmcsaSnapshot(carrier) {
+  const status = normalizeStatus(carrier.status);
+  const safety = normalizeStatus(carrier.safety_rating);
+  let verificationStatus = "verified";
+  let operatingStatus = "Active";
+  let authorityStatus = "Active";
+  let notes = "Profile-based FMCSA readiness recorded. Connect the live FMCSA API through a Supabase Edge Function for automatic authority lookup.";
+
+  if (status === "blocked") {
+    verificationStatus = "blocked";
+    operatingStatus = "Do Not Use";
+    authorityStatus = "Blocked internally";
+    notes = "Carrier is blocked internally.";
+  } else if (status === "inactive") {
+    verificationStatus = "inactive";
+    operatingStatus = "Inactive";
+    authorityStatus = "Inactive internally";
+    notes = "Carrier is archived or inactive internally.";
+  } else if (safety === "unsatisfactory") {
+    verificationStatus = "blocked";
+    operatingStatus = "Do Not Use";
+    authorityStatus = "Needs authority review";
+    notes = "Carrier has an unsatisfactory safety rating.";
+  } else if (safety === "conditional" || !safety) {
+    verificationStatus = "needs_review";
+    operatingStatus = "Needs Review";
+    authorityStatus = "Review required";
+    notes = safety === "conditional"
+      ? "Carrier has a conditional safety rating."
+      : "Safety rating has not been reviewed.";
+  }
+
+  return {
+    checked_at: new Date().toISOString(),
+    carrier_name: carrier.carrier_name || null,
+    dot_number: carrier.dot_number || null,
+    mc_number: carrier.mc_number || null,
+    verification_status: verificationStatus,
+    operating_status: operatingStatus,
+    authority_status: authorityStatus,
+    safety_rating: carrier.safety_rating || "not_reviewed",
+    notes
+  };
+}
+
 function getCarrierReadiness(carrier) {
   if (carrier.status === "blocked") return { key: "blocked", label: "Blocked", className: "warning", reason: "Carrier is blocked." };
   if (carrier.status === "inactive") return { key: "blocked", label: "Inactive", className: "caution", reason: "Carrier is archived." };
+  const fmcsaStatus = normalizeStatus(carrier.fmcsa_verification_status);
+  if (["blocked", "out_of_service", "inactive"].includes(fmcsaStatus)) return { key: "blocked", label: "Do Not Tender", className: "warning", reason: "FMCSA status blocks tendering." };
+  if (fmcsaStatus === "needs_review") return { key: "review", label: "Review", className: "caution", reason: "FMCSA verification needs review." };
+  if ((carrier.mc_number || carrier.dot_number) && (!carrier.fmcsa_checked_at || fmcsaStatus === "not_checked")) return { key: "review", label: "Review", className: "caution", reason: "FMCSA verification needed." };
   if (carrier.safety_rating === "unsatisfactory") return { key: "blocked", label: "Blocked", className: "warning", reason: "Unsatisfactory safety rating." };
   if (!carrier.mc_number && !carrier.dot_number) return { key: "review", label: "Review", className: "caution", reason: "Missing MC/DOT authority." };
   if (isInsuranceExpired(carrier.insurance_expiration)) return { key: "blocked", label: "Do Not Tender", className: "warning", reason: "Insurance expired." };
@@ -265,6 +388,20 @@ function formatW9(carrier) {
   return carrier.document_url
     ? `${pill} <a class="view secondary-action" href="${escapeHtml(carrier.document_url)}" target="_blank" rel="noopener">Packet</a>`
     : pill;
+}
+
+function formatFmcsaStatus(carrier) {
+  const status = normalizeStatus(carrier.fmcsa_verification_status || "not_checked");
+  const labels = {
+    verified: "Verified",
+    needs_review: "Needs Review",
+    blocked: "Do Not Use",
+    inactive: "Inactive",
+    out_of_service: "Out Of Service",
+    not_checked: "Not Checked"
+  };
+  const className = status === "verified" ? "success" : ["blocked", "inactive", "out_of_service"].includes(status) ? "warning" : "caution";
+  return `<span class="status-pill ${className}">${escapeHtml(labels[status] || formatStatus(status))}</span>`;
 }
 
 function isInsuranceExpired(value) {
@@ -297,6 +434,16 @@ function startOfDay(date) {
 
 function formatStatus(value) {
   return String(value || "N/A").replaceAll("_", " ");
+}
+
+function normalizeStatus(value) {
+  return String(value || "").trim().toLowerCase().replace(/\s+/g, "_");
+}
+
+function setFmcsaMessage(text, color) {
+  if (!fmcsaMessage) return;
+  fmcsaMessage.textContent = text;
+  fmcsaMessage.style.color = color || "";
 }
 
 function escapeHtml(value) {

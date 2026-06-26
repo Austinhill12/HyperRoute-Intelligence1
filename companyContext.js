@@ -71,7 +71,7 @@
       "invoices.html", "invoice-details.html", "edit-invoice.html", "settlements.html", "accounting-sync.html", "expense-review.html"
     ],
     dispatcherTools: [
-      "dispatch.html"
+      "dispatch.html", "carriers.html", "tender-load.html", "rate-confirmation.html"
     ]
   };
   const OPERATION_FEATURES = {
