@@ -506,7 +506,7 @@ function extractPickupStop(lines, text) {
   const stop = extractNamedStop(lines, ["PICKUP", "PICKUP - 1", "PICK 1"], text, "pickup");
   if (addressStops[0]?.location) return mergeStopDate(addressStops[0], stop);
   if (isUsableLocation(stop.location)) return stop;
-  return mergeStopDate(addressStops[0], stop) || stop;
+  return { location: "", date: stop.date || {} };
 }
 
 function extractDeliveryStop(lines, text) {
@@ -514,7 +514,7 @@ function extractDeliveryStop(lines, text) {
   const stop = extractNamedStop(lines, ["DELIVERY", "DELIVERY - 1", "STOP 1"], text, "delivery");
   if (addressStops[1]?.location) return mergeStopDate(addressStops[1], stop);
   if (isUsableLocation(stop.location)) return stop;
-  return mergeStopDate(addressStops[1], stop) || stop;
+  return { location: "", date: stop.date || {} };
 }
 
 function isUsableLocation(value) {
@@ -586,6 +586,9 @@ function extractFacilityStopsFromText(text) {
 
 function extractAddressStops(lines, text = "") {
   const stops = [];
+  const lineBlockStops = extractFacilityAddressBlocksFromLines(lines);
+  if (lineBlockStops.length >= 2) return lineBlockStops;
+
   const blockStops = extractAddressBlocksFromText(text);
   if (blockStops.length >= 2) return blockStops;
 
@@ -607,6 +610,50 @@ function extractAddressStops(lines, text = "") {
 
   if (stops.length >= 2) return stops;
   return stops.length ? stops : blockStops.length ? blockStops : extractFacilityStopsFromText(text);
+}
+
+function extractFacilityAddressBlocksFromLines(lines) {
+  const stops = [];
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = String(lines[i] || "").trim();
+    if (!/^facility name:?$/i.test(line) && !/^facility name:/i.test(line)) continue;
+
+    const addressIndex = findNextLineIndex(lines, i + 1, 10, value => /^address:?$/i.test(value) || /^address:/i.test(value));
+    if (addressIndex < 0) continue;
+
+    const street = valueAfterInlineLabel(lines[addressIndex], "Address") || findNextStreetLine(lines, addressIndex + 1, 6);
+    const cityIndex = findNextLineIndex(lines, addressIndex + 1, 8, value => /[A-Z][A-Z .'-]+,\s*[A-Z]{2},?\s*(?:USA,?\s*)?\d{5}/i.test(value));
+    const cityLine = cityIndex >= 0 ? lines[cityIndex] : "";
+    const location = fullAddressFromLines(street, cityLine);
+
+    if (location && !stops.some(stop => stop.location === location)) {
+      stops.push({ location, date: findNextAppointment(lines, i) });
+    }
+  }
+
+  return stops;
+}
+
+function findNextLineIndex(lines, startIndex, range, predicate) {
+  for (let i = startIndex; i < Math.min(lines.length, startIndex + range); i += 1) {
+    if (predicate(String(lines[i] || "").trim())) return i;
+  }
+  return -1;
+}
+
+function valueAfterInlineLabel(line, label) {
+  const regex = new RegExp(`^${label}\\s*:?\\s*(.+)$`, "i");
+  const match = String(line || "").trim().match(regex);
+  return match?.[1]?.trim() || "";
+}
+
+function findNextStreetLine(lines, startIndex, range) {
+  for (let i = startIndex; i < Math.min(lines.length, startIndex + range); i += 1) {
+    const line = String(lines[i] || "").trim();
+    if (/\d+\s+[A-Z0-9 .'-]+/i.test(line)) return line;
+  }
+  return "";
 }
 
 function findPreviousStreetLine(lines, startIndex) {
@@ -678,6 +725,7 @@ function fullAddressFromLines(line1, line2) {
   const street = String(line1 || "").replace(/\s+/g, " ").trim();
   const cityLine = String(line2 || "").replace(/\s+/g, " ").trim();
   if (!street || !cityLine) return "";
+  if (!/\d/.test(street)) return "";
 
   const match = cityLine.match(/([A-Z][A-Z .'-]+),\s*([A-Z]{2}),?\s*(?:USA,?\s*)?(\d{5})/i);
   if (!match) return "";
