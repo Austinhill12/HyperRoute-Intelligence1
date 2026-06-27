@@ -203,7 +203,10 @@ function fillReviewForm(data) {
   Array.from(form.elements).forEach(input => {
     if (!input.name) return;
     input.value = input.tagName === "SELECT" ? input.options[0]?.value || "" : "";
-    const value = data[input.name];
+    let value = data[input.name];
+    if ((input.name === "pickup_location" || input.name === "delivery_location") && value && !isUsableLocation(value)) {
+      value = "";
+    }
     if (value === undefined || value === null) return;
     input.value = String(value);
   });
@@ -412,6 +415,11 @@ function cleanExtraction(data) {
       if (!data[key]) data[key] = "";
     }
   });
+
+  ["pickup_location", "delivery_location"].forEach(key => {
+    if (data[key] && !isUsableLocation(data[key])) data[key] = "";
+  });
+
   return data;
 }
 
@@ -524,6 +532,7 @@ function extractDeliveryStop(lines, text) {
 function isUsableLocation(value) {
   const text = String(value || "").trim();
   if (!text) return false;
+  if (text.length > 140) return false;
   if (/load number|carrier rate|picking up|shipment|generated on|terms|conditions|confirmation/i.test(text)) return false;
   if (/\d+\s+[A-Z0-9 .'-]+,\s*[A-Z][A-Z .'-]+,\s*([A-Z]{2})\s+\d{5}/i.test(text)) return isValidState(RegExp.$1);
   if (/[A-Z][A-Z .'-]+,\s*([A-Z]{2})\s+\d{5}\b/i.test(text)) return isValidState(RegExp.$1);
@@ -547,7 +556,7 @@ function extractNamedStop(lines, labels, text, kind) {
   if (/facility name/i.test(text)) {
     const stops = extractFacilityStops(lines, text);
     const facilityStop = kind === "pickup" ? stops[0] : stops[1];
-    if (facilityStop?.location) return facilityStop;
+    if (facilityStop?.location && isUsableLocation(facilityStop.location)) return facilityStop;
   }
 
   const index = lines.findIndex(line => labels.some(label => line.toLowerCase().startsWith(label.toLowerCase())));
@@ -558,7 +567,7 @@ function extractNamedStop(lines, labels, text, kind) {
     const previousAddressLine = addressLine ? windowLines[Math.max(0, windowLines.indexOf(addressLine) - 1)] : "";
     const location = locationFromAddress(previousAddressLine, addressLine) || cleanLocationLine(simpleLocation);
     const dateTime = extractDateTime(windowLines.join(" "));
-    return { location, date: dateTime };
+    return { location: isUsableLocation(location) ? location : "", date: dateTime };
   }
 
   return { location: "", date: {} };
@@ -573,8 +582,8 @@ function extractFacilityStops(lines, text = "") {
     const addressLine = addressIndex >= 0 ? lines[addressIndex + 1] : "";
     const cityLine = addressIndex >= 0 ? lines[addressIndex + 2] : "";
     const appointment = findNextAppointment(lines, i);
-    const location = locationFromAddress(addressLine, cityLine) || name;
-    stops.push({ location, date: appointment });
+    const location = locationFromAddress(addressLine, cityLine);
+    if (isUsableLocation(location)) stops.push({ location, date: appointment });
   }
   return stops.length ? stops : extractFacilityStopsFromText(text);
 }
@@ -585,10 +594,8 @@ function extractFacilityStopsFromText(text) {
   const regex = /Facility Name:?\s*([^:]+?)\s+Address:?\s*([^:]+?)\s+([A-Z][A-Z .'-]+),\s*([A-Z]{2}),?\s*(?:USA,?\s*)?(\d{5})/gi;
   let match;
   while ((match = regex.exec(compact)) !== null) {
-    stops.push({
-      location: `${titleCase(match[2])}, ${titleCase(match[3])}, ${match[4].toUpperCase()} ${match[5]}`,
-      date: {}
-    });
+    const location = `${titleCase(cleanStreet(match[2]))}, ${titleCase(match[3])}, ${match[4].toUpperCase()} ${match[5]}`;
+    if (isUsableLocation(location)) stops.push({ location, date: {} });
   }
   return stops;
 }
@@ -615,7 +622,7 @@ function extractAddressStops(lines, text = "") {
 
     const street = findPreviousStreetLine(sourceLines, i);
     const location = fullAddressFromLines(street, cityLine) || cleanLocationLine(cityLine);
-    if (location && !stops.some(stop => stop.location === location)) {
+    if (isUsableLocation(location) && !stops.some(stop => stop.location === location)) {
       stops.push({ location, date: {} });
     }
   }
