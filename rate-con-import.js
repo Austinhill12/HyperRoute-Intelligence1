@@ -502,16 +502,18 @@ function reliableIdentifier(value) {
 }
 
 function extractPickupStop(lines, text) {
-  const stop = extractNamedStop(lines, ["PICKUP", "PICKUP - 1", "PICK 1"], text, "pickup");
-  if (isUsableLocation(stop.location)) return stop;
   const addressStops = extractAddressStops(lines, text);
+  const stop = extractNamedStop(lines, ["PICKUP", "PICKUP - 1", "PICK 1"], text, "pickup");
+  if (addressStops[0]?.location) return mergeStopDate(addressStops[0], stop);
+  if (isUsableLocation(stop.location)) return stop;
   return mergeStopDate(addressStops[0], stop) || stop;
 }
 
 function extractDeliveryStop(lines, text) {
-  const stop = extractNamedStop(lines, ["DELIVERY", "DELIVERY - 1", "STOP 1"], text, "delivery");
-  if (isUsableLocation(stop.location)) return stop;
   const addressStops = extractAddressStops(lines, text);
+  const stop = extractNamedStop(lines, ["DELIVERY", "DELIVERY - 1", "STOP 1"], text, "delivery");
+  if (addressStops[1]?.location) return mergeStopDate(addressStops[1], stop);
+  if (isUsableLocation(stop.location)) return stop;
   return mergeStopDate(addressStops[1], stop) || stop;
 }
 
@@ -584,6 +586,9 @@ function extractFacilityStopsFromText(text) {
 
 function extractAddressStops(lines, text = "") {
   const stops = [];
+  const blockStops = extractAddressBlocksFromText(text);
+  if (blockStops.length >= 2) return blockStops;
+
   const sourceLines = [
     ...lines,
     ...String(text || "").split(/\n+/).map(line => line.replace(/\s+/g, " ").trim()).filter(Boolean)
@@ -601,7 +606,7 @@ function extractAddressStops(lines, text = "") {
   }
 
   if (stops.length >= 2) return stops;
-  return stops.length ? stops : extractFacilityStopsFromText(text);
+  return stops.length ? stops : blockStops.length ? blockStops : extractFacilityStopsFromText(text);
 }
 
 function findPreviousStreetLine(lines, startIndex) {
@@ -611,6 +616,34 @@ function findPreviousStreetLine(lines, startIndex) {
     if (/\d+\s+[A-Z0-9 .'-]+/i.test(line)) return line;
   }
   return "";
+}
+
+function extractAddressBlocksFromText(text) {
+  const stops = [];
+  const compact = String(text || "").replace(/\s+/g, " ");
+  const streetSuffix = "(?:RD|ROAD|ST|STREET|AVE|AVENUE|BLVD|BOULEVARD|DR|DRIVE|LN|LANE|CT|COURT|HWY|HIGHWAY|PKWY|PARKWAY|WAY|PL|PLACE|CIR|CIRCLE|TRL|TRAIL)";
+  const patterns = [
+    new RegExp(`Address:?\\s*([0-9][A-Z0-9 .'-]{2,80}?\\b${streetSuffix})\\s+([A-Z][A-Z .'-]+),\\s*([A-Z]{2}),?\\s*(?:USA,?\\s*)?(\\d{5})`, "gi"),
+    new RegExp(`\\b([0-9][A-Z0-9 .'-]{2,80}?\\b${streetSuffix})\\s+([A-Z][A-Z .'-]+),\\s*([A-Z]{2}),?\\s*(?:USA,?\\s*)?(\\d{5})`, "gi")
+  ];
+
+  patterns.forEach(pattern => {
+    let match;
+    while ((match = pattern.exec(compact)) !== null) {
+      const street = cleanStreet(match[1]);
+      const location = `${titleCase(street)}, ${titleCase(match[2])}, ${match[3].toUpperCase()} ${match[4]}`;
+      if (!stops.some(stop => stop.location === location)) stops.push({ location, date: {} });
+    }
+  });
+
+  return stops.filter(stop => isUsableLocation(stop.location));
+}
+
+function cleanStreet(value) {
+  return String(value || "")
+    .replace(/\b(?:Facility Name|Address|Relay|APPT|Appointment)\b:?/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function findNextAppointment(lines, startIndex) {
