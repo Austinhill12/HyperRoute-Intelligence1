@@ -525,10 +525,14 @@ function isUsableLocation(value) {
   const text = String(value || "").trim();
   if (!text) return false;
   if (/load number|carrier rate|picking up|shipment|generated on|terms|conditions|confirmation/i.test(text)) return false;
-  if (/\d+\s+[A-Z0-9 .'-]+,\s*[A-Z][A-Z .'-]+,\s*[A-Z]{2}\s+\d{5}/i.test(text)) return true;
-  if (/[A-Z][A-Z .'-]+,\s*[A-Z]{2}\s+\d{5}\b/i.test(text)) return true;
-  if (/^[A-Z][A-Z .'-]+,\s*[A-Z]{2}$/i.test(text)) return true;
+  if (/\d+\s+[A-Z0-9 .'-]+,\s*[A-Z][A-Z .'-]+,\s*([A-Z]{2})\s+\d{5}/i.test(text)) return isValidState(RegExp.$1);
+  if (/[A-Z][A-Z .'-]+,\s*([A-Z]{2})\s+\d{5}\b/i.test(text)) return isValidState(RegExp.$1);
+  if (/^[A-Z][A-Z .'-]+,\s*([A-Z]{2})$/i.test(text)) return isValidState(RegExp.$1);
   return false;
+}
+
+function isValidState(value) {
+  return /^(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY|DC)$/i.test(String(value || "").trim());
 }
 
 function mergeStopDate(addressStop, dateStop) {
@@ -738,10 +742,10 @@ function locationFromAddress(line1, line2) {
 
   const combined = [line1, line2].filter(Boolean).join(" ");
   const commaMatch = combined.match(/([A-Z][A-Z .'-]+),\s*([A-Z]{2})(?:,\s*USA)?(?:,\s*\d{5})?/i);
-  if (commaMatch) return `${titleCase(commaMatch[1])}, ${commaMatch[2].toUpperCase()}`;
+  if (commaMatch && isValidState(commaMatch[2])) return `${titleCase(commaMatch[1])}, ${commaMatch[2].toUpperCase()}`;
 
   const zipMatch = combined.match(/([A-Z][A-Z .'-]+)\s+([A-Z]{2})\s+\d{5}/i);
-  if (zipMatch) return `${titleCase(zipMatch[1])}, ${zipMatch[2].toUpperCase()}`;
+  if (zipMatch && isValidState(zipMatch[2])) return `${titleCase(zipMatch[1])}, ${zipMatch[2].toUpperCase()}`;
 
   return "";
 }
@@ -754,6 +758,7 @@ function fullAddressFromLines(line1, line2) {
 
   const match = cityLine.match(/([A-Z][A-Z .'-]+),\s*([A-Z]{2}),?\s*(?:USA,?\s*)?(\d{5})/i);
   if (!match) return "";
+  if (!isValidState(match[2])) return "";
 
   return `${titleCase(street)}, ${titleCase(match[1])}, ${match[2].toUpperCase()} ${match[3]}`;
 }
@@ -761,7 +766,7 @@ function fullAddressFromLines(line1, line2) {
 function cleanLocationLine(line) {
   if (!line) return "";
   const match = String(line).match(/([A-Z][A-Z .'-]+),\s*([A-Z]{2})/i);
-  return match ? `${titleCase(match[1])}, ${match[2].toUpperCase()}` : "";
+  return match && isValidState(match[2]) ? `${titleCase(match[1])}, ${match[2].toUpperCase()}` : "";
 }
 
 function extractRateDetails(lines, text) {
@@ -904,9 +909,12 @@ function extractStop(text, labels) {
 
 function extractLocation(segment) {
   const cityState = segment.match(/([A-Z][A-Z .'-]+,\s*[A-Z]{2}(?:,\s*USA)?(?:,\s*\d{5})?)/);
-  if (cityState) return cityState[1].replace(",USA", "").trim();
+  if (cityState) {
+    const state = cityState[1].match(/,\s*([A-Z]{2})/i)?.[1];
+    if (isValidState(state)) return cityState[1].replace(",USA", "").trim();
+  }
   const zipLine = segment.match(/([A-Z][A-Z .'-]+)\s+([A-Z]{2})\s+\d{5}/);
-  if (zipLine) return `${titleCase(zipLine[1])}, ${zipLine[2]}`;
+  if (zipLine && isValidState(zipLine[2])) return `${titleCase(zipLine[1])}, ${zipLine[2]}`;
   return "";
 }
 
