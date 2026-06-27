@@ -502,11 +502,17 @@ function reliableIdentifier(value) {
 }
 
 function extractPickupStop(lines, text) {
-  return extractNamedStop(lines, ["PICKUP", "PICKUP - 1", "PICK 1"], text, "pickup");
+  const stop = extractNamedStop(lines, ["PICKUP", "PICKUP - 1", "PICK 1"], text, "pickup");
+  if (stop.location) return stop;
+  const addressStops = extractAddressStops(lines, text);
+  return addressStops[0] || stop;
 }
 
 function extractDeliveryStop(lines, text) {
-  return extractNamedStop(lines, ["DELIVERY", "DELIVERY - 1", "STOP 1"], text, "delivery");
+  const stop = extractNamedStop(lines, ["DELIVERY", "DELIVERY - 1", "STOP 1"], text, "delivery");
+  if (stop.location) return stop;
+  const addressStops = extractAddressStops(lines, text);
+  return addressStops[1] || stop;
 }
 
 function extractNamedStop(lines, labels, text, kind) {
@@ -557,6 +563,37 @@ function extractFacilityStopsFromText(text) {
     });
   }
   return stops;
+}
+
+function extractAddressStops(lines, text = "") {
+  const stops = [];
+  const sourceLines = [
+    ...lines,
+    ...String(text || "").split(/\n+/).map(line => line.replace(/\s+/g, " ").trim()).filter(Boolean)
+  ];
+
+  for (let i = 0; i < sourceLines.length; i += 1) {
+    const cityLine = sourceLines[i];
+    if (!/[A-Z][A-Z .'-]+,\s*[A-Z]{2},?\s*(?:USA,?\s*)?\d{5}/i.test(cityLine)) continue;
+
+    const street = findPreviousStreetLine(sourceLines, i);
+    const location = fullAddressFromLines(street, cityLine) || cleanLocationLine(cityLine);
+    if (location && !stops.some(stop => stop.location === location)) {
+      stops.push({ location, date: {} });
+    }
+  }
+
+  if (stops.length >= 2) return stops;
+  return stops.length ? stops : extractFacilityStopsFromText(text);
+}
+
+function findPreviousStreetLine(lines, startIndex) {
+  for (let i = startIndex - 1; i >= Math.max(0, startIndex - 6); i -= 1) {
+    const line = String(lines[i] || "").trim();
+    if (!line || isLikelyLabel(line) || /^facility name:?$/i.test(line) || /^address:?$/i.test(line)) continue;
+    if (/\d+\s+[A-Z0-9 .'-]+/i.test(line)) return line;
+  }
+  return "";
 }
 
 function findNextAppointment(lines, startIndex) {
