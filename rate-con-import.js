@@ -117,9 +117,10 @@ function parseRateConfirmation(text) {
   const lines = getUsefulLines(text);
   const pickup = extractPickupStop(lines, text);
   const delivery = extractDeliveryStop(lines, text);
-  const rate = extractBestRate(text, lines);
-  const fuel = firstMoneyAfter(text, ["fuel surcharge", "fsc"]);
-  const accessorial = firstMoneyAfter(text, ["accessorial"]);
+  const rateDetails = extractRateDetails(lines, text);
+  const rate = rateDetails.total ?? rateDetails.lineHaul ?? extractBestRate(text, lines);
+  const fuel = rateDetails.fuelSurcharge;
+  const accessorial = extractAccessorialPay(lines, text);
   const loadNumber = reliableIdentifier(firstValueFromLines(lines, [
     /^load\s*(?:number|#)\s*[:#-]?\s*([A-Z0-9-]*\d[A-Z0-9-]*)/i,
     /^load\s+([A-Z0-9-]*\d[A-Z0-9-]*)/i,
@@ -192,9 +193,9 @@ function parseRateConfirmation(text) {
     temperature_requirements: extractTemperature(text),
     tracking_required: trackingRequired,
     required_documents: requiredDocs.join(", "),
-    lumper_information: firstSentenceContaining(text, ["lumper"]),
-    detention_policy: firstSentenceContaining(text, ["detention", "free time"]),
-    notes: buildNotes(text)
+    lumper_information: extractLumperInformation(text),
+    detention_policy: extractDetentionPolicy(text, lines),
+    notes: buildNotes(text, rateDetails)
   });
 }
 
@@ -468,6 +469,12 @@ function valueAfterLabel(lines, labels) {
   return "";
 }
 
+function scopedValueAfterLabel(lines, startIndex, labels, range = 12) {
+  if (startIndex < 0) return "";
+  const windowLines = lines.slice(startIndex, startIndex + range);
+  return valueAfterLabel(windowLines, labels);
+}
+
 function valueAfterLabelNumber(lines, labels) {
   const value = valueAfterLabel(lines, labels);
   const match = String(value || "").match(/[\d,]+(?:\.\d+)?/);
@@ -567,6 +574,55 @@ function cleanLocationLine(line) {
   if (!line) return "";
   const match = String(line).match(/([A-Z][A-Z .'-]+),\s*([A-Z]{2})/i);
   return match ? `${titleCase(match[1])}, ${match[2].toUpperCase()}` : "";
+}
+
+function extractRateDetails(lines, text) {
+  const lineHaul = moneyNearLabel(lines, ["Line Haul Charges", "Line Haul Rate", "Linehaul"]);
+  const fuelSurcharge = moneyNearLabel(lines, ["Fuel Surcharge", "FSC"]);
+  const total = moneyNearLabel(lines, ["Total Rate", "Total"]);
+
+  return {
+    lineHaul: lineHaul ?? firstMoneyAfter(text, ["line haul charges", "line haul rate", "linehaul"]),
+    fuelSurcharge,
+    total: total ?? firstMoneyAfter(text, ["total rate", "total"])
+  };
+}
+
+function moneyNearLabel(lines, labels) {
+  const normalizedLabels = labels.map(label => label.toLowerCase());
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = String(lines[i] || "");
+    const lower = line.toLowerCase().replace(/:$/, "");
+    const label = normalizedLabels.find(item => lower === item || lower.startsWith(`${item}:`) || lower.startsWith(`${item} `));
+    if (!label) continue;
+
+    const sameLine = moneyFromText(line.slice(label.length));
+    if (sameLine !== null) return sameLine;
+
+    for (let j = i + 1; j < Math.min(lines.length, i + 5); j += 1) {
+      const candidate = String(lines[j] || "").trim();
+      if (!candidate || candidate === "-") continue;
+      if (isLikelyLabel(candidate) || isRateDetailLabel(candidate)) break;
+      const value = moneyFromText(candidate);
+      if (value !== null) return value;
+    }
+  }
+  return null;
+}
+
+function isRateDetailLabel(value) {
+  return /^(line haul charges|line haul rate|linehaul|fuel surcharge|fsc|total rate|total)$/i.test(String(value || "").replace(":", "").trim());
+}
+
+function moneyFromText(value) {
+  const match = String(value || "").match(/\$?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.\d{2})|[0-9]+(?:\.\d{2}))/);
+  return match ? Number(match[1].replace(/,/g, "")) : null;
+}
+
+function extractAccessorialPay(lines, text) {
+  const explicit = moneyNearLabel(lines, ["Accessorial Pay", "Approved Accessorial", "Accessorial Amount"]);
+  if (explicit !== null) return explicit;
+  return firstMoneyAfter(text, ["accessorial pay", "approved accessorial", "accessorial amount"]);
 }
 
 function extractBestRate(text, lines) {
@@ -712,14 +768,16 @@ function firstValue(text, patterns) {
 }
 
 function extractBrokerName(text, lines = []) {
-  const bookedWith = valueAfterLabel(lines, ["Booked With"]);
-  if (bookedWith) return bookedWith;
-
   const knownBroker = firstValue(text, [
-    /booked\s*with\s*[:#-]?\s*([A-Z][A-Za-z .'-]+)/i,
     /(ADDISON TRANSPORTATION|TRANSPORTATION ONE|TQL|TOTAL QUALITY LOGISTICS|C\.?H\.?\s*ROBINSON|COYOTE LOGISTICS)/i
   ]);
   if (knownBroker) return knownBroker;
+
+  const bookedWith = valueAfterLabel(lines, ["Booked With"]);
+  if (bookedWith) return bookedWith;
+
+  const bookedWithText = firstValue(text, [/booked\s*with\s*[:#-]?\s*([A-Z][A-Za-z .'-]+)/i]);
+  if (bookedWithText) return bookedWithText;
 
   const email = lines.find(line => /@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(line));
   const emailIndex = email ? lines.indexOf(email) : -1;
@@ -727,9 +785,10 @@ function extractBrokerName(text, lines = []) {
 }
 
 function extractBrokerContact(text, lines = []) {
-  const name = valueAfterLabel(lines, ["Booked With"]) || firstValue(text, [/booked\s*with\s*[:#-]?\s*([A-Z][A-Za-z .'-]+)/i]);
-  const phone = valueAfterLabel(lines, ["Phone"]) || firstValue(text, [/phone\s*[:#-]?\s*([()+\-\d xX. ]{7,})/i]);
-  const email = valueAfterLabel(lines, ["Email"]) || firstValue(text, [/email\s*[:#-]?\s*([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/i]);
+  const bookedIndex = lines.findIndex(line => /^booked with:?$/i.test(line));
+  const name = scopedValueAfterLabel(lines, bookedIndex, ["Booked With"], 8) || firstValue(text, [/booked\s*with\s*[:#-]?\s*([A-Z][A-Za-z .'-]+)/i]);
+  const phone = scopedValueAfterLabel(lines, bookedIndex, ["Phone"], 14) || valueAfterLabel(lines, ["Phone"]) || firstValue(text, [/phone\s*[:#-]?\s*([()+\-\d xX. ]{7,})/i]);
+  const email = scopedValueAfterLabel(lines, bookedIndex, ["Email"], 14) || valueAfterLabel(lines, ["Email"]) || firstValue(text, [/email\s*[:#-]?\s*([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/i]);
   return [name, phone, email].filter(Boolean).join(" / ");
 }
 
@@ -760,9 +819,13 @@ function extractTemperature(text) {
 
 function inferRequiredDocuments(lower) {
   const docs = ["Rate Confirmation"];
+  if (lower.includes("signed rate confirmation")) docs.push("Signed Rate Confirmation");
+  if (lower.includes("invoice")) docs.push("Invoice");
   if (lower.includes("bol") || lower.includes("bill of lading")) docs.push("BOL");
   if (lower.includes("pod") || lower.includes("proof of delivery")) docs.push("POD");
   if (lower.includes("receipt")) docs.push("Receipts");
+  if (lower.includes("lumper")) docs.push("Lumper Receipts");
+  if (lower.includes("accessorial")) docs.push("Accessorial Receipts");
   if (lower.includes("scale ticket")) docs.push("Scale Tickets");
   return [...new Set(docs)];
 }
@@ -772,13 +835,59 @@ function firstSentenceContaining(text, keywords) {
   return sentences.find(sentence => keywords.some(keyword => sentence.toLowerCase().includes(keyword)))?.slice(0, 220) || "";
 }
 
-function buildNotes(text) {
+function extractLumperInformation(text) {
+  if (/lumper\s+fee/i.test(text) && /valid\s+receipt/i.test(text)) {
+    return "Lumper fee reimbursed in full with valid receipt.";
+  }
+  return firstSentenceContaining(text, ["lumper"]);
+}
+
+function extractDetentionPolicy(text, lines = []) {
+  const direct = text.match(/detention\s*:\s*\$?\s*([0-9]+(?:\.\d{2})?)/i);
+  const lineAmount = moneyNearLabel(lines, ["Detention"]);
+  const explicit = text.match(/detention[\s\S]{0,160}?\$?\s*([0-9]+(?:\.\d{2})?)[\s\S]{0,120}?(?:after\s*2\s*free\s*hours|2\s*free\s*hours)/i);
+  const amount = direct?.[1] ? Number(direct[1]) : lineAmount ?? (explicit?.[1] ? Number(explicit[1]) : firstMoneyAfter(text, ["detention"]));
+  if ((/free time is 2 hours/i.test(text) || /2\s*free\s*hours/i.test(text)) && amount) {
+    return `Detention: $${amount} per hour after 2 free hours. Tracking must be accepted and maintained for detention approval when required.`;
+  }
+  if (/free time is 2 hours/i.test(text)) {
+    return "Detention: free time is 2 hours per facility.";
+  }
+  return firstSentenceContaining(text, ["detention", "free time"]);
+}
+
+function buildNotes(text, rateDetails = {}) {
   const notes = [];
-  ["tracking", "pod", "hazmat", "detention", "lumper", "rate reduction", "temperature", "reefer"].forEach(keyword => {
-    const sentence = firstSentenceContaining(text, [keyword]);
-    if (sentence) notes.push(sentence);
-  });
+  if (rateDetails.lineHaul || rateDetails.fuelSurcharge || rateDetails.total) {
+    notes.push(`Rate details: line haul ${formatMoney(rateDetails.lineHaul)}, fuel surcharge ${formatMoney(rateDetails.fuelSurcharge)}, total ${formatMoney(rateDetails.total)}.`);
+  }
+
+  if (/accessorial requests[\s\S]{0,520}48 hours/i.test(text)) {
+    notes.push("Accessorial requests and required documents must be submitted within 48 hours of delivery when required by the rate confirmation.");
+  }
+  if (/\$50[\s\S]{0,120}rate reduction/i.test(text) || /rate reduction[\s\S]{0,120}\$50/i.test(text)) {
+    notes.push("Missing required paperwork may cause a $50 rate reduction.");
+  }
+  if (/paperwork[\s\S]{0,360}30 days/i.test(text)) {
+    notes.push("Paperwork not received within 30 days may forfeit the right to collect charges.");
+  }
+  if (/electronic tracking is required/i.test(text)) {
+    notes.push("Electronic tracking is required for this load.");
+  }
+  if (/pod[\s\S]{0,120}24 hours/i.test(text)) {
+    notes.push("POD must be provided within 24 hours of delivery.");
+  }
+  if (/hazmat|hazardous|un\d{4}/i.test(text)) {
+    notes.push("Hazmat appears on the rate confirmation; verify driver endorsement, placards, and shipment paperwork before dispatch.");
+  }
+  if (/reefer|refrigerated|temperature/i.test(text)) {
+    notes.push("Temperature-controlled requirements appear on the rate confirmation; verify reefer set point and download requirements.");
+  }
   return [...new Set(notes)].join("\n");
+}
+
+function formatMoney(value) {
+  return value === null || value === undefined || Number.isNaN(Number(value)) ? "N/A" : `$${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function parseDate(value) {
