@@ -106,8 +106,7 @@ async function extractPdfText(file) {
   for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
     const page = await pdf.getPage(pageNumber);
     const content = await page.getTextContent();
-    const pageText = content.items.map(item => item.str).join(" ");
-    pages.push(pageText);
+    pages.push(rebuildPdfLines(content.items));
   }
 
   return normalizeText(pages.join("\n"));
@@ -115,48 +114,65 @@ async function extractPdfText(file) {
 
 function parseRateConfirmation(text) {
   const lower = text.toLowerCase();
-  const pickup = extractStop(text, ["pickup", "pick 1", "origin", "shipper", "facility name"]);
-  const delivery = extractStop(text, ["delivery", "stop 1", "destination", "consignee"]);
-  const rate = firstMoneyAfter(text, ["total", "total rate", "line haul charges", "line haul rate", "carrier rate"]);
+  const lines = getUsefulLines(text);
+  const pickup = extractPickupStop(lines, text);
+  const delivery = extractDeliveryStop(lines, text);
+  const rate = extractBestRate(text, lines);
   const fuel = firstMoneyAfter(text, ["fuel surcharge", "fsc"]);
   const accessorial = firstMoneyAfter(text, ["accessorial"]);
-  const loadNumber = firstValue(text, [
-    /load\s*(?:number|#)\s*[:#-]?\s*([A-Z0-9-]+)/i,
-    /pro\s*#\s*[:#-]?\s*([A-Z0-9-]+)/i,
-    /reference\s*#\s*[:#-]?\s*([A-Z0-9-]+)/i
-  ]);
-  const rateConNumber = firstValue(text, [
+  const loadNumber = reliableIdentifier(firstValueFromLines(lines, [
+    /^load\s*(?:number|#)\s*[:#-]?\s*([A-Z0-9-]*\d[A-Z0-9-]*)/i,
+    /^load\s+([A-Z0-9-]*\d[A-Z0-9-]*)/i,
+    /^pro\s*#\s*[:#-]?\s*([A-Z0-9-]*\d[A-Z0-9-]*)/i,
+    /^reference\s*#\s*[:#-]?\s*([A-Z0-9-]*\d[A-Z0-9-]*)/i
+  ]) || valueAfterLabel(lines, ["Load Number", "Load #", "PRO #"]) || firstValue(text, [
+    /load\s*(?:number|#)\s*[:#-]?\s*([A-Z0-9-]*\d[A-Z0-9-]*)/i,
+    /load\s+([A-Z0-9-]*\d[A-Z0-9-]*)/i,
+    /pro\s*#\s*[:#-]?\s*([A-Z0-9-]*\d[A-Z0-9-]*)/i,
+    /reference\s*#\s*[:#-]?\s*([A-Z0-9-]*\d[A-Z0-9-]*)/i
+  ])) || inferTopLoadNumber(lines);
+  const rateConNumber = firstValueFromLines(lines, [
+    /^rate\s*confirmation\s*(?:number|#)?\s*[:#-]?\s*([A-Z0-9-]+)/i,
+    /^confirmation\s*(?:number|#)\s*[:#-]?\s*([A-Z0-9-]+)/i,
+    /^document\s*id\s*[:#-]?\s*([A-Z0-9-]+)/i
+  ]) || firstValue(text, [
     /rate\s*confirmation\s*(?:number|#)?\s*[:#-]?\s*([A-Z0-9-]+)/i,
     /confirmation\s*(?:number|#)\s*[:#-]?\s*([A-Z0-9-]+)/i,
     /document\s*id\s*[:#-]?\s*([A-Z0-9-]+)/i
   ]) || loadNumber;
-  const customerRef = firstValue(text, [
+  const customerRef = firstValueFromLines(lines, [
+    /^customer\s*ref(?:erence)?\s*(?:number|#)?\s*[:#-]?\s*([A-Z0-9-]+)/i,
+    /^customerrefnumber\s*[:#-]?\s*([A-Z0-9-]+)/i,
+    /^ref\s*#\s*[:#-]?\s*([A-Z0-9-]+)/i,
+    /^pick\s*#\s*[:#-]?\s*([A-Z0-9-]+)/i
+  ]) || valueAfterLabel(lines, ["CustomerRefNumber", "Customer Reference", "Reference #", "Ref #", "Pick#"]) || firstValue(text, [
     /customer\s*ref(?:erence)?\s*(?:number|#)?\s*[:#-]?\s*([A-Z0-9-]+)/i,
+    /customerrefnumber\s*[:#-]?\s*([A-Z0-9-]+)/i,
     /ref\s*#\s*[:#-]?\s*([A-Z0-9-]+)/i,
     /pick\s*#\s*[:#-]?\s*([A-Z0-9-]+)/i
   ]);
 
-  const equipment = firstValue(text, [
+  const equipment = valueAfterLabel(lines, ["Equipment", "Size & Type"]) || firstValue(text, [
     /equipment\s*[:#-]?\s*([^|]+?)(?=\s+(?:miles|commodity|pickup|delivery|load details|mode)\b|$)/i,
     /size\s*&\s*type\s*[:#-]?\s*([^|]+?)(?=\s+(?:description|miles|pieces|weight)\b|$)/i
-  ]);
+  ]) || extractAddisonEquipment(lines);
   const trailerType = inferTrailerType(`${equipment || ""} ${text}`);
   const appointmentDates = extractAppointments(text);
-  const pickupDateTime = pickup.date || appointmentDates[0] || {};
-  const deliveryDateTime = delivery.date || appointmentDates[1] || {};
+  const pickupDateTime = hasDateTime(pickup.date) ? pickup.date : appointmentDates[0] || {};
+  const deliveryDateTime = hasDateTime(delivery.date) ? delivery.date : appointmentDates[1] || {};
 
   const requiredDocs = inferRequiredDocuments(lower);
   const trackingRequired = /tracking is required|electronic tracking|required for all loads|track and trace/i.test(text);
   const hazmatRequired = /hazmat|hazardous|un\d{4}/i.test(text);
 
   return cleanExtraction({
-    broker_name: extractBrokerName(text),
-    broker_contact: extractBrokerContact(text),
+    broker_name: extractBrokerName(text, lines),
+    broker_contact: extractBrokerContact(text, lines),
     broker_mc_number: firstValue(text, [/broker\s*mc\s*#?\s*[:#-]?\s*(\d+)/i, /mc\s*#?\s*[:#-]?\s*(\d+)/i]),
     rate_confirmation_number: rateConNumber,
     load_number: loadNumber || rateConNumber,
     customer_reference_number: customerRef,
-    customer_name: extractCustomerName(text),
+    customer_name: extractCustomerName(text, lines),
     status: "booked",
     pickup_location: pickup.location,
     pickup_date: pickupDateTime.date || "",
@@ -167,9 +183,9 @@ function parseRateConfirmation(text) {
     rate,
     fuel_surcharge: fuel,
     accessorial_pay: accessorial,
-    loaded_miles: firstNumberAfter(text, ["miles"]),
-    commodity: firstValue(text, [/commodity\s*[:#-]?\s*([^|]+?)(?=\s+(?:do not|pickup|delivery|load instructions|rate details|pcs|weight)\b|$)/i, /description\s*[:#-]?\s*([^|]+?)(?=\s+(?:miles|pieces|weight|charges)\b|$)/i]),
-    weight: firstNumberAfter(text, ["weight"]),
+    loaded_miles: valueAfterLabelNumber(lines, ["Miles"]) || extractAddisonMiles(lines),
+    commodity: valueAfterLabel(lines, ["Commodity"]) || extractAddisonCommodity(lines) || firstValue(text, [/commodity\s*[:#-]?\s*([^|]+?)(?=\s+(?:do not|pickup|delivery|load instructions|rate details|pcs|weight)\b|$)/i, /description\s*[:#-]?\s*([^|]+?)(?=\s+(?:miles|pieces|weight|charges)\b|$)/i]),
+    weight: valueAfterLabelNumber(lines, ["Weight"]) || extractLoadDetailsWeight(lines),
     trailer_type: trailerType,
     equipment_requirements: equipment,
     hazmat_required: hazmatRequired,
@@ -185,6 +201,7 @@ function parseRateConfirmation(text) {
 function fillReviewForm(data) {
   Array.from(form.elements).forEach(input => {
     if (!input.name) return;
+    input.value = input.tagName === "SELECT" ? input.options[0]?.value || "" : "";
     const value = data[input.name];
     if (value === undefined || value === null) return;
     input.value = String(value);
@@ -400,9 +417,229 @@ function cleanExtraction(data) {
 function normalizeText(text) {
   return String(text || "")
     .replace(/\u0000/g, " ")
+    .replace(/[\u0001-\u001f]+/g, " ")
     .replace(/[ \t]+/g, " ")
     .replace(/\s+\n/g, "\n")
     .replace(/\n\s+/g, "\n");
+}
+
+function rebuildPdfLines(items) {
+  const rows = new Map();
+
+  items.forEach(item => {
+    const text = String(item.str || "").trim();
+    if (!text) return;
+    const y = Math.round((item.transform?.[5] || 0) / 3) * 3;
+    const x = item.transform?.[4] || 0;
+    if (!rows.has(y)) rows.set(y, []);
+    rows.get(y).push({ x, text });
+  });
+
+  return [...rows.entries()]
+    .sort((a, b) => b[0] - a[0])
+    .map(([, parts]) => parts.sort((a, b) => a.x - b.x).map(part => part.text).join(" ").trim())
+    .filter(Boolean)
+    .join("\n");
+}
+
+function getUsefulLines(text) {
+  return String(text || "")
+    .split(/\n+/)
+    .map(line => line.replace(/\s+/g, " ").trim())
+    .filter(line => line && !/^\/\d+(?:\/\d+|\s|i255)+$/i.test(line));
+}
+
+function valueAfterLabel(lines, labels) {
+  const normalizedLabels = labels.map(label => label.toLowerCase());
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i];
+    const lower = line.toLowerCase();
+    const label = normalizedLabels.find(item => lower === item.toLowerCase() || lower.startsWith(`${item.toLowerCase()}:`));
+    if (!label) continue;
+
+    const inlineValue = line.slice(line.indexOf(":") + 1).trim();
+    if (line.includes(":") && inlineValue) return inlineValue;
+
+    for (let j = i + 1; j < Math.min(lines.length, i + 5); j += 1) {
+      if (isLikelyLabel(lines[j])) continue;
+      return lines[j];
+    }
+  }
+  return "";
+}
+
+function valueAfterLabelNumber(lines, labels) {
+  const value = valueAfterLabel(lines, labels);
+  const match = String(value || "").match(/[\d,]+(?:\.\d+)?/);
+  return match ? Number(match[0].replace(/,/g, "")) : null;
+}
+
+function firstValueFromLines(lines, patterns) {
+  for (const line of lines) {
+    for (const pattern of patterns) {
+      const match = line.match(pattern);
+      if (match?.[1]) return match[1].trim();
+    }
+  }
+  return "";
+}
+
+function inferTopLoadNumber(lines) {
+  const candidate = lines.slice(0, 6).find(line => /^\d{5,}$/.test(line));
+  return candidate || "";
+}
+
+function reliableIdentifier(value) {
+  const text = String(value || "").trim();
+  return /\d/.test(text) ? text : "";
+}
+
+function extractPickupStop(lines, text) {
+  return extractNamedStop(lines, ["PICKUP", "PICKUP - 1", "PICK 1"], text, "pickup");
+}
+
+function extractDeliveryStop(lines, text) {
+  return extractNamedStop(lines, ["DELIVERY", "DELIVERY - 1", "STOP 1"], text, "delivery");
+}
+
+function extractNamedStop(lines, labels, text, kind) {
+  if (/facility name/i.test(text)) {
+    const stops = extractFacilityStops(lines);
+    const facilityStop = kind === "pickup" ? stops[0] : stops[1];
+    if (facilityStop?.location) return facilityStop;
+  }
+
+  const index = lines.findIndex(line => labels.some(label => line.toLowerCase().startsWith(label.toLowerCase())));
+  if (index >= 0) {
+    const windowLines = lines.slice(index, index + 12);
+    const simpleLocation = windowLines.slice(1, 4).find(line => /,\s*[A-Z]{2}\b/i.test(line) && !isLikelyLabel(line));
+    const addressLine = windowLines.find(line => /\b[A-Z]{2},?\s*(?:USA,?\s*)?\d{5}\b/i.test(line) || /\b[A-Z]{2}\s+\d{5}\b/.test(line));
+    const previousAddressLine = addressLine ? windowLines[Math.max(0, windowLines.indexOf(addressLine) - 1)] : "";
+    const location = locationFromAddress(previousAddressLine, addressLine) || cleanLocationLine(simpleLocation);
+    const dateTime = extractDateTime(windowLines.join(" "));
+    return { location, date: dateTime };
+  }
+
+  return { location: "", date: {} };
+}
+
+function extractFacilityStops(lines) {
+  const stops = [];
+  for (let i = 0; i < lines.length; i += 1) {
+    if (!/^facility name:?$/i.test(lines[i])) continue;
+    const name = lines[i + 1] || "";
+    const addressIndex = lines.findIndex((line, index) => index > i && index < i + 8 && /^address:?$/i.test(line));
+    const addressLine = addressIndex >= 0 ? lines[addressIndex + 1] : "";
+    const cityLine = addressIndex >= 0 ? lines[addressIndex + 2] : "";
+    const appointment = findNextAppointment(lines, i);
+    const location = locationFromAddress(addressLine, cityLine) || name;
+    stops.push({ location, date: appointment });
+  }
+  return stops;
+}
+
+function findNextAppointment(lines, startIndex) {
+  for (let i = startIndex; i < Math.min(lines.length, startIndex + 20); i += 1) {
+    if (/appointment|appt/i.test(lines[i])) {
+      const sameLine = extractDateTime(lines[i]);
+      const nextLine = extractDateTime(`${lines[i + 1] || ""} ${lines[i + 2] || ""}`);
+      return sameLine.date || sameLine.time ? sameLine : nextLine;
+    }
+  }
+  return {};
+}
+
+function locationFromAddress(line1, line2) {
+  const line2Location = cleanLocationLine(line2);
+  if (line2Location) return line2Location;
+
+  const combined = [line1, line2].filter(Boolean).join(" ");
+  const commaMatch = combined.match(/([A-Z][A-Z .'-]+),\s*([A-Z]{2})(?:,\s*USA)?(?:,\s*\d{5})?/i);
+  if (commaMatch) return `${titleCase(commaMatch[1])}, ${commaMatch[2].toUpperCase()}`;
+
+  const zipMatch = combined.match(/([A-Z][A-Z .'-]+)\s+([A-Z]{2})\s+\d{5}/i);
+  if (zipMatch) return `${titleCase(zipMatch[1])}, ${zipMatch[2].toUpperCase()}`;
+
+  return "";
+}
+
+function cleanLocationLine(line) {
+  if (!line) return "";
+  const match = String(line).match(/([A-Z][A-Z .'-]+),\s*([A-Z]{2})/i);
+  return match ? `${titleCase(match[1])}, ${match[2].toUpperCase()}` : "";
+}
+
+function extractBestRate(text, lines) {
+  const totalLineIndex = lines.findIndex(line => /^total(?: rate)?$/i.test(line) || /^total\s*\$?[\d,]+/i.test(line));
+  if (totalLineIndex >= 0) {
+    const sameLine = lines[totalLineIndex].match(/\$?([\d,]+\.\d{2})/);
+    if (sameLine) return Number(sameLine[1].replace(/,/g, ""));
+    for (let i = totalLineIndex + 1; i < Math.min(lines.length, totalLineIndex + 5); i += 1) {
+      const match = lines[i].match(/\$?([\d,]+\.\d{2})/);
+      if (match) return Number(match[1].replace(/,/g, ""));
+    }
+  }
+
+  return firstMoneyAfter(text, ["customer rate", "total rate", "total", "line haul charges", "line haul rate", "carrier rate"]);
+}
+
+function extractAddisonEquipment(lines) {
+  const headerIndex = lines.findIndex(line => /size\s*&\s*type/i.test(line) && /description/i.test(line) && /miles/i.test(line));
+  if (headerIndex < 0) return "";
+  const values = firstAddisonValueLine(lines, headerIndex);
+  const match = values.match(/^(.+?)\s+[A-Z0-9 ,'-]+\s+\d{2,6}$/i);
+  return match ? match[1].trim() : values;
+}
+
+function extractAddisonCommodity(lines) {
+  const headerIndex = lines.findIndex(line => /size\s*&\s*type/i.test(line) && /description/i.test(line) && /miles/i.test(line));
+  if (headerIndex < 0) return "";
+  const values = firstAddisonValueLine(lines, headerIndex);
+  const match = values.match(/^(?:53'? ?VAN|REEFER|FLATBED|DRY VAN)?\s*(HAZMAT\s+)?(.+?)\s+\d{2,6}$/i);
+  return match ? `${match[1] || ""}${match[2] || ""}`.trim() : "";
+}
+
+function extractAddisonMiles(lines) {
+  const headerIndex = lines.findIndex(line => /size\s*&\s*type/i.test(line) && /description/i.test(line) && /miles/i.test(line));
+  if (headerIndex < 0) return null;
+  const values = firstAddisonValueLine(lines, headerIndex);
+  const match = values.match(/(\d{2,6})$/);
+  return match ? Number(match[1]) : null;
+}
+
+function firstAddisonValueLine(lines, headerIndex) {
+  for (let i = headerIndex + 1; i < Math.min(lines.length, headerIndex + 6); i += 1) {
+    const line = lines[i] || "";
+    if (/pieces|weight|charges/i.test(line)) continue;
+    if (/\d{2,6}$/.test(line)) return line;
+  }
+  return "";
+}
+
+function extractLoadDetailsWeight(lines) {
+  const weightLabelIndex = lines.findIndex(line => /^weight:?$/i.test(line));
+  if (weightLabelIndex >= 0) {
+    for (let i = weightLabelIndex + 1; i < Math.min(lines.length, weightLabelIndex + 8); i += 1) {
+      const match = lines[i].match(/[\d,]{4,}/);
+      if (match) return Number(match[0].replace(/,/g, ""));
+    }
+  }
+
+  const addisonHeaderIndex = lines.findIndex(line => /pieces:\s*weight/i.test(line) || /^pieces:\s*weight:?$/i.test(line));
+  if (addisonHeaderIndex >= 0) {
+    const match = (lines[addisonHeaderIndex + 1] || "").match(/(\d{4,})$/);
+    if (match) return Number(match[1]);
+  }
+
+  return null;
+}
+
+function isLikelyLabel(line) {
+  return /^(phone|email|address|carrier|driver|equipment|miles|commodity|pickup|delivery|appointment|notes|live|relay|rate details|load details|status|pay)$/i.test(String(line || "").replace(":", ""));
+}
+
+function hasDateTime(value) {
+  return Boolean(value && (value.date || value.time));
 }
 
 function extractStop(text, labels) {
@@ -474,21 +711,32 @@ function firstValue(text, patterns) {
   return "";
 }
 
-function extractBrokerName(text) {
-  return firstValue(text, [
+function extractBrokerName(text, lines = []) {
+  const bookedWith = valueAfterLabel(lines, ["Booked With"]);
+  if (bookedWith) return bookedWith;
+
+  const knownBroker = firstValue(text, [
     /booked\s*with\s*[:#-]?\s*([A-Z][A-Za-z .'-]+)/i,
     /(ADDISON TRANSPORTATION|TRANSPORTATION ONE|TQL|TOTAL QUALITY LOGISTICS|C\.?H\.?\s*ROBINSON|COYOTE LOGISTICS)/i
   ]);
+  if (knownBroker) return knownBroker;
+
+  const email = lines.find(line => /@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(line));
+  const emailIndex = email ? lines.indexOf(email) : -1;
+  return emailIndex > 0 ? lines[emailIndex - 1] : "";
 }
 
-function extractBrokerContact(text) {
-  const name = firstValue(text, [/booked\s*with\s*[:#-]?\s*([A-Z][A-Za-z .'-]+)/i]);
-  const phone = firstValue(text, [/phone\s*[:#-]?\s*([()+\-\d xX. ]{7,})/i]);
-  const email = firstValue(text, [/email\s*[:#-]?\s*([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/i]);
+function extractBrokerContact(text, lines = []) {
+  const name = valueAfterLabel(lines, ["Booked With"]) || firstValue(text, [/booked\s*with\s*[:#-]?\s*([A-Z][A-Za-z .'-]+)/i]);
+  const phone = valueAfterLabel(lines, ["Phone"]) || firstValue(text, [/phone\s*[:#-]?\s*([()+\-\d xX. ]{7,})/i]);
+  const email = valueAfterLabel(lines, ["Email"]) || firstValue(text, [/email\s*[:#-]?\s*([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/i]);
   return [name, phone, email].filter(Boolean).join(" / ");
 }
 
-function extractCustomerName(text) {
+function extractCustomerName(text, lines = []) {
+  const facilityName = valueAfterLabel(lines, ["Facility Name"]);
+  if (facilityName) return facilityName;
+
   return firstValue(text, [
     /customer\s*[:#-]?\s*([A-Z][A-Za-z0-9 &'.,-]+?)(?=\s+(?:carrier|facility|address|load|pickup|delivery)\b|$)/i,
     /facility\s*name\s*[:#-]?\s*([A-Z][A-Za-z0-9 &'.,-]+)/i
