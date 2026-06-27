@@ -474,6 +474,82 @@ tbody tr:hover {
   max-width: 900px;
 }
 
+.rate-con-upload-zone {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px dashed #9fb6cc;
+  border-radius: 8px;
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+  padding: 22px;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.rate-con-upload-zone.is-dragging {
+  background: #eef7ff;
+  border-color: var(--primary);
+}
+
+.rate-con-upload-zone input {
+  max-width: 280px;
+}
+
+.rate-con-upload-zone strong,
+.rate-con-upload-zone span {
+  display: block;
+}
+
+.rate-con-upload-zone span {
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.rate-con-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.rate-con-checklist {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.rate-con-check {
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+}
+
+.rate-con-check span {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 800;
+  height: 24px;
+  justify-content: center;
+  width: 24px;
+}
+
+.rate-con-check.pass span {
+  background: #dcfce7;
+  color: #047857;
+}
+
+.rate-con-check.warning span {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
 /* ==========================================
    MOBILE
 ========================================== */

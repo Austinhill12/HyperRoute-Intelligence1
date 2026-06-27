@@ -94,14 +94,14 @@
     <main class="content">
       <div class="page-header">
         <div>
-          <h1>Operations Intelligence</h1>
+          <h1>Dispatch Workspace</h1>
           <p id="dashboardSubtitle">Loading company command center...</p>
         </div>
         <div class="quick-actions">
-          <a class="view" href="create-load.html">Create Load</a>
-          <a class="view secondary-action" href="quotes.html">Quotes</a>
+          <a class="view dashboard-primary-action" href="rate-con-import.html">Import Rate Con</a>
+          <a class="view dashboard-primary-action" href="create-load.html">New Load</a>
+          <a class="view secondary-action" href="loads.html">All Loads</a>
           <a class="view secondary-action" href="dispatch.html">Dispatch Board</a>
-          <a class="view secondary-action" href="alerts.html">Alerts</a>
         </div>
       </div>
 
@@ -115,6 +115,59 @@
           <button class="view" id="copyDemoScript" type="button">Copy Demo Script</button>
           <a class="view secondary-action" href="loads.html">Show Loads</a>
           <a class="view secondary-action" href="alerts.html">Show Risks</a>
+        </div>
+      </section>
+
+      <section class="card dispatcher-workspace" data-dashboard-section="dispatcher-workspace">
+        <div class="dispatcher-workspace-top">
+          <div>
+            <p class="section-eyebrow">Today</p>
+            <h2>Load Desk</h2>
+          </div>
+          <div class="dispatcher-search">
+            <input id="globalDispatchSearch" type="search" placeholder="Search loads, brokers, carriers, customers, drivers, MC numbers..." autocomplete="off" />
+            <div id="dispatchSearchResults" class="dispatch-search-results" hidden></div>
+          </div>
+        </div>
+
+        <div class="dispatcher-summary-grid">
+          <a class="dispatcher-summary-card" href="loads.html">
+            <span>Active Loads</span>
+            <strong id="dispatchActiveLoads">0</strong>
+          </a>
+          <a class="dispatcher-summary-card" href="loads.html">
+            <span>Pickups Today</span>
+            <strong id="dispatchPickupsToday">0</strong>
+          </a>
+          <a class="dispatcher-summary-card" href="loads.html">
+            <span>Deliveries Today</span>
+            <strong id="dispatchDeliveriesToday">0</strong>
+          </a>
+          <a class="dispatcher-summary-card warning" href="loads.html">
+            <span>Need Attention</span>
+            <strong id="dispatchAttentionLoads">0</strong>
+          </a>
+        </div>
+
+        <div class="dispatcher-load-grid">
+          <div>
+            <div class="section-header compact">
+              <div>
+                <p class="section-eyebrow">Work Queue</p>
+                <h2>Loads Needing Attention</h2>
+              </div>
+            </div>
+            <div id="dispatcherAttentionList" class="dispatcher-load-list"></div>
+          </div>
+          <div>
+            <div class="section-header compact">
+              <div>
+                <p class="section-eyebrow">Moving Now</p>
+                <h2>Active Loads</h2>
+              </div>
+            </div>
+            <div id="dispatcherActiveLoadList" class="dispatcher-load-list"></div>
+          </div>
         </div>
       </section>
 

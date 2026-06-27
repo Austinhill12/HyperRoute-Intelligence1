@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rate Con Import</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
+  <script src="auth-guard.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <h2 class="logo">HyperRoute Intelligence</h2>
+      <nav>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="dispatch.html">Dispatch Board</a>
+        <a href="rate-con-import.html" class="active">Rate Con Import</a>
+        <a href="create-load.html">Create Load</a>
+        <a href="loads.html">View Loads</a>
+        <a href="customers.html">Customers</a>
+        <a href="carriers.html">Carriers</a>
+        <a href="documents.html">Documents</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <div class="page-header">
+        <div>
+          <h1>Rate Con Import</h1>
+          <p>Upload a broker rate confirmation, review the extracted fields, then create a dispatch-ready load.</p>
+        </div>
+        <div class="quick-actions">
+          <a class="view secondary-action" href="create-load.html">Manual Load</a>
+          <a class="view secondary-action" href="loads.html">All Loads</a>
+        </div>
+      </div>
+
+      <section class="card rate-con-import-card">
+        <div class="section-header">
+          <div>
+            <p class="section-eyebrow">Smart Load Import</p>
+            <h2>Upload Rate Confirmation</h2>
+          </div>
+        </div>
+        <div class="rate-con-upload-zone" id="rateConDropZone">
+          <input id="rateConFile" type="file" accept="application/pdf,.pdf" />
+          <div>
+            <strong>Drop PDF here or choose file</strong>
+            <span>Best results come from digital PDFs. Scanned image PDFs will need the later OCR service.</span>
+          </div>
+        </div>
+        <div class="rate-con-actions">
+          <button id="extractRateConButton" class="btn" type="button">Extract Load Details</button>
+          <button id="clearRateConButton" class="view secondary-action" type="button">Clear</button>
+        </div>
+        <p id="rateConMessage" class="message"></p>
+      </section>
+
+      <section class="card rate-con-review-card">
+        <div class="section-header">
+          <div>
+            <p class="section-eyebrow">Dispatcher Review</p>
+            <h2>Review Extracted Load</h2>
+          </div>
+          <span id="rateConConfidence" class="status-pill caution">Waiting for PDF</span>
+        </div>
+
+        <form id="rateConReviewForm" class="form">
+          <div class="field"><label>Broker Name</label><input name="broker_name" /></div>
+          <div class="field"><label>Broker Contact</label><input name="broker_contact" /></div>
+          <div class="field"><label>Broker MC Number</label><input name="broker_mc_number" /></div>
+          <div class="field"><label>Rate Confirmation #</label><input name="rate_confirmation_number" /></div>
+          <div class="field"><label>Load Number</label><input name="load_number" /></div>
+          <div class="field"><label>Customer Reference #</label><input name="customer_reference_number" /></div>
+          <div class="field"><label>Customer</label><input name="customer_name" /></div>
+          <div class="field"><label>Status</label><select name="status"><option value="booked">Booked</option><option value="dispatched">Dispatched</option><option value="in_transit">In Transit</option></select></div>
+
+          <div class="field"><label>Pickup Location</label><input name="pickup_location" /></div>
+          <div class="field"><label>Pickup Date</label><input name="pickup_date" type="date" /></div>
+          <div class="field"><label>Pickup Time</label><input name="pickup_time" type="time" /></div>
+          <div class="field"><label>Delivery Location</label><input name="delivery_location" /></div>
+          <div class="field"><label>Delivery Date</label><input name="delivery_date" type="date" /></div>
+          <div class="field"><label>Delivery Time</label><input name="delivery_time" type="time" /></div>
+
+          <div class="field"><label>Gross Rate</label><input name="rate" type="number" step="0.01" /></div>
+          <div class="field"><label>Fuel Surcharge</label><input name="fuel_surcharge" type="number" step="0.01" /></div>
+          <div class="field"><label>Accessorial Pay</label><input name="accessorial_pay" type="number" step="0.01" /></div>
+          <div class="field"><label>Miles</label><input name="loaded_miles" type="number" step="0.1" /></div>
+          <div class="field"><label>Commodity</label><input name="commodity" /></div>
+          <div class="field"><label>Weight</label><input name="weight" type="number" /></div>
+
+          <div class="field"><label>Trailer Type</label><input name="trailer_type" /></div>
+          <div class="field"><label>Equipment Requirements</label><input name="equipment_requirements" /></div>
+          <div class="field"><label>Hazmat</label><select name="hazmat_required"><option value="false">No</option><option value="true">Yes</option></select></div>
+          <div class="field"><label>Temperature Requirements</label><input name="temperature_requirements" /></div>
+          <div class="field"><label>Tracking Required</label><select name="tracking_required"><option value="false">No</option><option value="true">Yes</option></select></div>
+          <div class="field"><label>Required Documents</label><input name="required_documents" placeholder="Rate Con, BOL, POD, receipts" /></div>
+          <div class="field"><label>Lumper Information</label><input name="lumper_information" /></div>
+          <div class="field"><label>Detention Policy</label><input name="detention_policy" /></div>
+          <div class="field carrier-notes-field"><label>Driver / Special Instructions</label><textarea name="notes"></textarea></div>
+
+          <section class="rate-intelligence-panel">
+            <div>
+              <p class="section-eyebrow">Import Quality</p>
+              <h2 id="rateConReviewTitle">Review before saving</h2>
+              <p id="rateConReviewSummary">HyperRoute never dispatches imported loads until a user confirms the extracted information.</p>
+            </div>
+            <div id="rateConChecklist" class="rate-con-checklist"></div>
+          </section>
+
+          <button class="btn" type="submit">Create Load From Rate Con</button>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <script src="companyContext.js"></script>
+  <script src="rate-con-import.js"></script>
+</body>
+</html>

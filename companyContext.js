@@ -22,7 +22,7 @@
     dispatcher: [
       "dashboard.html", "onboarding.html", "activity.html", "dispatch.html", "alerts.html",
       "index.html", "drivers.html", "driver-details.html", "edit-driver.html",
-      "create-load.html", "loads.html", "load-details.html", "edit-load.html", "tender-load.html", "rate-confirmation.html",
+      "rate-con-import.html", "create-load.html", "loads.html", "load-details.html", "edit-load.html", "tender-load.html", "rate-confirmation.html",
       "quotes.html", "customers.html", "create-customer.html", "customer-details.html", "edit-customer.html",
       "carriers.html",
       "create-vehicle.html", "vehicles.html", "vehicle-details.html", "edit-vehicle.html",
@@ -32,7 +32,7 @@
     accounting: [
       "dashboard.html", "onboarding.html", "activity.html", "reports.html", "profit-intelligence.html", "customers.html", "customer-profitability.html", "create-customer.html",
       "customer-details.html", "edit-customer.html", "invoices.html", "invoice-details.html",
-      "edit-invoice.html", "settlements.html", "accounting-sync.html", "quotes.html", "loads.html", "load-details.html", "tender-load.html", "rate-confirmation.html", "carriers.html", "documents.html", "expense-review.html", "integrations.html", "support.html",
+      "edit-invoice.html", "settlements.html", "accounting-sync.html", "quotes.html", "rate-con-import.html", "loads.html", "load-details.html", "tender-load.html", "rate-confirmation.html", "carriers.html", "documents.html", "expense-review.html", "integrations.html", "support.html",
       "notifications.html", "subscription.html", "support-contact.html", "privacy.html", "terms.html", "login.html", "logout.html"
     ],
     maintenance: [
@@ -50,7 +50,7 @@
   const FEATURE_GROUPS = {
     core: [
       "dashboard.html", "onboarding.html", "activity.html", "reports.html", "profit-intelligence.html", "alerts.html",
-      "loads.html", "load-details.html", "edit-load.html", "create-load.html",
+      "loads.html", "load-details.html", "edit-load.html", "create-load.html", "rate-con-import.html",
       "customers.html", "customer-profitability.html", "create-customer.html", "customer-details.html", "edit-customer.html",
       "documents.html", "expense-review.html", "integrations.html", "notifications.html", "support.html", "subscription.html",
       "support-contact.html", "privacy.html", "terms.html", "track-load.html",
@@ -71,7 +71,7 @@
       "invoices.html", "invoice-details.html", "edit-invoice.html", "settlements.html", "accounting-sync.html", "expense-review.html"
     ],
     dispatcherTools: [
-      "dispatch.html", "carriers.html", "tender-load.html", "rate-confirmation.html"
+      "dispatch.html", "rate-con-import.html", "carriers.html", "tender-load.html", "rate-confirmation.html"
     ]
   };
   const OPERATION_FEATURES = {
@@ -403,6 +403,21 @@
       }
     }
 
+    if (!nav.querySelector('a[href="rate-con-import.html"]')) {
+      const createLoadLink = nav.querySelector('a[href="create-load.html"]');
+      const importLink = document.createElement("a");
+      importLink.href = "rate-con-import.html";
+      importLink.textContent = "Rate Con Import";
+      if (normalizePage(window.location.pathname.split("/").pop()) === "rate-con-import.html") {
+        importLink.className = "active";
+      }
+      if (createLoadLink) {
+        nav.insertBefore(importLink, createLoadLink);
+      } else {
+        nav.appendChild(importLink);
+      }
+    }
+
     if (!nav.querySelector('a[href="notifications.html"]')) {
       const supportLink = nav.querySelector('a[href="support.html"]');
       const notificationsLink = document.createElement("a");
@@ -600,6 +615,7 @@
     const dailyPages = new Set([
       "dashboard.html",
       "dispatch.html",
+      "rate-con-import.html",
       "create-load.html",
       "loads.html",
       "customers.html",
