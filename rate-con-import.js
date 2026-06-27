@@ -503,16 +503,33 @@ function reliableIdentifier(value) {
 
 function extractPickupStop(lines, text) {
   const stop = extractNamedStop(lines, ["PICKUP", "PICKUP - 1", "PICK 1"], text, "pickup");
-  if (stop.location) return stop;
+  if (isUsableLocation(stop.location)) return stop;
   const addressStops = extractAddressStops(lines, text);
-  return addressStops[0] || stop;
+  return mergeStopDate(addressStops[0], stop) || stop;
 }
 
 function extractDeliveryStop(lines, text) {
   const stop = extractNamedStop(lines, ["DELIVERY", "DELIVERY - 1", "STOP 1"], text, "delivery");
-  if (stop.location) return stop;
+  if (isUsableLocation(stop.location)) return stop;
   const addressStops = extractAddressStops(lines, text);
-  return addressStops[1] || stop;
+  return mergeStopDate(addressStops[1], stop) || stop;
+}
+
+function isUsableLocation(value) {
+  const text = String(value || "").trim();
+  if (!text) return false;
+  if (/\b[A-Z]{2}\s+\d{5}\b/i.test(text)) return true;
+  if (/\d+\s+[A-Z0-9 .'-]+,\s*[A-Z][A-Z .'-]+,\s*[A-Z]{2}/i.test(text)) return true;
+  if (/[A-Z][A-Z .'-]+,\s*[A-Z]{2}\b/i.test(text) && !/load number|carrier rate|picking up|shipment/i.test(text)) return true;
+  return false;
+}
+
+function mergeStopDate(addressStop, dateStop) {
+  if (!addressStop?.location) return null;
+  return {
+    location: addressStop.location,
+    date: hasDateTime(addressStop.date) ? addressStop.date : dateStop?.date || {}
+  };
 }
 
 function extractNamedStop(lines, labels, text, kind) {
