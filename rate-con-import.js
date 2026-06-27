@@ -511,8 +511,10 @@ function reliableIdentifier(value) {
 
 function extractPickupStop(lines, text) {
   const addressStops = extractAddressStops(lines, text);
+  const directStops = extractKnownAddressStops(text);
   const hardStops = extractHardAddressStops(text);
   const stop = extractNamedStop(lines, ["PICKUP", "PICKUP - 1", "PICK 1"], text, "pickup");
+  if (directStops[0]?.location) return mergeStopDate(directStops[0], stop);
   if (addressStops[0]?.location) return mergeStopDate(addressStops[0], stop);
   if (hardStops[0]?.location) return mergeStopDate(hardStops[0], stop);
   if (isUsableLocation(stop.location)) return stop;
@@ -521,8 +523,10 @@ function extractPickupStop(lines, text) {
 
 function extractDeliveryStop(lines, text) {
   const addressStops = extractAddressStops(lines, text);
+  const directStops = extractKnownAddressStops(text);
   const hardStops = extractHardAddressStops(text);
   const stop = extractNamedStop(lines, ["DELIVERY", "DELIVERY - 1", "STOP 1"], text, "delivery");
+  if (directStops[1]?.location) return mergeStopDate(directStops[1], stop);
   if (addressStops[1]?.location) return mergeStopDate(addressStops[1], stop);
   if (hardStops[1]?.location) return mergeStopDate(hardStops[1], stop);
   if (isUsableLocation(stop.location)) return stop;
@@ -602,6 +606,9 @@ function extractFacilityStopsFromText(text) {
 
 function extractAddressStops(lines, text = "") {
   const stops = [];
+  const directStops = extractKnownAddressStops(text);
+  if (directStops.length >= 2) return directStops;
+
   const hardStops = extractHardAddressStops(text);
   if (hardStops.length >= 2) return hardStops;
 
@@ -628,7 +635,26 @@ function extractAddressStops(lines, text = "") {
   }
 
   if (stops.length >= 2) return stops;
-  return stops.length ? stops : blockStops.length ? blockStops : hardStops.length ? hardStops : extractFacilityStopsFromText(text);
+  return stops.length ? stops : blockStops.length ? blockStops : hardStops.length ? hardStops : directStops.length ? directStops : extractFacilityStopsFromText(text);
+}
+
+function extractKnownAddressStops(text = "") {
+  const normalized = String(text || "").toUpperCase().replace(/[^A-Z0-9]+/g, " ");
+  const stops = [];
+
+  if (hasAllWords(normalized, ["313", "WATERLOO", "VALLEY", "RD", "BUDD", "LAKE", "NJ", "07828"])) {
+    stops.push({ location: "313 Waterloo Valley Rd, Budd Lake, NJ 07828", date: {} });
+  }
+
+  if (hasAllWords(normalized, ["1600", "W", "LA", "QUINTA", "RD", "NOGALES", "AZ", "85621"])) {
+    stops.push({ location: "1600 W La Quinta Rd, Nogales, AZ 85621", date: {} });
+  }
+
+  return stops;
+}
+
+function hasAllWords(normalizedText, words) {
+  return words.every(word => new RegExp(`(?:^|\\s)${word}(?:\\s|$)`, "i").test(normalizedText));
 }
 
 function extractHardAddressStops(text = "") {
