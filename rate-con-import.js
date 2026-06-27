@@ -132,7 +132,7 @@ function parseRateConfirmation(text) {
     /pro\s*#\s*[:#-]?\s*([A-Z0-9-]*\d[A-Z0-9-]*)/i,
     /reference\s*#\s*[:#-]?\s*([A-Z0-9-]*\d[A-Z0-9-]*)/i
   ])) || inferTopLoadNumber(lines);
-  const rateConNumber = firstValueFromLines(lines, [
+  const rateConNumber = reliableIdentifier(firstValueFromLines(lines, [
     /^rate\s*confirmation\s*(?:number|#)?\s*[:#-]?\s*([A-Z0-9-]+)/i,
     /^confirmation\s*(?:number|#)\s*[:#-]?\s*([A-Z0-9-]+)/i,
     /^document\s*id\s*[:#-]?\s*([A-Z0-9-]+)/i
@@ -140,7 +140,7 @@ function parseRateConfirmation(text) {
     /rate\s*confirmation\s*(?:number|#)?\s*[:#-]?\s*([A-Z0-9-]+)/i,
     /confirmation\s*(?:number|#)\s*[:#-]?\s*([A-Z0-9-]+)/i,
     /document\s*id\s*[:#-]?\s*([A-Z0-9-]+)/i
-  ]) || loadNumber;
+  ])) || loadNumber;
   const customerRef = firstValueFromLines(lines, [
     /^customer\s*ref(?:erence)?\s*(?:number|#)?\s*[:#-]?\s*([A-Z0-9-]+)/i,
     /^customerrefnumber\s*[:#-]?\s*([A-Z0-9-]+)/i,
@@ -184,9 +184,9 @@ function parseRateConfirmation(text) {
     rate,
     fuel_surcharge: fuel,
     accessorial_pay: accessorial,
-    loaded_miles: valueAfterLabelNumber(lines, ["Miles"]) || extractAddisonMiles(lines),
+    loaded_miles: extractLoadedMiles(lines, text),
     commodity: valueAfterLabel(lines, ["Commodity"]) || extractAddisonCommodity(lines) || firstValue(text, [/commodity\s*[:#-]?\s*([^|]+?)(?=\s+(?:do not|pickup|delivery|load instructions|rate details|pcs|weight)\b|$)/i, /description\s*[:#-]?\s*([^|]+?)(?=\s+(?:miles|pieces|weight|charges)\b|$)/i]),
-    weight: valueAfterLabelNumber(lines, ["Weight"]) || extractLoadDetailsWeight(lines),
+    weight: extractWeight(lines, text),
     trailer_type: trailerType,
     equipment_requirements: equipment,
     hazmat_required: hazmatRequired,
@@ -487,6 +487,30 @@ function valueAfterLabelNumber(lines, labels) {
   const value = valueAfterLabel(lines, labels);
   const match = String(value || "").match(/[\d,]+(?:\.\d+)?/);
   return match ? Number(match[0].replace(/,/g, "")) : null;
+}
+
+function extractLoadedMiles(lines, text) {
+  return valueAfterLabelNumber(lines, ["Miles"])
+    || numberAfterExactLabel(text, "Miles")
+    || extractAddisonMiles(lines);
+}
+
+function extractWeight(lines, text) {
+  return valueAfterLabelNumber(lines, ["Weight"])
+    || extractLoadDetailsWeight(lines)
+    || extractTransportationOneWeight(text);
+}
+
+function numberAfterExactLabel(text, label) {
+  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = String(text || "").match(new RegExp(`\\b${escaped}\\s*:?\\s*([0-9]{1,6}(?:\\.[0-9]+)?)\\b`, "i"));
+  return match ? Number(match[1].replace(/,/g, "")) : null;
+}
+
+function extractTransportationOneWeight(text) {
+  const compact = String(text || "").replace(/\s+/g, " ");
+  const match = compact.match(/LOAD DETAILS[\s\S]{0,220}?Weight[\s\S]{0,140}?([0-9]{1,3},[0-9]{3}|[0-9]{4,6})\b/i);
+  return match ? Number(match[1].replace(/,/g, "")) : null;
 }
 
 function firstValueFromLines(lines, patterns) {
