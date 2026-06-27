@@ -169,7 +169,7 @@ function parseRateConfirmation(text) {
   return cleanExtraction({
     broker_name: extractBrokerName(text, lines),
     broker_contact: extractBrokerContact(text, lines),
-    broker_mc_number: firstValue(text, [/broker\s*mc\s*#?\s*[:#-]?\s*(\d+)/i, /mc\s*#?\s*[:#-]?\s*(\d+)/i]),
+    broker_mc_number: extractBrokerMcNumber(text, lines),
     rate_confirmation_number: rateConNumber,
     load_number: loadNumber || rateConNumber,
     customer_reference_number: customerRef,
@@ -511,7 +511,7 @@ function extractDeliveryStop(lines, text) {
 
 function extractNamedStop(lines, labels, text, kind) {
   if (/facility name/i.test(text)) {
-    const stops = extractFacilityStops(lines);
+    const stops = extractFacilityStops(lines, text);
     const facilityStop = kind === "pickup" ? stops[0] : stops[1];
     if (facilityStop?.location) return facilityStop;
   }
@@ -530,7 +530,7 @@ function extractNamedStop(lines, labels, text, kind) {
   return { location: "", date: {} };
 }
 
-function extractFacilityStops(lines) {
+function extractFacilityStops(lines, text = "") {
   const stops = [];
   for (let i = 0; i < lines.length; i += 1) {
     if (!/^facility name:?$/i.test(lines[i])) continue;
@@ -541,6 +541,20 @@ function extractFacilityStops(lines) {
     const appointment = findNextAppointment(lines, i);
     const location = locationFromAddress(addressLine, cityLine) || name;
     stops.push({ location, date: appointment });
+  }
+  return stops.length ? stops : extractFacilityStopsFromText(text);
+}
+
+function extractFacilityStopsFromText(text) {
+  const stops = [];
+  const compact = String(text || "").replace(/\s+/g, " ");
+  const regex = /Facility Name:?\s*([^:]+?)\s+Address:?\s*([^:]+?)\s+([A-Z][A-Z .'-]+),\s*([A-Z]{2}),?\s*(?:USA,?\s*)?(\d{5})/gi;
+  let match;
+  while ((match = regex.exec(compact)) !== null) {
+    stops.push({
+      location: `${titleCase(match[2])}, ${titleCase(match[3])}, ${match[4].toUpperCase()} ${match[5]}`,
+      date: {}
+    });
   }
   return stops;
 }
@@ -557,6 +571,9 @@ function findNextAppointment(lines, startIndex) {
 }
 
 function locationFromAddress(line1, line2) {
+  const fullAddress = fullAddressFromLines(line1, line2);
+  if (fullAddress) return fullAddress;
+
   const line2Location = cleanLocationLine(line2);
   if (line2Location) return line2Location;
 
@@ -568,6 +585,17 @@ function locationFromAddress(line1, line2) {
   if (zipMatch) return `${titleCase(zipMatch[1])}, ${zipMatch[2].toUpperCase()}`;
 
   return "";
+}
+
+function fullAddressFromLines(line1, line2) {
+  const street = String(line1 || "").replace(/\s+/g, " ").trim();
+  const cityLine = String(line2 || "").replace(/\s+/g, " ").trim();
+  if (!street || !cityLine) return "";
+
+  const match = cityLine.match(/([A-Z][A-Z .'-]+),\s*([A-Z]{2}),?\s*(?:USA,?\s*)?(\d{5})/i);
+  if (!match) return "";
+
+  return `${titleCase(street)}, ${titleCase(match[1])}, ${match[2].toUpperCase()} ${match[3]}`;
 }
 
 function cleanLocationLine(line) {
@@ -790,6 +818,19 @@ function extractBrokerContact(text, lines = []) {
   const phone = scopedValueAfterLabel(lines, bookedIndex, ["Phone"], 14) || valueAfterLabel(lines, ["Phone"]) || firstValue(text, [/phone\s*[:#-]?\s*([()+\-\d xX. ]{7,})/i]);
   const email = scopedValueAfterLabel(lines, bookedIndex, ["Email"], 14) || valueAfterLabel(lines, ["Email"]) || firstValue(text, [/email\s*[:#-]?\s*([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/i]);
   return [name, phone, email].filter(Boolean).join(" / ");
+}
+
+function extractBrokerMcNumber(text, lines = []) {
+  const scopedIndex = lines.findIndex(line => /broker|transportation one|addison transportation|tql|total quality logistics/i.test(line));
+  const scopedLines = scopedIndex >= 0 ? lines.slice(scopedIndex, scopedIndex + 20).join(" ") : "";
+  return firstValue(scopedLines, [
+    /broker\s*mc\s*#?\s*[:#-]?\s*(\d{4,8})/i,
+    /\bmc\s*#?\s*[:#-]?\s*(\d{4,8})/i,
+    /broker\s*dot\s*#?\s*[:#-]?\s*(\d{4,8})/i
+  ]) || firstValue(text, [
+    /broker\s*mc\s*#?\s*[:#-]?\s*(\d{4,8})/i,
+    /broker\s*dot\s*#?\s*[:#-]?\s*(\d{4,8})/i
+  ]);
 }
 
 function extractCustomerName(text, lines = []) {
