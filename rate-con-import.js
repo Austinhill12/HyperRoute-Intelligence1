@@ -503,16 +503,20 @@ function reliableIdentifier(value) {
 
 function extractPickupStop(lines, text) {
   const addressStops = extractAddressStops(lines, text);
+  const hardStops = extractHardAddressStops(text);
   const stop = extractNamedStop(lines, ["PICKUP", "PICKUP - 1", "PICK 1"], text, "pickup");
   if (addressStops[0]?.location) return mergeStopDate(addressStops[0], stop);
+  if (hardStops[0]?.location) return mergeStopDate(hardStops[0], stop);
   if (isUsableLocation(stop.location)) return stop;
   return { location: "", date: stop.date || {} };
 }
 
 function extractDeliveryStop(lines, text) {
   const addressStops = extractAddressStops(lines, text);
+  const hardStops = extractHardAddressStops(text);
   const stop = extractNamedStop(lines, ["DELIVERY", "DELIVERY - 1", "STOP 1"], text, "delivery");
   if (addressStops[1]?.location) return mergeStopDate(addressStops[1], stop);
+  if (hardStops[1]?.location) return mergeStopDate(hardStops[1], stop);
   if (isUsableLocation(stop.location)) return stop;
   return { location: "", date: stop.date || {} };
 }
@@ -520,9 +524,10 @@ function extractDeliveryStop(lines, text) {
 function isUsableLocation(value) {
   const text = String(value || "").trim();
   if (!text) return false;
-  if (/\b[A-Z]{2}\s+\d{5}\b/i.test(text)) return true;
-  if (/\d+\s+[A-Z0-9 .'-]+,\s*[A-Z][A-Z .'-]+,\s*[A-Z]{2}/i.test(text)) return true;
-  if (/[A-Z][A-Z .'-]+,\s*[A-Z]{2}\b/i.test(text) && !/load number|carrier rate|picking up|shipment/i.test(text)) return true;
+  if (/load number|carrier rate|picking up|shipment|generated on|terms|conditions|confirmation/i.test(text)) return false;
+  if (/\d+\s+[A-Z0-9 .'-]+,\s*[A-Z][A-Z .'-]+,\s*[A-Z]{2}\s+\d{5}/i.test(text)) return true;
+  if (/[A-Z][A-Z .'-]+,\s*[A-Z]{2}\s+\d{5}\b/i.test(text)) return true;
+  if (/^[A-Z][A-Z .'-]+,\s*[A-Z]{2}$/i.test(text)) return true;
   return false;
 }
 
@@ -586,6 +591,9 @@ function extractFacilityStopsFromText(text) {
 
 function extractAddressStops(lines, text = "") {
   const stops = [];
+  const hardStops = extractHardAddressStops(text);
+  if (hardStops.length >= 2) return hardStops;
+
   const lineBlockStops = extractFacilityAddressBlocksFromLines(lines);
   if (lineBlockStops.length >= 2) return lineBlockStops;
 
@@ -609,7 +617,24 @@ function extractAddressStops(lines, text = "") {
   }
 
   if (stops.length >= 2) return stops;
-  return stops.length ? stops : blockStops.length ? blockStops : extractFacilityStopsFromText(text);
+  return stops.length ? stops : blockStops.length ? blockStops : hardStops.length ? hardStops : extractFacilityStopsFromText(text);
+}
+
+function extractHardAddressStops(text = "") {
+  const stops = [];
+  const compact = String(text || "").replace(/\s+/g, " ");
+  const streetSuffix = "(?:RD|ROAD|ST|STREET|AVE|AVENUE|BLVD|BOULEVARD|DR|DRIVE|LN|LANE|CT|COURT|HWY|HIGHWAY|PKWY|PARKWAY|WAY|PL|PLACE|CIR|CIRCLE|TRL|TRAIL)";
+  const regex = new RegExp(`\\b([0-9]{1,6}\\s+[A-Z0-9 .'-]{2,70}?\\b${streetSuffix})\\s+([A-Z][A-Z .'-]{2,40}?),\\s*([A-Z]{2})\\s*,?\\s*(?:USA\\s*,?\\s*)?(\\d{5})\\b`, "gi");
+
+  let match;
+  while ((match = regex.exec(compact)) !== null) {
+    const location = `${titleCase(cleanStreet(match[1]))}, ${titleCase(match[2])}, ${match[3].toUpperCase()} ${match[4]}`;
+    if (isUsableLocation(location) && !stops.some(stop => stop.location === location)) {
+      stops.push({ location, date: {} });
+    }
+  }
+
+  return stops;
 }
 
 function extractFacilityAddressBlocksFromLines(lines) {
