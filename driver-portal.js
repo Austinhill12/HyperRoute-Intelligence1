@@ -8,6 +8,11 @@ const msg = document.getElementById("driverPortalMessage");
 let drivers = [];
 let trucks = new Map();
 let currentLoads = [];
+let driverPortalMode = {
+  isDriverMode: false,
+  driver: null,
+  authUser: null
+};
 
 async function initDriverPortal() {
   msg.textContent = "Loading drivers...";
@@ -26,7 +31,7 @@ async function initDriverPortal() {
       truck.truck_number || truck.vin || `Truck ${truck.id}`
     ]));
     fillDriverSelect(drivers);
-    msg.textContent = "Select a driver to view assignments.";
+    setupDriverPortalMode();
   } catch (err) {
     console.error(err);
     msg.textContent = `Error loading driver portal: ${err.message}`;
@@ -58,10 +63,86 @@ function fillDriverSelect(driverRows) {
   });
 }
 
+function setupDriverPortalMode() {
+  const role = window.CompanyContext?.getRole?.() || "dispatcher";
+  const authUser = getCurrentAuthUser();
+  const matchedDriver = findDriverForAuthUser(authUser);
+  const lookup = document.querySelector(".driver-lookup");
+  const modeNote = document.getElementById("driverPortalModeNote");
+  const isCompanyDriver = role === "driver";
+
+  driverPortalMode = {
+    isDriverMode: isCompanyDriver,
+    driver: matchedDriver,
+    authUser
+  };
+
+  if (isCompanyDriver) {
+    if (matchedDriver) {
+      driverSelect.value = matchedDriver.id;
+      lookup?.classList.add("driver-my-loads-mode");
+      if (modeNote) modeNote.textContent = `Showing loads assigned to ${getDriverName(matchedDriver)}.`;
+      msg.textContent = "Loading your assigned loads...";
+      loadDriverAssignments();
+    } else {
+      lookup?.classList.add("driver-my-loads-mode");
+      if (modeNote) modeNote.textContent = "";
+      msg.textContent = "No driver profile matches this login email. Ask dispatch to add this email to your driver profile.";
+      msg.style.color = "#ef4444";
+      updateKpis([]);
+      renderLoads([]);
+    }
+    return;
+  }
+
+  lookup?.classList.remove("driver-my-loads-mode");
+  if (matchedDriver && modeNote) {
+    modeNote.textContent = `This login matches ${getDriverName(matchedDriver)}, but dispatcher/admin mode is active.`;
+  } else if (modeNote) {
+    modeNote.textContent = "Dispatcher/admin mode: select a driver to view assignments.";
+  }
+  msg.textContent = "Select a driver to view assignments.";
+  msg.style.color = "";
+}
+
+function getCurrentAuthUser() {
+  try {
+    const exact = localStorage.getItem("sb-ygrikxlbfmtkovktwhdp-auth-token");
+    const parsed = exact ? JSON.parse(exact) : getAnyStoredSupabaseSession();
+    const session = parsed?.currentSession || parsed?.session || parsed;
+    const user = session?.user || parsed?.user || {};
+    return {
+      id: user.id || session?.user_id || parsed?.user_id || "",
+      email: String(user.email || parsed?.email || "").trim().toLowerCase()
+    };
+  } catch (err) {
+    console.warn("Driver auth user unavailable:", err);
+    return { id: "", email: "" };
+  }
+}
+
+function getAnyStoredSupabaseSession() {
+  for (let i = 0; i < localStorage.length; i += 1) {
+    const key = localStorage.key(i);
+    if (!key || !key.startsWith("sb-") || !key.endsWith("-auth-token")) continue;
+    const value = localStorage.getItem(key);
+    if (!value || !value.includes("access_token")) continue;
+    return JSON.parse(value);
+  }
+  return null;
+}
+
+function findDriverForAuthUser(authUser) {
+  if (!authUser?.email) return null;
+  return drivers.find(driver => String(driver.email || "").trim().toLowerCase() === authUser.email) || null;
+}
+
 async function loadDriverAssignments() {
   const driverId = driverSelect.value;
   if (!driverId) {
-    msg.textContent = "Select a driver first.";
+    msg.textContent = driverPortalMode.isDriverMode
+      ? "No driver profile is connected to this login."
+      : "Select a driver first.";
     msg.style.color = "#ef4444";
     return;
   }
@@ -70,13 +151,19 @@ async function loadDriverAssignments() {
   msg.style.color = "";
 
   try {
-    const assignments = await fetchRows(
+    const [assignments, directLoads] = await Promise.all([
+      fetchRows(
       "assignments",
       `driver_id=eq.${driverId}&status=eq.active&select=id,load_id,truck_id,status`
-    );
+      ),
+      fetchRows(
+        "loads",
+        `driver_id=eq.${driverId}&select=*&order=pickup_date.asc`
+      )
+    ]);
     const loadIds = assignments.map(assignment => assignment.load_id).filter(Boolean);
 
-    if (!loadIds.length) {
+    if (!loadIds.length && !directLoads.length) {
       currentLoads = [];
       updateKpis([]);
       renderLoads([]);
@@ -84,12 +171,11 @@ async function loadDriverAssignments() {
       return;
     }
 
-    const loads = await fetchRows(
-      "loads",
-      `id=in.(${loadIds.join(",")})&select=*&order=pickup_date.asc`
-    );
+    const assignmentLoads = loadIds.length
+      ? await fetchRows("loads", `id=in.(${loadIds.join(",")})&select=*&order=pickup_date.asc`)
+      : [];
     const assignmentByLoad = new Map(assignments.map(assignment => [assignment.load_id, assignment]));
-    currentLoads = loads
+    currentLoads = mergeLoadRows(assignmentLoads, directLoads)
       .map(load => ({ ...load, assignment: assignmentByLoad.get(load.id) }))
       .filter(load => !["invoiced", "paid", "cancelled"].includes(normalizeStatus(load.status)));
 
@@ -101,6 +187,15 @@ async function loadDriverAssignments() {
     msg.textContent = `Error loading assignments: ${err.message}`;
     msg.style.color = "#ef4444";
   }
+}
+
+function mergeLoadRows(...groups) {
+  const map = new Map();
+  groups.flat().forEach(load => {
+    if (!load?.id) return;
+    map.set(String(load.id), { ...(map.get(String(load.id)) || {}), ...load });
+  });
+  return [...map.values()].sort((a, b) => String(a.pickup_date || "").localeCompare(String(b.pickup_date || "")));
 }
 
 function renderLoads(loads) {

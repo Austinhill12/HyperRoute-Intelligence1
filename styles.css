@@ -1466,6 +1466,15 @@ button:disabled,
   width: 190px;
 }
 
+.driver-lookup.driver-my-loads-mode {
+  grid-template-columns: 1fr;
+}
+
+.driver-lookup.driver-my-loads-mode .field,
+.driver-lookup.driver-my-loads-mode .btn {
+  display: none;
+}
+
 .driver-portal-kpis {
   margin-bottom: 18px;
 }
