@@ -615,6 +615,46 @@ tbody tr:hover {
   color: #166534;
 }
 
+.trip-cost-editor {
+  border-top: 1px solid var(--border);
+  margin-top: 16px;
+  padding-top: 14px;
+}
+
+.trip-cost-editor summary {
+  align-items: center;
+  color: var(--primary);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 850;
+  gap: 8px;
+}
+
+.trip-cost-form {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 14px;
+}
+
+.trip-cost-form .field {
+  margin: 0;
+}
+
+.trip-cost-actions {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  grid-column: 1 / -1;
+}
+
+.inline-message {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
 @media (max-width: 700px) {
   .details-card .actions {
     display: grid;
@@ -634,8 +674,14 @@ tbody tr:hover {
   }
 
   .load-profit-grid,
-  .load-profit-breakdown {
+  .load-profit-breakdown,
+  .trip-cost-form {
     grid-template-columns: 1fr;
+  }
+
+  .trip-cost-actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
 

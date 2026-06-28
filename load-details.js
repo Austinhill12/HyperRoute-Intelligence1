@@ -65,6 +65,7 @@ async function loadDetails() {
     }
 
     currentLoad = load;
+    populateTripCostForm(load);
     document.getElementById("loadTitle").textContent = `Load ${load.load_number || load.id}`;
     document.getElementById("loadStatus").textContent = formatStatus(load.status);
     document.getElementById("customerName").textContent = load.customer_name || load.customer || "N/A";
@@ -151,6 +152,25 @@ function renderLoadProfitSnapshot(load = currentLoad, expenses = currentLoadExpe
         : `<p class="success-note"><strong>OK</strong> No major profit inputs are missing.</p>`}
     </div>
   `;
+}
+
+function populateTripCostForm(load = currentLoad) {
+  const form = document.getElementById("tripCostForm");
+  if (!form || !load) return;
+
+  [
+    "carrier_rate",
+    "loaded_miles",
+    "empty_miles",
+    "fuel_cost",
+    "toll_cost",
+    "lumper_cost",
+    "detention_paid",
+    "other_costs"
+  ].forEach(field => {
+    const input = form.elements[field];
+    if (input) input.value = load[field] ?? "";
+  });
 }
 
 function profitMetric(label, value, detail, className = "") {
@@ -1805,11 +1825,68 @@ async function createInvoice(e) {
   }
 }
 
+async function saveTripCostInputs(e) {
+  e.preventDefault();
+
+  const loadId = getLoadId();
+  const msg = document.getElementById("tripCostMessage");
+  const form = e.target;
+
+  if (!loadId || !currentLoad) return;
+
+  const payload = {};
+  [
+    "carrier_rate",
+    "loaded_miles",
+    "empty_miles",
+    "fuel_cost",
+    "toll_cost",
+    "lumper_cost",
+    "detention_paid",
+    "other_costs"
+  ].forEach(field => {
+    const value = form.elements[field]?.value;
+    payload[field] = value === "" ? null : Number(value);
+  });
+
+  msg.textContent = "Saving...";
+  msg.style.color = "";
+
+  try {
+    const query = `id=eq.${loadId}`;
+    const res = await fetch(
+      window.CompanyContext?.scopedUrl("loads", query) || `${BASE_URL}/rest/v1/loads?${query}`,
+      {
+        method: "PATCH",
+        headers: getHeaders({
+          "Content-Type": "application/json",
+          Prefer: "return=representation"
+        }),
+        body: JSON.stringify(payload)
+      }
+    );
+
+    const result = await res.json();
+    if (!res.ok) throw new Error(JSON.stringify(result));
+
+    currentLoad = { ...currentLoad, ...(result[0] || payload) };
+    populateTripCostForm(currentLoad);
+    renderProfitSummary(currentLoad);
+    msg.textContent = "Saved.";
+    msg.style.color = "#047857";
+  } catch (err) {
+    console.error(err);
+    msg.textContent = `Error saving costs: ${err.message}`;
+    msg.style.color = "#ef4444";
+  }
+}
+
 document.getElementById("loadEventForm").addEventListener("submit", saveLoadEvent);
 document.getElementById("communicationForm").addEventListener("submit", saveCommunication);
 document.getElementById("issueForm").addEventListener("submit", saveIssue);
 document.getElementById("loadDocumentForm").addEventListener("submit", saveLoadDocument);
 document.getElementById("invoiceForm").addEventListener("submit", createInvoice);
+document.getElementById("tripCostForm")?.addEventListener("submit", saveTripCostInputs);
 document.getElementById("markLoadClosedButton")?.addEventListener("click", closeLoad);
 document.getElementById("eventTime").value = getLocalDateTimeValue();
 bindLoadDocumentDropzone();

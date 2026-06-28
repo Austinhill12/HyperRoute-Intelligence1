@@ -110,6 +110,47 @@
         <div id="loadProfitSnapshot" class="load-profit-snapshot">
           <p class="empty-state">Loading profit snapshot...</p>
         </div>
+        <details class="trip-cost-editor">
+          <summary>Update Trip Cost Inputs</summary>
+          <form id="tripCostForm" class="trip-cost-form">
+            <div class="field">
+              <label>Carrier / Driver Cost</label>
+              <input name="carrier_rate" type="number" min="0" step="0.01" placeholder="0.00" />
+            </div>
+            <div class="field">
+              <label>Loaded Miles</label>
+              <input name="loaded_miles" type="number" min="0" step="1" placeholder="0" />
+            </div>
+            <div class="field">
+              <label>Deadhead Miles</label>
+              <input name="empty_miles" type="number" min="0" step="1" placeholder="0" />
+            </div>
+            <div class="field">
+              <label>Fuel Cost</label>
+              <input name="fuel_cost" type="number" min="0" step="0.01" placeholder="0.00" />
+            </div>
+            <div class="field">
+              <label>Tolls</label>
+              <input name="toll_cost" type="number" min="0" step="0.01" placeholder="0.00" />
+            </div>
+            <div class="field">
+              <label>Lumper</label>
+              <input name="lumper_cost" type="number" min="0" step="0.01" placeholder="0.00" />
+            </div>
+            <div class="field">
+              <label>Detention Paid</label>
+              <input name="detention_paid" type="number" min="0" step="0.01" placeholder="0.00" />
+            </div>
+            <div class="field">
+              <label>Other Costs</label>
+              <input name="other_costs" type="number" min="0" step="0.01" placeholder="0.00" />
+            </div>
+            <div class="trip-cost-actions">
+              <button class="view" type="submit">Save Cost Inputs</button>
+              <span id="tripCostMessage" class="inline-message"></span>
+            </div>
+          </form>
+        </details>
       </section>
 
       <section class="card tender-history-card">
