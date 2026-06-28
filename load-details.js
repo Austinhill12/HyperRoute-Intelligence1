@@ -208,7 +208,7 @@ function renderRouteSummary(load = currentLoad) {
 
 function getRouteOrigin(load = {}) {
   const addressPair = extractAddressPairFromLoad(load);
-  return firstPresent(
+  return firstRouteCandidate([
     load.pickup_location,
     load.pickup_address,
     load.origin,
@@ -222,12 +222,13 @@ function getRouteOrigin(load = {}) {
     load.shipper_name,
     load.customer_name,
     load.customer
-  );
+  ]);
 }
 
 function getRouteDestination(load = {}) {
   const addressPair = extractAddressPairFromLoad(load);
-  return firstPresent(
+  const origin = getRouteOrigin(load);
+  return firstRouteCandidate([
     load.delivery_location,
     load.dropoff_location,
     load.delivery_address,
@@ -242,7 +243,7 @@ function getRouteDestination(load = {}) {
     addressLike(load.consignee_name),
     addressPair[1],
     load.consignee_name
-  );
+  ], origin);
 }
 
 function firstPresent(...values) {
@@ -250,6 +251,20 @@ function firstPresent(...values) {
     const cleaned = String(value || "").trim();
     return cleaned && !["n/a", "na", "none", "null", "undefined", "-", "--", "tbd", "pickup tbd", "delivery tbd"].includes(cleaned.toLowerCase());
   }) || "";
+}
+
+function firstRouteCandidate(values, excludeValue = "") {
+  const excluded = normalizeRouteValue(excludeValue);
+  return values.find(value => {
+    const cleaned = String(value || "").trim();
+    if (!cleaned) return false;
+    if (["n/a", "na", "none", "null", "undefined", "-", "--", "tbd", "pickup tbd", "delivery tbd"].includes(cleaned.toLowerCase())) return false;
+    return !excluded || normalizeRouteValue(cleaned) !== excluded;
+  }) || "";
+}
+
+function normalizeRouteValue(value) {
+  return String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
 function joinLocationParts(...parts) {
