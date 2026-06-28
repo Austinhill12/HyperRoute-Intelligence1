@@ -119,6 +119,7 @@
     });
 
     const missingRateLoads = loads.filter(load => totalLoadRevenue(load) <= 0);
+    const missingCostInputLoads = loads.filter(load => totalLoadRevenue(load) > 0 && hasMissingCostInputs(load));
     const lowMarginLoads = loads.filter(load => {
       const revenue = totalLoadRevenue(load);
       const cost = totalLoadCost(load, expenseByLoad);
@@ -200,6 +201,13 @@
         impact: 0,
         severity: "warning",
         fix: "Add load rates so revenue, margin, and reports are accurate."
+      },
+      {
+        area: "Missing Cost Inputs",
+        count: missingCostInputLoads.length,
+        impact: 0,
+        severity: "warning",
+        fix: "Add carrier cost, miles, fuel, and tolls before trusting profit numbers."
       },
       {
         area: "Low Margin Loads",
@@ -301,6 +309,7 @@
       const risks = [];
 
       if (revenue <= 0) risks.push({ label: "Missing rate", action: "Add rate before reviewing profit." });
+      if (revenue > 0 && hasMissingCostInputs(load)) risks.push({ label: "Missing costs", action: "Open load details and update trip cost inputs." });
       if (revenue > 0 && cost > 0 && marginPercent < 12) risks.push({ label: "Low margin", action: "Review pricing or unrecovered costs." });
       if (totalMiles > 0 && emptyMiles / totalMiles > 0.2) risks.push({ label: "High deadhead", action: "Price empty miles or reduce deadhead." });
       if (isDelivered(load) && !context.podLoadIds.has(String(load.id))) risks.push({ label: "Missing POD", action: "Collect POD before billing." });
@@ -479,6 +488,12 @@
       toNumber(load.lumper_cost) +
       toNumber(load.other_costs) +
       toNumber(expenseByLoad.get(String(load.id)));
+  }
+
+  function hasMissingCostInputs(load) {
+    const totalMiles = toNumber(load.loaded_miles) + toNumber(load.empty_miles);
+    const directTripCosts = toNumber(load.fuel_cost) + toNumber(load.toll_cost) + toNumber(load.lumper_cost) + toNumber(load.other_costs);
+    return !toNumber(load.carrier_rate) || !totalMiles || !directTripCosts;
   }
 
   function groupExpensesByLoad(expenses) {
