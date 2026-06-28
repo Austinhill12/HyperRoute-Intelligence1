@@ -1,6 +1,6 @@
 const API_KEY = "sb_publishable_vw7voiBA2V5_attC2dkUqw_PuOx468W";
 const BASE_URL = "https://ygrikxlbfmtkovktwhdp.supabase.co";
-const DOCUMENT_BUCKET = "documents";
+const DOCUMENT_BUCKET = "company-documents";
 const headers = { apikey: API_KEY, Authorization: "Bearer " + API_KEY };
 
 const driverSelect = document.getElementById("driverSelect");
@@ -126,6 +126,10 @@ function renderLoads(loads) {
     form.addEventListener("submit", savePodUpload);
   });
 
+  list.querySelectorAll("[data-issue-form]").forEach(form => {
+    form.addEventListener("submit", saveDriverIssue);
+  });
+
   list.querySelectorAll("[data-expense-form]").forEach(form => {
     form.addEventListener("submit", saveDriverExpense);
     setupExpenseTypeButtons(form);
@@ -161,8 +165,7 @@ function createDriverLoadCard(load) {
     </dl>
 
     <div class="driver-status-actions">
-      <button class="view" type="button" data-load-id="${load.id}" data-status-action="dispatched">Dispatched</button>
-      <button class="view" type="button" data-load-id="${load.id}" data-status-action="arrived_pickup">Arrived Pickup</button>
+      <button class="view" type="button" data-load-id="${load.id}" data-status-action="accepted">Accept Load</button>
       <button class="view" type="button" data-load-id="${load.id}" data-status-action="loaded">Loaded</button>
       <button class="view" type="button" data-load-id="${load.id}" data-status-action="in_transit">In Transit</button>
       <button class="view" type="button" data-load-id="${load.id}" data-status-action="delivered">Delivered</button>
@@ -175,9 +178,41 @@ function createDriverLoadCard(load) {
     </form>
 
     <form class="form driver-pod-form" data-pod-form data-load-id="${load.id}">
-      <div class="field"><label>Upload POD / BOL</label><input name="pod_file" type="file" required /></div>
+      <div class="field"><label>Document Type</label><select name="document_type">
+        <option value="pod">POD</option>
+        <option value="bol">BOL</option>
+        <option value="receipt">Receipt</option>
+        <option value="scale_ticket">Scale Ticket</option>
+        <option value="other">Other</option>
+      </select></div>
+      <div class="field"><label>Upload Document</label><input name="pod_file" type="file" required /></div>
       <div class="field"><label>Document Notes</label><textarea name="notes" placeholder="Optional document notes"></textarea></div>
-      <button type="submit" class="btn">Upload POD</button>
+      <button type="submit" class="btn">Upload Document</button>
+    </form>
+
+    <form class="form driver-issue-form" data-issue-form data-load-id="${load.id}">
+      <div class="driver-expense-header">
+        <strong>Report Issue</strong>
+        <span>Tell dispatch what needs attention.</span>
+      </div>
+      <div class="field"><label>Issue Type</label><select name="issue_type">
+        <option value="late_pickup">Late Pickup</option>
+        <option value="late_delivery">Late Delivery</option>
+        <option value="missing_pod">Missing POD</option>
+        <option value="damaged_freight">Damaged Freight</option>
+        <option value="carrier_no_show">Carrier No-Show</option>
+        <option value="other">Other</option>
+      </select></div>
+      <div class="field"><label>Severity</label><select name="severity">
+        <option value="low">Low</option>
+        <option value="medium" selected>Medium</option>
+        <option value="high">High</option>
+        <option value="critical">Critical</option>
+      </select></div>
+      <div class="field"><label>Title</label><input name="title" required placeholder="Short issue title" /></div>
+      <div class="field"><label>Location</label><input name="location" placeholder="City, ST" /></div>
+      <div class="field driver-portal-wide"><label>Details</label><textarea name="description" required placeholder="What happened and what does dispatch need to know?"></textarea></div>
+      <button type="submit" class="btn">Report Issue</button>
     </form>
 
     <form class="form driver-expense-form" data-expense-form data-load-id="${load.id}">
@@ -271,8 +306,8 @@ async function saveDriverExpense(e) {
   try {
     let receiptUrl = null;
     if (file && file.name) {
-      receiptUrl = await uploadDriverDocument(loadId, `expense-${category}`, file);
-      await saveLoadDocument(loadId, `expense_${category}`, receiptUrl, notes || `Driver submitted ${category} receipt.`);
+      receiptUrl = await uploadDriverDocument(loadId, `expense_${category}`, file);
+      await saveCompanyDocument(loadId, `expense_${category}`, receiptUrl, file, notes || `Driver submitted ${category} receipt.`);
     }
 
     await saveLoadExpense(loadId, {
@@ -292,6 +327,27 @@ async function saveDriverExpense(e) {
   } catch (err) {
     console.error(err);
     msg.textContent = `Error submitting expense: ${err.message}`;
+    msg.style.color = "#ef4444";
+  }
+}
+
+async function saveDriverIssue(e) {
+  e.preventDefault();
+  const loadId = e.target.dataset.loadId;
+  const data = Object.fromEntries(new FormData(e.target).entries());
+
+  msg.textContent = "Reporting issue...";
+  msg.style.color = "";
+
+  try {
+    await saveLoadIssue(loadId, data);
+    await saveLoadEvent(loadId, "issue", data.location || null, `Driver issue: ${data.title}. ${data.description || ""}`.trim());
+    e.target.reset();
+    msg.textContent = "Issue reported to dispatch.";
+    msg.style.color = "#047857";
+  } catch (err) {
+    console.error(err);
+    msg.textContent = `Error reporting issue: ${err.message}`;
     msg.style.color = "#ef4444";
   }
 }
@@ -380,30 +436,68 @@ async function savePodUpload(e) {
   const loadId = e.target.dataset.loadId;
   const formData = new FormData(e.target);
   const file = formData.get("pod_file");
+  const documentType = formData.get("document_type") || "pod";
   const notes = formData.get("notes");
 
   if (!file || !file.name) {
-    msg.textContent = "Choose a POD or BOL file first.";
+    msg.textContent = "Choose a document file first.";
     msg.style.color = "#ef4444";
     return;
   }
 
-  msg.textContent = "Uploading POD...";
+  msg.textContent = "Uploading document...";
   msg.style.color = "";
 
   try {
-    const url = await uploadDriverDocument(loadId, "pod", file);
-    await saveLoadDocument(loadId, "pod", url, notes || "Uploaded from driver portal.");
-    await saveLoadEvent(loadId, "pod_received", null, "POD uploaded from driver portal.");
-    await updateLoadStatus(loadId, "delivered");
+    const filePath = await uploadDriverDocument(loadId, documentType, file);
+    await saveCompanyDocument(loadId, documentType, filePath, file, notes || "Uploaded from driver portal.");
+    await saveLoadEvent(loadId, documentType === "pod" ? "pod_received" : "document_uploaded", null, `${formatStatus(documentType)} uploaded from driver portal.`);
+    if (documentType === "pod") await updateLoadStatus(loadId, "delivered");
     e.target.reset();
-    msg.textContent = "POD uploaded.";
+    msg.textContent = "Document uploaded.";
     msg.style.color = "#047857";
     await loadDriverAssignments();
   } catch (err) {
     console.error(err);
     msg.textContent = `Error uploading POD: ${err.message}`;
     msg.style.color = "#ef4444";
+  }
+}
+
+async function saveLoadIssue(loadId, data) {
+  const issueData = window.CompanyContext?.withCompanyId({
+    load_id: Number(loadId),
+    issue_type: data.issue_type || "other",
+    severity: data.severity || "medium",
+    status: "open",
+    responsible_party: "driver",
+    title: data.title,
+    description: data.description || null
+  }) || {
+    load_id: Number(loadId),
+    issue_type: data.issue_type || "other",
+    severity: data.severity || "medium",
+    status: "open",
+    responsible_party: "driver",
+    title: data.title,
+    description: data.description || null
+  };
+
+  const res = await fetch(`${BASE_URL}/rest/v1/load_issues`, {
+    method: "POST",
+    headers: getHeaders({
+      "Content-Type": "application/json",
+      Prefer: "return=representation"
+    }),
+    body: JSON.stringify(issueData)
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    if (text.includes("load_issues")) {
+      throw new Error("Run load-issues.sql in Supabase first so driver issues can be saved.");
+    }
+    throw new Error(text);
   }
 }
 
@@ -552,14 +646,57 @@ async function uploadDriverDocument(loadId, documentType, file) {
     throw new Error(errorText);
   }
 
-  return `${BASE_URL}/storage/v1/object/public/${DOCUMENT_BUCKET}/${path}`;
+  return path;
 }
 
 function buildStoragePath(loadId, documentType, fileName) {
+  const companyId = window.CompanyContext?.getCompanyId?.() || "company";
+  const load = currentLoads.find(row => String(row.id) === String(loadId));
+  const loadLabel = sanitizeFileName(load?.load_number || `LD-${loadId}`);
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   const safeType = sanitizePathPart(documentType || "document");
-  const safeName = sanitizeFileName(fileName || "document");
-  return `loads/${loadId}/${safeType}/${timestamp}-${safeName}`;
+  const extension = getFileExtension(fileName);
+  const cleanName = `${loadLabel}_${safeType.toUpperCase()}_${getToday()}${extension}`;
+  return `${companyId}/load/${loadId}/${timestamp}-${cleanName}`;
+}
+
+async function saveCompanyDocument(loadId, documentType, filePath, file, notes) {
+  const documentData = window.CompanyContext?.withCompanyId({
+    entity_type: "load",
+    entity_id: String(loadId),
+    document_type: documentType,
+    file_name: filePath.split("/").pop()?.replace(/^\d{4}-\d{2}-\d{2}T[^-]+-/, "") || file.name,
+    file_path: filePath,
+    file_size: file.size || null,
+    mime_type: file.type || "application/octet-stream",
+    notes: [notes, file?.name ? `Original file: ${file.name}` : ""].filter(Boolean).join(" | ") || null
+  }) || {
+    entity_type: "load",
+    entity_id: String(loadId),
+    document_type: documentType,
+    file_name: filePath.split("/").pop() || file.name,
+    file_path: filePath,
+    file_size: file.size || null,
+    mime_type: file.type || "application/octet-stream",
+    notes: notes || null
+  };
+
+  const res = await fetch(`${BASE_URL}/rest/v1/documents`, {
+    method: "POST",
+    headers: getHeaders({
+      "Content-Type": "application/json",
+      Prefer: "return=representation"
+    }),
+    body: JSON.stringify(documentData)
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    if (text.includes("documents")) {
+      throw new Error("Run documents-storage.sql in Supabase first so driver uploads can be saved.");
+    }
+    throw new Error(text);
+  }
 }
 
 function updateKpis(loads) {
@@ -571,7 +708,8 @@ function updateKpis(loads) {
 
 function getStatusForEvent(eventType) {
   return {
-    dispatched: "dispatched",
+    accepted: "assigned",
+    dispatched: "assigned",
     arrived_pickup: "dispatched",
     loaded: "picked_up",
     in_transit: "in_transit",
@@ -592,7 +730,11 @@ function getDriverName(driver) {
 }
 
 function normalizeStatus(value) {
-  return (value || "booked").toLowerCase().replaceAll(" ", "_").replaceAll("-", "_");
+  const status = (value || "available").toLowerCase().replaceAll(" ", "_").replaceAll("-", "_");
+  if (status === "booked") return "available";
+  if (status === "dispatched") return "assigned";
+  if (status === "pod_received") return "delivered";
+  return status;
 }
 
 function formatStatus(value) {
@@ -629,6 +771,11 @@ function sanitizePathPart(value) {
 function sanitizeFileName(value) {
   const cleaned = String(value).replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "");
   return cleaned || "document";
+}
+
+function getFileExtension(fileName) {
+  const match = String(fileName || "").match(/(\.[a-zA-Z0-9]{1,8})$/);
+  return match ? match[1].toLowerCase() : "";
 }
 
 function escapeHtml(value) {
