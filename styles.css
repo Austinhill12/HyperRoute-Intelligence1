@@ -823,7 +823,7 @@ button:disabled,
 
 .dispatch-toolbar {
   display: grid;
-  grid-template-columns: minmax(160px, 220px) minmax(150px, 190px) minmax(220px, 1fr) auto;
+  grid-template-columns: repeat(6, minmax(140px, 1fr));
   gap: 16px;
   align-items: end;
   margin-bottom: 22px;
@@ -832,7 +832,8 @@ button:disabled,
 
 .dispatch-toolbar .btn {
   grid-column: auto;
-  width: 140px;
+  min-height: 44px;
+  width: 100%;
 }
 
 .dispatch-kpis {
@@ -982,6 +983,48 @@ button:disabled,
   text-transform: none;
 }
 
+.dispatch-quick-assign {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 12px;
+  padding: 12px 0;
+}
+
+.dispatch-quick-assign label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  min-width: 0;
+  text-transform: uppercase;
+}
+
+.dispatch-quick-assign select {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: #0b1220;
+  font-size: 13px;
+  min-height: 40px;
+  min-width: 0;
+  padding: 9px;
+  text-transform: none;
+  width: 100%;
+}
+
+.dispatch-quick-assign .view {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+  min-height: 40px;
+  white-space: nowrap;
+}
+
 .dispatch-actions {
   display: flex;
   flex-wrap: wrap;
@@ -996,12 +1039,16 @@ button:disabled,
 
 @media (max-width: 1100px) {
   .dispatch-toolbar {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 700px) {
   .dispatch-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .dispatch-quick-assign {
     grid-template-columns: 1fr;
   }
 

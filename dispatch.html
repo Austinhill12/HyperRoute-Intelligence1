@@ -60,13 +60,11 @@
           <label for="statusFilter">Status</label>
           <select id="statusFilter">
             <option value="">All Active Loads</option>
-            <option value="booked">Booked</option>
+            <option value="available">Available</option>
             <option value="assigned">Assigned</option>
-            <option value="dispatched">Dispatched</option>
             <option value="picked_up">Picked Up</option>
             <option value="in_transit">In Transit</option>
             <option value="delivered">Delivered</option>
-            <option value="pod_received">POD Received</option>
             <option value="invoiced">Invoiced</option>
             <option value="paid">Paid</option>
           </select>
@@ -75,6 +73,20 @@
         <div class="field">
           <label for="dateFilter">Pickup Date</label>
           <input id="dateFilter" type="date" />
+        </div>
+
+        <div class="field">
+          <label for="driverFilter">Driver</label>
+          <select id="driverFilter">
+            <option value="">All Drivers</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="truckFilter">Truck</label>
+          <select id="truckFilter">
+            <option value="">All Trucks</option>
+          </select>
         </div>
 
         <div class="field">

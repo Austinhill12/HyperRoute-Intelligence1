@@ -3,13 +3,11 @@ const BASE_URL = "https://ygrikxlbfmtkovktwhdp.supabase.co";
 const fallbackHeaders = { apikey: API_KEY, Authorization: "Bearer " + API_KEY };
 
 const statusColumns = [
-  { key: "booked", label: "Booked" },
+  { key: "available", label: "Available" },
   { key: "assigned", label: "Assigned" },
-  { key: "dispatched", label: "Dispatched" },
   { key: "picked_up", label: "Picked Up" },
   { key: "in_transit", label: "In Transit" },
   { key: "delivered", label: "Delivered" },
-  { key: "pod_received", label: "POD Received" },
   { key: "invoiced", label: "Invoiced" },
   { key: "paid", label: "Paid" }
 ];
@@ -22,12 +20,11 @@ let assignmentMap = new Map();
 let invoiceMap = new Map();
 
 const lifecycleEventByStatus = {
+  available: "available",
   assigned: "assigned",
-  dispatched: "dispatched",
   picked_up: "loaded",
   in_transit: "in_transit",
   delivered: "delivered",
-  pod_received: "pod_received",
   invoiced: "invoiced",
   paid: "paid"
 };
@@ -67,6 +64,7 @@ async function loadDispatchBoard() {
     invoiceMap = buildInvoiceMap(invoices);
 
     msg.textContent = "";
+    renderFilterOptions();
     renderDispatchBoard();
   } catch (err) {
     console.error(err);
@@ -136,18 +134,43 @@ function renderDispatchBoard() {
   board.querySelectorAll("[data-status-load]").forEach(select => {
     select.addEventListener("change", () => updateLoadStatus(select.dataset.statusLoad, select.value));
   });
+  board.querySelectorAll("[data-save-assignment]").forEach(button => {
+    button.addEventListener("click", () => saveQuickAssignment(button.dataset.saveAssignment, button));
+  });
+}
+
+function renderFilterOptions() {
+  const driverFilter = document.getElementById("driverFilter");
+  const truckFilter = document.getElementById("truckFilter");
+  if (driverFilter) driverFilter.innerHTML = buildSelectOptions(driverMap, "", "All Drivers");
+  if (truckFilter) truckFilter.innerHTML = buildSelectOptions(truckMap, "", "All Trucks");
+}
+
+function buildSelectOptions(map, selectedValue, placeholder) {
+  const options = [`<option value="">${escapeHtml(placeholder)}</option>`];
+  map.forEach((label, id) => {
+    options.push(`<option value="${escapeHtml(id)}" ${String(id) === String(selectedValue) ? "selected" : ""}>${escapeHtml(label)}</option>`);
+  });
+  return options.join("");
 }
 
 function getFilteredLoads() {
   const status = document.getElementById("statusFilter").value;
   const pickupDate = document.getElementById("dateFilter").value;
+  const driverFilter = document.getElementById("driverFilter")?.value || "";
+  const truckFilter = document.getElementById("truckFilter")?.value || "";
   const search = document.getElementById("searchFilter").value.trim().toLowerCase();
 
   return dispatchLoads.filter(load => {
     const normalizedStatus = normalizeStatus(load.status);
+    const assignment = assignmentMap.get(load.id);
+    const driverId = load.driver_id || assignment?.driver_id || "";
+    const truckId = load.vehicle_id || assignment?.truck_id || "";
     if (!activeStatuses.has(normalizedStatus)) return false;
     if (status && normalizedStatus !== status) return false;
     if (pickupDate && load.pickup_date !== pickupDate) return false;
+    if (driverFilter && String(driverId) !== String(driverFilter)) return false;
+    if (truckFilter && String(truckId) !== String(truckFilter)) return false;
     if (search && !getSearchText(load).includes(search)) return false;
     return true;
   });
@@ -156,7 +179,7 @@ function getFilteredLoads() {
 function getSearchText(load) {
   const assignment = assignmentMap.get(load.id);
   const driverName = driverMap.get(load.driver_id || assignment?.driver_id) || "";
-  const truckName = truckMap.get(assignment?.truck_id) || "";
+  const truckName = truckMap.get(load.vehicle_id || assignment?.truck_id) || "";
 
   return [
     load.load_number,
@@ -187,12 +210,14 @@ function createLoadCard(load) {
 
   const assignment = assignmentMap.get(load.id);
   const driverName = driverMap.get(load.driver_id || assignment?.driver_id) || "Unassigned";
-  const truckName = truckMap.get(assignment?.truck_id) || "Unassigned";
+  const truckName = truckMap.get(load.vehicle_id || assignment?.truck_id) || "Unassigned";
   const invoices = invoiceMap.get(load.id) || [];
   const invoiceLabel = getInvoiceLabel(invoices);
   const pickup = formatDateTime(load.pickup_date, load.pickup_time);
   const delivery = formatDateTime(load.delivery_date || load.dropoff_date, load.delivery_time);
   const status = normalizeStatus(load.status);
+  const selectedDriverId = load.driver_id || assignment?.driver_id || "";
+  const selectedTruckId = load.vehicle_id || assignment?.truck_id || "";
 
   card.innerHTML = `
     <div class="dispatch-load-top">
@@ -220,6 +245,22 @@ function createLoadCard(load) {
         ${statusColumns.map(column => `<option value="${column.key}" ${column.key === status ? "selected" : ""}>${column.label}</option>`).join("")}
       </select>
     </label>
+
+    <div class="dispatch-quick-assign">
+      <label>
+        Driver
+        <select data-driver-load="${load.id}">
+          ${buildSelectOptions(driverMap, selectedDriverId, "Select driver")}
+        </select>
+      </label>
+      <label>
+        Truck
+        <select data-truck-load="${load.id}">
+          ${buildSelectOptions(truckMap, selectedTruckId, "Select truck")}
+        </select>
+      </label>
+      <button class="view secondary-action" type="button" data-save-assignment="${load.id}">Save</button>
+    </div>
 
     <div class="dispatch-actions">
       <a class="view" href="load-details.html?id=${load.id}">Open</a>
@@ -263,6 +304,112 @@ async function updateLoadStatus(loadId, status) {
   }
 }
 
+async function saveQuickAssignment(loadId, button) {
+  const card = button.closest(".dispatch-load-card");
+  const driverId = card?.querySelector(`[data-driver-load="${String(loadId)}"]`)?.value || "";
+  const truckId = card?.querySelector(`[data-truck-load="${String(loadId)}"]`)?.value || "";
+  const msg = document.getElementById("dispatchMessage");
+
+  if (!driverId && !truckId) {
+    msg.textContent = "Choose a driver or truck before saving assignment.";
+    msg.style.color = "#ef4444";
+    return;
+  }
+
+  const conflict = findAssignmentConflict(loadId, driverId, truckId);
+  if (conflict) {
+    msg.textContent = conflict;
+    msg.style.color = "#ef4444";
+    return;
+  }
+
+  const originalText = button.textContent;
+  button.disabled = true;
+  button.textContent = "Saving...";
+  msg.textContent = "Saving assignment...";
+  msg.style.color = "";
+
+  try {
+    await upsertAssignment(loadId, driverId, truckId);
+    await patchLoadAssignment(loadId, driverId, truckId);
+    await createLoadLifecycleEvent(loadId, "assigned");
+    msg.textContent = "Assignment saved.";
+    msg.style.color = "#047857";
+    await loadDispatchBoard();
+  } catch (err) {
+    console.error(err);
+    msg.textContent = `Error saving assignment: ${friendlyError(err.message)}`;
+    msg.style.color = "#ef4444";
+    renderDispatchBoard();
+  } finally {
+    button.disabled = false;
+    button.textContent = originalText;
+  }
+}
+
+function findAssignmentConflict(loadId, driverId, truckId) {
+  for (const assignment of assignmentMap.values()) {
+    if (String(assignment.load_id) === String(loadId)) continue;
+    const loadLabel = dispatchLoads.find(load => String(load.id) === String(assignment.load_id))?.load_number || `Load ${assignment.load_id}`;
+    if (driverId && String(assignment.driver_id) === String(driverId)) {
+      return `${driverMap.get(Number(driverId)) || "This driver"} is already assigned to ${loadLabel}.`;
+    }
+    if (truckId && String(assignment.truck_id) === String(truckId)) {
+      return `${truckMap.get(Number(truckId)) || "This truck"} is already assigned to ${loadLabel}.`;
+    }
+  }
+  return "";
+}
+
+async function upsertAssignment(loadId, driverId, truckId) {
+  const existing = assignmentMap.get(Number(loadId)) || assignmentMap.get(loadId);
+  const payload = window.CompanyContext?.withCompanyId({
+    load_id: Number(loadId),
+    driver_id: driverId ? Number(driverId) : null,
+    truck_id: truckId ? Number(truckId) : null,
+    status: "active"
+  }) || {
+    load_id: Number(loadId),
+    driver_id: driverId ? Number(driverId) : null,
+    truck_id: truckId ? Number(truckId) : null,
+    status: "active"
+  };
+
+  const url = existing?.id
+    ? `${BASE_URL}/rest/v1/assignments?id=eq.${existing.id}`
+    : `${BASE_URL}/rest/v1/assignments`;
+  const method = existing?.id ? "PATCH" : "POST";
+
+  const res = await fetch(url, {
+    method,
+    headers: getHeaders({ "Content-Type": "application/json", Prefer: "return=representation" }),
+    body: JSON.stringify(payload)
+  });
+
+  const result = await res.json();
+  if (!res.ok) throw new Error(JSON.stringify(result));
+  const assignment = Array.isArray(result) ? result[0] : result;
+  assignmentMap.set(Number(loadId), assignment);
+  return assignment;
+}
+
+async function patchLoadAssignment(loadId, driverId, truckId) {
+  const load = dispatchLoads.find(row => String(row.id) === String(loadId));
+  const payload = {
+    driver_id: driverId ? Number(driverId) : null,
+    vehicle_id: truckId ? Number(truckId) : null
+  };
+  if (normalizeStatus(load?.status) === "available") payload.status = "assigned";
+
+  const res = await fetch(`${BASE_URL}/rest/v1/loads?id=eq.${loadId}`, {
+    method: "PATCH",
+    headers: getHeaders({ "Content-Type": "application/json", Prefer: "return=minimal" }),
+    body: JSON.stringify(payload)
+  });
+
+  if (!res.ok) throw new Error(await res.text());
+}
+
 async function createLoadLifecycleEvent(loadId, status) {
   const eventType = lifecycleEventByStatus[status];
   if (!eventType) return;
@@ -282,11 +429,11 @@ async function createLoadLifecycleEvent(loadId, status) {
     notes: `Status changed to ${formatStatus(status)} from Dispatch Board.`
   };
 
-  if (load?.pickup_location && ["dispatched", "assigned"].includes(status)) {
+  if (load?.pickup_location && ["available", "assigned"].includes(status)) {
     eventData.location = load.pickup_location;
   }
 
-  if (load?.delivery_location && ["delivered", "pod_received"].includes(status)) {
+  if (load?.delivery_location && status === "delivered") {
     eventData.location = load.delivery_location;
   }
 
@@ -306,7 +453,7 @@ async function createLoadLifecycleEvent(loadId, status) {
 
 function updateKpis(loads) {
   const today = getToday();
-  const delivered = loads.filter(load => ["delivered", "pod_received"].includes(normalizeStatus(load.status))).length;
+  const delivered = loads.filter(load => normalizeStatus(load.status) === "delivered").length;
   const pickupToday = loads.filter(load => load.pickup_date === today).length;
   const late = loads.filter(isLateLoad).length;
 
@@ -318,7 +465,7 @@ function updateKpis(loads) {
 
 function isLateLoad(load) {
   const status = normalizeStatus(load.status);
-  if (["delivered", "pod_received", "invoiced", "paid"].includes(status)) return false;
+  if (["delivered", "invoiced", "paid"].includes(status)) return false;
   const deliveryDate = load.delivery_date || load.dropoff_date;
   if (!deliveryDate) return false;
   return deliveryDate < getToday();
@@ -332,7 +479,11 @@ function getInvoiceLabel(invoices) {
 }
 
 function normalizeStatus(value) {
-  return (value || "booked").toLowerCase().replaceAll(" ", "_").replaceAll("-", "_");
+  const status = (value || "available").toLowerCase().replaceAll(" ", "_").replaceAll("-", "_");
+  if (status === "booked") return "available";
+  if (status === "dispatched") return "assigned";
+  if (status === "pod_received") return "delivered";
+  return status;
 }
 
 function formatStatus(value) {
@@ -368,12 +519,25 @@ function escapeHtml(value) {
   }[char]));
 }
 
+function friendlyError(value) {
+  try {
+    const parsed = JSON.parse(value);
+    return parsed.message || parsed.details || value;
+  } catch {
+    return value;
+  }
+}
+
 document.getElementById("statusFilter").addEventListener("change", renderDispatchBoard);
 document.getElementById("dateFilter").addEventListener("change", renderDispatchBoard);
+document.getElementById("driverFilter")?.addEventListener("change", renderDispatchBoard);
+document.getElementById("truckFilter")?.addEventListener("change", renderDispatchBoard);
 document.getElementById("searchFilter").addEventListener("input", renderDispatchBoard);
 document.getElementById("clearFiltersBtn").addEventListener("click", () => {
   document.getElementById("statusFilter").value = "";
   document.getElementById("dateFilter").value = "";
+  if (document.getElementById("driverFilter")) document.getElementById("driverFilter").value = "";
+  if (document.getElementById("truckFilter")) document.getElementById("truckFilter").value = "";
   document.getElementById("searchFilter").value = "";
   renderDispatchBoard();
 });
