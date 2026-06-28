@@ -79,6 +79,7 @@ async function loadDetails() {
     document.getElementById("truckName").textContent = await getTruckName(assignment?.truck_id);
     document.getElementById("trackingCode").textContent = load.tracking_code || "Run customer tracking SQL to generate tracking codes";
     document.getElementById("notes").textContent = load.notes || "N/A";
+    renderLoadWorkflow();
     document.getElementById("editLoadLink").href = `edit-load.html?id=${load.id}`;
     document.getElementById("tenderLoadLink").href = `tender-load.html?id=${load.id}`;
     document.getElementById("createTenderLink").href = `tender-load.html?id=${load.id}`;
@@ -747,6 +748,159 @@ function renderDocumentChecklist(documents = []) {
   }).join("");
 }
 
+function renderLoadWorkflow() {
+  const bar = document.getElementById("loadWorkflowBar");
+  const action = document.getElementById("loadNextAction");
+  if (!bar || !action || !currentLoad) return;
+
+  const status = normalizeStatus(currentLoad.status);
+  const docTypes = new Set(currentLoadDocuments.map(doc => normalizeDocumentType(doc.document_type)));
+  const invoiceStatuses = currentLoadInvoices.map(invoice => normalizeStatus(invoice.status || "draft"));
+  const hasPod = docTypes.has("pod");
+  const hasBol = docTypes.has("bol");
+  const hasInvoice = currentLoadInvoices.length > 0 || docTypes.has("invoice");
+  const invoiceSent = invoiceStatuses.some(invoiceStatus => ["sent", "paid", "overdue"].includes(invoiceStatus));
+  const paid = invoiceStatuses.some(invoiceStatus => invoiceStatus === "paid") || status === "paid";
+  const closed = status === "closed";
+
+  const steps = [
+    { key: "booked", label: "Booked", ok: isAtOrPastLoadStep(status, "booked") },
+    { key: "dispatched", label: "Dispatched", ok: isAtOrPastLoadStep(status, "dispatched") },
+    { key: "picked_up", label: "Picked Up", ok: isAtOrPastLoadStep(status, "picked_up") },
+    { key: "in_transit", label: "In Transit", ok: isAtOrPastLoadStep(status, "in_transit") },
+    { key: "delivered", label: "Delivered", ok: isAtOrPastLoadStep(status, "delivered") },
+    { key: "pod_received", label: "POD", ok: hasPod || isAtOrPastLoadStep(status, "pod_received") },
+    { key: "invoiced", label: "Invoiced", ok: hasInvoice || isAtOrPastLoadStep(status, "invoiced") },
+    { key: "closed", label: "Closed", ok: closed }
+  ];
+
+  bar.innerHTML = steps.map(step => `
+    <div class="load-workflow-step ${step.ok ? "complete" : step.key === status ? "active" : ""}">
+      <span>${step.ok ? "OK" : ""}</span>
+      <strong>${escapeHtml(step.label)}</strong>
+    </div>
+  `).join("");
+
+  const nextAction = getNextLoadAction({ status, hasPod, hasBol, hasInvoice, invoiceSent, paid, closed });
+  action.innerHTML = `
+    <div>
+      <span>Next Best Action</span>
+      <strong>${escapeHtml(nextAction.title)}</strong>
+      <p>${escapeHtml(nextAction.detail)}</p>
+    </div>
+    <div class="load-next-action-buttons">
+      ${nextAction.links.map(link => `<a class="view ${link.secondary ? "secondary-action" : ""}" href="${escapeHtml(link.href)}">${escapeHtml(link.label)}</a>`).join("")}
+    </div>
+  `;
+}
+
+function isAtOrPastLoadStep(status, step) {
+  const order = ["booked", "dispatched", "picked_up", "in_transit", "delivered", "pod_received", "invoiced", "paid", "closed"];
+  const normalizedStatus = status === "loaded" ? "picked_up" : status;
+  const currentIndex = order.indexOf(normalizedStatus);
+  const stepIndex = order.indexOf(step);
+  if (currentIndex === -1 || stepIndex === -1) return step === "booked";
+  return currentIndex >= stepIndex;
+}
+
+function getNextLoadAction(state) {
+  const loadId = currentLoad.id;
+  if (!isAtOrPastLoadStep(state.status, "dispatched")) {
+    return {
+      title: "Dispatch the load",
+      detail: "Open the dispatch packet, assign the driver or carrier, then move the load into active dispatch.",
+      links: [
+        { label: "Dispatch Packet", href: `dispatch-packet.html?id=${loadId}` },
+        { label: "Assign Vehicle", href: "assign-vehicle.html", secondary: true }
+      ]
+    };
+  }
+
+  if (!isAtOrPastLoadStep(state.status, "delivered")) {
+    return {
+      title: "Track movement",
+      detail: "Keep status updates current so dispatch, customer tracking, and billing stay aligned.",
+      links: [
+        { label: "Dispatch Packet", href: `dispatch-packet.html?id=${loadId}` },
+        { label: "Customer Tracking", href: buildTrackingUrl(currentLoad), secondary: true }
+      ]
+    };
+  }
+
+  if (!state.hasPod) {
+    return {
+      title: "Collect POD",
+      detail: "Delivery is complete or close to complete. Upload the POD before billing or closeout.",
+      links: [
+        { label: "Upload POD", href: "#loadDocumentForm" },
+        { label: "Dispatch Packet", href: `dispatch-packet.html?id=${loadId}`, secondary: true }
+      ]
+    };
+  }
+
+  if (!state.hasBol) {
+    return {
+      title: "Attach BOL if required",
+      detail: "POD is present. Add the BOL or continue to invoice if the BOL is not required for this load.",
+      links: [
+        { label: "Upload BOL", href: "#loadDocumentForm" },
+        { label: "Create Invoice", href: "#invoiceForm", secondary: true }
+      ]
+    };
+  }
+
+  if (!state.hasInvoice) {
+    return {
+      title: "Create invoice",
+      detail: "Paperwork is ready. Create the invoice so receivables do not sit idle.",
+      links: [
+        { label: "Create Invoice", href: "#invoiceForm" },
+        { label: "Documents", href: "#loadDocumentsTableBody", secondary: true }
+      ]
+    };
+  }
+
+  if (!state.invoiceSent) {
+    return {
+      title: "Send invoice",
+      detail: "Invoice exists but has not been marked sent. Send it or update the invoice status.",
+      links: [
+        { label: "Review Invoices", href: "#loadInvoicesTableBody" },
+        { label: "Load Closeout", href: "#loadCloseoutChecklist", secondary: true }
+      ]
+    };
+  }
+
+  if (!state.paid) {
+    return {
+      title: "Watch payment",
+      detail: "Invoice is out. Monitor payment and mark paid once received.",
+      links: [
+        { label: "Review Invoices", href: "#loadInvoicesTableBody" },
+        { label: "Closeout", href: "#loadCloseoutChecklist", secondary: true }
+      ]
+    };
+  }
+
+  if (!state.closed) {
+    return {
+      title: "Close the load",
+      detail: "Payment and required paperwork are complete. Mark this load closed.",
+      links: [
+        { label: "Closeout", href: "#loadCloseoutChecklist" }
+      ]
+    };
+  }
+
+  return {
+    title: "Load complete",
+    detail: "This load is closed. Keep records available for reporting, billing, and customer history.",
+    links: [
+      { label: "All Loads", href: "loads.html" }
+    ]
+  };
+}
+
 function normalizeDocumentType(value) {
   const type = String(value || "").toLowerCase();
   if (["proof_of_delivery", "delivery_receipt"].includes(type)) return "pod";
@@ -797,6 +951,7 @@ function renderCloseoutChecklist() {
     closeButton.textContent = closed ? "Closed" : "Mark Closed";
     closeButton.title = canClose ? "Close this load" : "Requires Delivered, POD Attached, and Invoice Created";
   }
+  renderLoadWorkflow();
 }
 
 async function loadEvents(loadId) {
