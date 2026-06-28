@@ -55,6 +55,9 @@
           <button id="extractRateConButton" class="btn" type="button">Extract Load Details</button>
           <button id="clearRateConButton" class="view secondary-action" type="button">Clear</button>
         </div>
+        <div id="rateConAttachmentNotice" class="rate-con-attachment-notice">
+          The uploaded PDF will be attached to the load after dispatcher review.
+        </div>
         <p id="rateConMessage" class="message"></p>
       </section>
 
@@ -67,39 +70,63 @@
           <span id="rateConConfidence" class="status-pill caution">Waiting for PDF</span>
         </div>
 
-        <form id="rateConReviewForm" class="form">
-          <div class="field"><label>Broker Name</label><input name="broker_name" /></div>
-          <div class="field"><label>Broker Contact</label><input name="broker_contact" /></div>
-          <div class="field"><label>Broker MC Number</label><input name="broker_mc_number" /></div>
-          <div class="field"><label>Rate Confirmation #</label><input name="rate_confirmation_number" /></div>
-          <div class="field"><label>Load Number</label><input name="load_number" /></div>
-          <div class="field"><label>Customer Reference #</label><input name="customer_reference_number" /></div>
-          <div class="field"><label>Customer</label><input name="customer_name" /></div>
-          <div class="field"><label>Status</label><select name="status"><option value="booked">Booked</option><option value="dispatched">Dispatched</option><option value="in_transit">In Transit</option></select></div>
+        <form id="rateConReviewForm" class="form rate-con-review-form">
+          <fieldset class="rate-con-review-section">
+            <legend>Broker</legend>
+            <div class="field"><label>Broker Name</label><input name="broker_name" /></div>
+            <div class="field"><label>Broker Contact</label><input name="broker_contact" /></div>
+            <div class="field"><label>Broker MC Number</label><input name="broker_mc_number" /></div>
+          </fieldset>
 
-          <div class="field"><label>Pickup Location</label><input name="pickup_location" /></div>
-          <div class="field"><label>Pickup Date</label><input name="pickup_date" type="date" /></div>
-          <div class="field"><label>Pickup Time</label><input name="pickup_time" type="time" /></div>
-          <div class="field"><label>Delivery Location</label><input name="delivery_location" /></div>
-          <div class="field"><label>Delivery Date</label><input name="delivery_date" type="date" /></div>
-          <div class="field"><label>Delivery Time</label><input name="delivery_time" type="time" /></div>
+          <fieldset class="rate-con-review-section">
+            <legend>Load</legend>
+            <div class="field"><label>Rate Confirmation #</label><input name="rate_confirmation_number" /></div>
+            <div class="field"><label>Load Number</label><input name="load_number" /></div>
+            <div class="field"><label>Customer Reference #</label><input name="customer_reference_number" /></div>
+            <div class="field"><label>Customer</label><input name="customer_name" /></div>
+            <div class="field"><label>Status</label><select name="status"><option value="booked">Booked</option><option value="dispatched">Dispatched</option><option value="in_transit">In Transit</option></select></div>
+          </fieldset>
 
-          <div class="field"><label>Gross Rate</label><input name="rate" type="number" step="0.01" /></div>
-          <div class="field"><label>Fuel Surcharge</label><input name="fuel_surcharge" type="number" step="0.01" /></div>
-          <div class="field"><label>Accessorial Pay</label><input name="accessorial_pay" type="number" step="0.01" /></div>
-          <div class="field"><label>Miles</label><input name="loaded_miles" type="number" step="0.1" /></div>
-          <div class="field"><label>Commodity</label><input name="commodity" /></div>
-          <div class="field"><label>Weight</label><input name="weight" type="number" /></div>
+          <fieldset class="rate-con-review-section">
+            <legend>Pickup</legend>
+            <div class="field wide-field"><label>Pickup Location</label><input name="pickup_location" /></div>
+            <div class="field"><label>Pickup Date</label><input name="pickup_date" type="date" /></div>
+            <div class="field"><label>Pickup Time</label><input name="pickup_time" type="time" /></div>
+          </fieldset>
 
-          <div class="field"><label>Trailer Type</label><input name="trailer_type" /></div>
-          <div class="field"><label>Equipment Requirements</label><input name="equipment_requirements" /></div>
-          <div class="field"><label>Hazmat</label><select name="hazmat_required"><option value="false">No</option><option value="true">Yes</option></select></div>
-          <div class="field"><label>Temperature Requirements</label><input name="temperature_requirements" /></div>
-          <div class="field"><label>Tracking Required</label><select name="tracking_required"><option value="false">No</option><option value="true">Yes</option></select></div>
-          <div class="field"><label>Required Documents</label><input name="required_documents" placeholder="Rate Con, BOL, POD, receipts" /></div>
-          <div class="field"><label>Lumper Information</label><input name="lumper_information" /></div>
-          <div class="field"><label>Detention Policy</label><input name="detention_policy" /></div>
-          <div class="field carrier-notes-field"><label>Driver / Special Instructions</label><textarea name="notes"></textarea></div>
+          <fieldset class="rate-con-review-section">
+            <legend>Delivery</legend>
+            <div class="field wide-field"><label>Delivery Location</label><input name="delivery_location" /></div>
+            <div class="field"><label>Delivery Date</label><input name="delivery_date" type="date" /></div>
+            <div class="field"><label>Delivery Time</label><input name="delivery_time" type="time" /></div>
+          </fieldset>
+
+          <fieldset class="rate-con-review-section">
+            <legend>Money</legend>
+            <div class="field"><label>Gross Rate</label><input name="rate" type="number" step="0.01" /></div>
+            <div class="field"><label>Fuel Surcharge</label><input name="fuel_surcharge" type="number" step="0.01" /></div>
+            <div class="field"><label>Accessorial Pay</label><input name="accessorial_pay" type="number" step="0.01" /></div>
+            <div class="field"><label>Miles</label><input name="loaded_miles" type="number" step="0.1" /></div>
+          </fieldset>
+
+          <fieldset class="rate-con-review-section">
+            <legend>Equipment</legend>
+            <div class="field"><label>Commodity</label><input name="commodity" /></div>
+            <div class="field"><label>Weight</label><input name="weight" type="number" /></div>
+            <div class="field"><label>Trailer Type</label><input name="trailer_type" /></div>
+            <div class="field"><label>Equipment Requirements</label><input name="equipment_requirements" /></div>
+            <div class="field"><label>Hazmat</label><select name="hazmat_required"><option value="false">No</option><option value="true">Yes</option></select></div>
+            <div class="field"><label>Temperature Requirements</label><input name="temperature_requirements" /></div>
+          </fieldset>
+
+          <fieldset class="rate-con-review-section">
+            <legend>Instructions</legend>
+            <div class="field"><label>Tracking Required</label><select name="tracking_required"><option value="false">No</option><option value="true">Yes</option></select></div>
+            <div class="field"><label>Required Documents</label><input name="required_documents" placeholder="Rate Con, BOL, POD, receipts" /></div>
+            <div class="field"><label>Lumper Information</label><input name="lumper_information" /></div>
+            <div class="field"><label>Detention Policy</label><input name="detention_policy" /></div>
+            <div class="field carrier-notes-field"><label>Driver / Special Instructions</label><textarea name="notes"></textarea></div>
+          </fieldset>
 
           <section class="rate-intelligence-panel">
             <div>

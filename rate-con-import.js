@@ -13,6 +13,7 @@ const confidenceBadge = document.getElementById("rateConConfidence");
 const checklist = document.getElementById("rateConChecklist");
 const reviewNotice = document.getElementById("rateConReviewNotice");
 const createLoadButton = document.getElementById("createRateConLoadButton");
+const attachmentNotice = document.getElementById("rateConAttachmentNotice");
 
 let selectedFile = null;
 let extractedText = "";
@@ -70,6 +71,7 @@ function setSelectedFile(file) {
   selectedFile = file || null;
   msg.textContent = selectedFile ? `Ready to extract: ${selectedFile.name}` : "";
   msg.style.color = "";
+  updateAttachmentNotice();
 }
 
 async function extractRateCon() {
@@ -392,23 +394,27 @@ function updateConfidence(data) {
 
 function calculateConfidence(data = {}) {
   const required = [
-    ["load_number", "Load #", true],
+    ["load_number", "Load # or Rate Con #", true],
     ["pickup_location", "Pickup", true],
     ["delivery_location", "Delivery", true],
     ["pickup_date", "Pickup date", true],
     ["delivery_date", "Delivery date", true],
     ["rate", "Rate", true],
+    ["rate_confirmation_number", "Rate Con #", false],
+    ["broker_mc_number", "Broker MC", false],
+    ["broker_name", "Broker", false],
     ["commodity", "Commodity", false],
     ["loaded_miles", "Miles", false],
     ["weight", "Weight", false],
-    ["trailer_type", "Trailer", false],
-    ["broker_name", "Broker", false]
+    ["trailer_type", "Trailer", false]
   ];
   const items = required.map(([key, label, requiredForCreate]) => ({
     key,
     label,
     requiredForCreate,
-    ok: hasReviewValue(data[key])
+    ok: key === "load_number"
+      ? hasReviewValue(data.load_number) || hasReviewValue(data.rate_confirmation_number)
+      : hasReviewValue(data[key])
   }));
   const score = Math.round((items.filter(item => item.ok).length / items.length) * 100);
   return { score, items };
@@ -440,7 +446,7 @@ function updateReviewState(data = {}) {
   }
 
   if (warnings.length) {
-    setReviewNotice(`Ready to create, but review optional fields: ${warnings.map(item => item.label).join(", ")}.`, "warning");
+    setReviewNotice(`Ready to create, but review missing or weak fields: ${warnings.map(item => item.label).join(", ")}.`, "warning");
     return;
   }
 
@@ -461,10 +467,13 @@ function markReviewFields(items) {
   });
 
   items.forEach(item => {
-    const input = form.elements[item.key];
-    const field = input?.closest?.(".field");
-    if (!field) return;
-    field.classList.add(item.ok ? "ready-review" : item.requiredForCreate ? "needs-review" : "optional-review");
+    const keys = item.key === "load_number" ? ["load_number", "rate_confirmation_number"] : [item.key];
+    keys.forEach(key => {
+      const input = form.elements[key];
+      const field = input?.closest?.(".field");
+      if (!field) return;
+      field.classList.add(item.ok ? "ready-review" : item.requiredForCreate ? "needs-review" : "optional-review");
+    });
   });
 }
 
@@ -1274,9 +1283,18 @@ function resetImport() {
   currentImportId = null;
   confidenceBadge.textContent = "Waiting for PDF";
   confidenceBadge.className = "status-pill caution";
+  updateAttachmentNotice();
   renderChecklist({});
   updateReviewState({});
   setMessage("", "");
+}
+
+function updateAttachmentNotice() {
+  if (!attachmentNotice) return;
+  attachmentNotice.textContent = selectedFile
+    ? `${selectedFile.name} will be stored as the Rate Confirmation document when this load is created.`
+    : "The uploaded PDF will be attached to the load after dispatcher review.";
+  attachmentNotice.classList.toggle("ready", Boolean(selectedFile));
 }
 
 function friendlyError(message) {
