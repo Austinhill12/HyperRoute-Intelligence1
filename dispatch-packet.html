@@ -31,7 +31,9 @@
           <h1>Dispatch Packet</h1>
           <p>Driver-ready load instructions, documents, and status updates in one place.</p>
         </div>
-        <div class="quick-actions">
+        <div class="quick-actions no-print">
+          <button class="view" id="packetPrintButton" type="button">Print / Save PDF</button>
+          <button class="view secondary-action" id="copyDriverPacketMessage" type="button">Copy Driver Message</button>
           <a class="view secondary-action" id="loadDetailsLink" href="loads.html">Load Details</a>
           <a class="view secondary-action" href="loads.html">All Loads</a>
         </div>
@@ -122,6 +124,7 @@
               <h2>Dispatch Files</h2>
             </div>
           </div>
+          <div id="packetDocumentChecklist" class="load-document-checklist dispatch-document-checklist"></div>
           <div id="packetDocuments" class="dispatch-doc-list"></div>
         </article>
       </section>

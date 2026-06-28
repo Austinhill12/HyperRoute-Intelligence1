@@ -12,6 +12,14 @@ const eventStatusMap = {
   delivered: "delivered",
   pod_received: "pod_received"
 };
+const requiredPacketDocuments = [
+  { type: "rate_confirmation", label: "Rate Con", required: true },
+  { type: "bol", label: "BOL", required: true },
+  { type: "pod", label: "POD", required: true },
+  { type: "lumper_receipt", label: "Lumper", required: false },
+  { type: "scale_ticket", label: "Scale Ticket", required: false },
+  { type: "accessorial_receipt", label: "Accessorial", required: false }
+];
 
 let currentLoad = null;
 let currentDocuments = [];
@@ -66,6 +74,7 @@ async function loadPacket(loadId) {
   currentDocuments = documents || [];
   await renderAssignment(load, assignment);
   renderDocuments(currentDocuments);
+  renderDocumentChecklist(currentDocuments);
   renderInstructions(load);
 }
 
@@ -187,6 +196,31 @@ function bindPacketActions() {
   });
 
   document.getElementById("packetDocumentForm").addEventListener("submit", savePacketDocument);
+  document.getElementById("packetPrintButton")?.addEventListener("click", () => window.print());
+  document.getElementById("copyDriverPacketMessage")?.addEventListener("click", copyDriverMessage);
+}
+
+async function copyDriverMessage() {
+  if (!currentLoad) return;
+  const msg = document.getElementById("packetActionMessage");
+  const packetUrl = new URL(`dispatch-packet.html?id=${currentLoad.id}`, window.location.href).href;
+  const text = [
+    `Dispatch packet for Load ${currentLoad.load_number || currentLoad.id}`,
+    `${currentLoad.pickup_location || "Pickup TBD"} to ${currentLoad.delivery_location || currentLoad.dropoff_location || "Delivery TBD"}`,
+    `Pickup: ${formatDateTime(currentLoad.pickup_date, currentLoad.pickup_time)}`,
+    `Delivery: ${formatDateTime(currentLoad.delivery_date || currentLoad.dropoff_date, currentLoad.delivery_time)}`,
+    `Open packet: ${packetUrl}`
+  ].join("\n");
+
+  try {
+    await copyText(text);
+    msg.textContent = "Driver dispatch message copied.";
+    msg.style.color = "#047857";
+  } catch (err) {
+    console.error(err);
+    msg.textContent = `Could not copy driver message: ${err.message}`;
+    msg.style.color = "#ef4444";
+  }
 }
 
 async function savePacketEvent(eventType) {
@@ -314,6 +348,7 @@ async function savePacketDocument(e) {
 
     currentDocuments = [result[0], ...currentDocuments].filter(Boolean);
     renderDocuments(currentDocuments);
+    renderDocumentChecklist(currentDocuments);
     await recordLoadEvent(formData.document_type === "pod" ? "pod_received" : "document_uploaded", currentLoad.status).catch(console.warn);
     form.reset();
     msg.textContent = "Document uploaded.";
@@ -323,6 +358,34 @@ async function savePacketDocument(e) {
     msg.textContent = `Error uploading document: ${err.message}`;
     msg.style.color = "#ef4444";
   }
+}
+
+function renderDocumentChecklist(documents = []) {
+  const container = document.getElementById("packetDocumentChecklist");
+  if (!container) return;
+
+  const types = new Set(documents.map(documentRow => normalizeDocumentType(documentRow.document_type)));
+  container.innerHTML = requiredPacketDocuments.map(item => {
+    const complete = types.has(item.type);
+    return `
+      <div class="load-document-check ${complete ? "complete" : item.required ? "missing" : "optional"}">
+        <span>${complete ? "OK" : item.required ? "!" : "?"}</span>
+        <strong>${escapeHtml(item.label)}</strong>
+        <small>${complete ? "Attached" : item.required ? "Needed" : "Optional"}</small>
+      </div>
+    `;
+  }).join("");
+}
+
+function normalizeDocumentType(value) {
+  const type = String(value || "").toLowerCase();
+  if (["proof_of_delivery", "delivery_receipt"].includes(type)) return "pod";
+  if (["bill_of_lading"].includes(type)) return "bol";
+  if (["rate_con", "signed_rate_confirmation"].includes(type)) return "rate_confirmation";
+  if (["lumper", "lumper_fee"].includes(type)) return "lumper_receipt";
+  if (["scale", "scale_receipt"].includes(type)) return "scale_ticket";
+  if (["accessorial", "receipt"].includes(type)) return "accessorial_receipt";
+  return type;
 }
 
 async function uploadDocumentFile(loadId, documentType, file) {
@@ -402,6 +465,23 @@ function sanitizePathPart(value) {
 
 function sanitizeFileName(value) {
   return String(value || "document").replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "document";
+}
+
+async function copyText(value) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(value);
+    return;
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = value;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand("copy");
+  textarea.remove();
 }
 
 function escapeHtml(value) {

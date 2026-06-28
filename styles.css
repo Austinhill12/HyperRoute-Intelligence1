@@ -3410,6 +3410,11 @@ td .delete {
   grid-column: 2;
 }
 
+.load-row-actions .view,
+.load-row-actions .delete {
+  font-size: 12px;
+}
+
 @media (max-width: 900px) {
   .load-row-actions {
     grid-template-columns: 1fr;
@@ -4962,6 +4967,28 @@ td .secondary-action:hover {
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
+.dispatch-document-checklist {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 0;
+}
+
+@media print {
+  .dispatch-packet-page {
+    color: #111827;
+  }
+
+  .dispatch-packet-page .card {
+    break-inside: avoid;
+    box-shadow: none;
+  }
+
+  .dispatch-packet-page .message,
+  .dispatch-packet-page form,
+  .dispatch-action-grid {
+    display: none !important;
+  }
+}
+
 @media (max-width: 900px) {
   .sidebar {
     padding: 18px;
@@ -5000,6 +5027,10 @@ td .secondary-action:hover {
   .dispatch-packet-hero {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .dispatch-document-checklist {
+    grid-template-columns: 1fr;
   }
 
   .driver-status-actions,
