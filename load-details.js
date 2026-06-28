@@ -28,6 +28,8 @@ const requiredLoadDocuments = [
 let currentLoad = null;
 let companySettings = null;
 let loadTenderCarriers = new Map();
+let currentLoadDocuments = [];
+let currentLoadInvoices = [];
 
 function getHeaders(extra = {}) {
   return {
@@ -545,6 +547,8 @@ async function loadInvoices(loadId) {
 }
 
 function renderLoadInvoices(invoices) {
+  currentLoadInvoices = invoices || [];
+  renderCloseoutChecklist();
   const tbody = document.getElementById("loadInvoicesTableBody");
   tbody.innerHTML = "";
 
@@ -582,12 +586,16 @@ async function loadDocuments(loadId) {
     if (!res.ok) throw new Error(await res.text());
 
     const documents = await res.json();
+    currentLoadDocuments = documents || [];
     renderDocuments(documents);
     renderDocumentChecklist(documents);
+    renderCloseoutChecklist();
   } catch (err) {
     console.error(err);
     tbody.innerHTML = `<tr><td colspan="4">Error loading documents.</td></tr>`;
+    currentLoadDocuments = [];
     renderDocumentChecklist([]);
+    renderCloseoutChecklist();
   }
 }
 
@@ -735,6 +743,47 @@ function normalizeDocumentType(value) {
   if (["accessorial", "accessorial_receipts"].includes(type)) return "accessorial_receipt";
   if (["scale", "scale_tickets"].includes(type)) return "scale_ticket";
   return type;
+}
+
+function renderCloseoutChecklist() {
+  const container = document.getElementById("loadCloseoutChecklist");
+  const closeButton = document.getElementById("markLoadClosedButton");
+  if (!container || !currentLoad) return;
+
+  const docTypes = new Set(currentLoadDocuments.map(doc => normalizeDocumentType(doc.document_type)));
+  const invoiceStatuses = currentLoadInvoices.map(invoice => normalizeStatus(invoice.status || "draft"));
+  const delivered = ["delivered", "pod_received", "invoiced", "paid", "closed"].includes(normalizeStatus(currentLoad.status));
+  const hasPod = docTypes.has("pod");
+  const hasBol = docTypes.has("bol");
+  const hasInvoice = currentLoadInvoices.length > 0 || docTypes.has("invoice");
+  const invoiceSent = invoiceStatuses.some(status => ["sent", "paid", "overdue"].includes(status));
+  const paid = invoiceStatuses.some(status => status === "paid") || normalizeStatus(currentLoad.status) === "paid";
+  const closed = normalizeStatus(currentLoad.status) === "closed";
+
+  const steps = [
+    { label: "Delivered", ok: delivered, detail: delivered ? "Load marked delivered or beyond." : "Mark delivered from timeline when complete." },
+    { label: "POD Attached", ok: hasPod, detail: hasPod ? "Proof of delivery attached." : "Upload POD before billing closeout." },
+    { label: "BOL Attached", ok: hasBol, detail: hasBol ? "BOL attached." : "Attach BOL when required." },
+    { label: "Invoice Created", ok: hasInvoice, detail: hasInvoice ? "Invoice record or document exists." : "Create invoice for this load." },
+    { label: "Invoice Sent", ok: invoiceSent, detail: invoiceSent ? "Invoice is sent/paid/overdue." : "Send invoice or update invoice status." },
+    { label: "Payment Complete", ok: paid, detail: paid ? "Payment marked complete." : "Mark invoice paid when received." },
+    { label: "Closed", ok: closed, detail: closed ? "Load is closed." : "Close when all required steps are complete." }
+  ];
+
+  container.innerHTML = steps.map(step => `
+    <div class="load-closeout-step ${step.ok ? "complete" : "open"}">
+      <span>${step.ok ? "OK" : "!"}</span>
+      <strong>${escapeHtml(step.label)}</strong>
+      <small>${escapeHtml(step.detail)}</small>
+    </div>
+  `).join("");
+
+  if (closeButton) {
+    const canClose = delivered && hasPod && hasInvoice;
+    closeButton.disabled = closed || !canClose;
+    closeButton.textContent = closed ? "Closed" : "Mark Closed";
+    closeButton.title = canClose ? "Close this load" : "Requires Delivered, POD Attached, and Invoice Created";
+  }
 }
 
 async function loadEvents(loadId) {
@@ -1158,6 +1207,67 @@ async function updateLoadStatus(loadId, status) {
   if (!res.ok) throw new Error(await res.text());
 }
 
+async function closeLoad() {
+  const loadId = getLoadId();
+  const msg = document.getElementById("loadCloseoutMessage");
+  const button = document.getElementById("markLoadClosedButton");
+  if (!loadId || !currentLoad) return;
+
+  try {
+    if (button) button.disabled = true;
+    if (msg) {
+      msg.textContent = "Closing load...";
+      msg.style.color = "";
+    }
+
+    await updateLoadStatus(loadId, "closed");
+    currentLoad.status = "closed";
+    document.getElementById("loadStatus").textContent = formatStatus("closed");
+    await recordCloseoutEvent(loadId);
+    await loadEvents(loadId);
+    renderCloseoutChecklist();
+
+    if (msg) {
+      msg.textContent = "Load closed.";
+      msg.style.color = "#047857";
+    }
+  } catch (err) {
+    console.error(err);
+    if (msg) {
+      msg.textContent = `Error closing load: ${err.message}`;
+      msg.style.color = "#ef4444";
+    }
+    renderCloseoutChecklist();
+  }
+}
+
+async function recordCloseoutEvent(loadId) {
+  const eventData = window.CompanyContext?.withCompanyId({
+    load_id: Number(loadId),
+    event_type: "closed",
+    event_time: new Date().toISOString(),
+    location: currentLoad?.delivery_location || currentLoad?.dropoff_location || null,
+    notes: "Load closed after document and invoice review."
+  }) || {
+    load_id: Number(loadId),
+    event_type: "closed",
+    event_time: new Date().toISOString(),
+    location: currentLoad?.delivery_location || currentLoad?.dropoff_location || null,
+    notes: "Load closed after document and invoice review."
+  };
+
+  const res = await fetch(`${BASE_URL}/rest/v1/load_events`, {
+    method: "POST",
+    headers: getHeaders({
+      "Content-Type": "application/json",
+      Prefer: "return=minimal"
+    }),
+    body: JSON.stringify(eventData)
+  });
+
+  if (!res.ok) console.warn("Unable to record closeout event:", await res.text());
+}
+
 async function saveLoadDocument(e) {
   e.preventDefault();
 
@@ -1413,10 +1523,12 @@ async function createInvoice(e) {
     if (!res.ok) throw new Error(JSON.stringify(result));
 
     await updateLoadStatus(loadId, "invoiced");
+    if (currentLoad) currentLoad.status = "invoiced";
     document.getElementById("loadStatus").textContent = formatStatus("invoiced");
     msg.textContent = "Invoice created.";
     msg.style.color = "#047857";
     await loadInvoices(loadId);
+    renderCloseoutChecklist();
   } catch (err) {
     console.error(err);
     msg.textContent = `Error creating invoice: ${err.message}`;
@@ -1429,6 +1541,7 @@ document.getElementById("communicationForm").addEventListener("submit", saveComm
 document.getElementById("issueForm").addEventListener("submit", saveIssue);
 document.getElementById("loadDocumentForm").addEventListener("submit", saveLoadDocument);
 document.getElementById("invoiceForm").addEventListener("submit", createInvoice);
+document.getElementById("markLoadClosedButton")?.addEventListener("click", closeLoad);
 document.getElementById("eventTime").value = getLocalDateTimeValue();
 bindLoadDocumentDropzone();
 loadDetails();
