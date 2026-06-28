@@ -584,8 +584,11 @@ function cleanExtraction(data, sourceText = "") {
 
 function repairRouteLocations(data, sourceText = "") {
   const stops = extractBestAddressPair(sourceText);
-  if (!isUsableLocation(data.pickup_location) && stops[0]) data.pickup_location = stops[0];
-  if (!isUsableLocation(data.delivery_location) && stops[1]) data.delivery_location = stops[1];
+  const sameRouteLocation = normalizeAddressValue(data.pickup_location) &&
+    normalizeAddressValue(data.pickup_location) === normalizeAddressValue(data.delivery_location);
+
+  if ((!isUsableLocation(data.pickup_location) || sameRouteLocation) && stops[0]) data.pickup_location = stops[0];
+  if ((!isUsableLocation(data.delivery_location) || sameRouteLocation) && stops[1]) data.delivery_location = stops[1];
   if (isBlankValue(data.dropoff_location) && data.delivery_location) data.dropoff_location = data.delivery_location;
 }
 
@@ -607,6 +610,10 @@ function extractBestAddressPair(text = "") {
 function isBlankValue(value) {
   const text = String(value ?? "").trim().toLowerCase();
   return !text || ["n/a", "na", "none", "null", "undefined", "-", "--", "tbd", "pickup tbd", "delivery tbd"].includes(text);
+}
+
+function normalizeAddressValue(value) {
+  return String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
 function normalizeText(text) {

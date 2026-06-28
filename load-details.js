@@ -208,7 +208,12 @@ function renderRouteSummary(load = currentLoad) {
 
 function getRouteOrigin(load = {}) {
   const addressPair = extractAddressPairFromLoad(load);
+  const savedPickup = firstRouteCandidate([load.pickup_location, load.pickup_address, load.origin, load.origin_location]);
+  const savedDelivery = firstRouteCandidate([load.delivery_location, load.dropoff_location, load.delivery_address, load.dropoff_address, load.destination, load.destination_location]);
+  const savedLocationsMatch = savedPickup && normalizeRouteValue(savedPickup) === normalizeRouteValue(savedDelivery);
+
   return firstRouteCandidate([
+    savedLocationsMatch ? addressPair[0] : "",
     load.pickup_location,
     load.pickup_address,
     load.origin,
@@ -228,7 +233,12 @@ function getRouteOrigin(load = {}) {
 function getRouteDestination(load = {}) {
   const addressPair = extractAddressPairFromLoad(load);
   const origin = getRouteOrigin(load);
+  const savedPickup = firstRouteCandidate([load.pickup_location, load.pickup_address, load.origin, load.origin_location]);
+  const savedDelivery = firstRouteCandidate([load.delivery_location, load.dropoff_location, load.delivery_address, load.dropoff_address, load.destination, load.destination_location]);
+  const savedLocationsMatch = savedPickup && normalizeRouteValue(savedPickup) === normalizeRouteValue(savedDelivery);
+
   return firstRouteCandidate([
+    savedLocationsMatch ? addressPair[1] : "",
     load.delivery_location,
     load.dropoff_location,
     load.delivery_address,
