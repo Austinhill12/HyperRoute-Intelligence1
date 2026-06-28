@@ -216,7 +216,8 @@ function getRouteOrigin(load = {}) {
     load.shipper_location,
     joinLocationParts(load.pickup_city, load.pickup_state, load.pickup_zip),
     joinLocationParts(load.origin_city, load.origin_state, load.origin_zip),
-    addressLike(load.shipper_name)
+    addressLike(load.shipper_name),
+    load.shipper_name
   );
 }
 
@@ -233,12 +234,16 @@ function getRouteDestination(load = {}) {
     joinLocationParts(load.delivery_city, load.delivery_state, load.delivery_zip),
     joinLocationParts(load.dropoff_city, load.dropoff_state, load.dropoff_zip),
     joinLocationParts(load.destination_city, load.destination_state, load.destination_zip),
-    addressLike(load.consignee_name)
+    addressLike(load.consignee_name),
+    load.consignee_name
   );
 }
 
 function firstPresent(...values) {
-  return values.find(value => String(value || "").trim()) || "";
+  return values.find(value => {
+    const cleaned = String(value || "").trim();
+    return cleaned && !["n/a", "na", "none", "null", "undefined", "-", "--", "tbd", "pickup tbd", "delivery tbd"].includes(cleaned.toLowerCase());
+  }) || "";
 }
 
 function joinLocationParts(...parts) {
