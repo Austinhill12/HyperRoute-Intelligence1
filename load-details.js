@@ -1129,6 +1129,10 @@ function formatStatus(value) {
   return (value || "unknown").replaceAll("_", " ");
 }
 
+function normalizeStatus(value) {
+  return String(value || "").trim().toLowerCase().replaceAll(" ", "_").replaceAll("-", "_");
+}
+
 function formatTimestamp(value) {
   return value ? new Date(value).toLocaleString() : "N/A";
 }
