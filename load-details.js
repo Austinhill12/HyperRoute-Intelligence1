@@ -70,7 +70,7 @@ async function loadDetails() {
     document.getElementById("loadTitle").textContent = `Load ${load.load_number || load.id}`;
     document.getElementById("loadStatus").textContent = formatStatus(load.status);
     document.getElementById("customerName").textContent = load.customer_name || load.customer || "N/A";
-    document.getElementById("loadLane").textContent = `${load.pickup_location || "-"} to ${load.delivery_location || load.dropoff_location || "-"}`;
+    document.getElementById("loadLane").textContent = `${getRouteOrigin(load) || "-"} to ${getRouteDestination(load) || "-"}`;
     document.getElementById("pickupInfo").textContent = formatDateTime(load.pickup_date, load.pickup_time);
     document.getElementById("deliveryInfo").textContent = formatDateTime(load.delivery_date || load.dropoff_date, load.delivery_time);
     document.getElementById("commodity").textContent = load.commodity || "N/A";
@@ -161,13 +161,15 @@ function renderRouteSummary(load = currentLoad) {
   const confidence = document.getElementById("routeConfidence");
   if (!container || !confidence || !load) return;
 
+  const origin = getRouteOrigin(load);
+  const destination = getRouteDestination(load);
   const loadedMiles = toNumber(load.loaded_miles);
   const emptyMiles = toNumber(load.empty_miles);
   const totalMiles = loadedMiles + emptyMiles;
   const fuelCost = toNumber(load.fuel_cost);
   const tollCost = toNumber(load.toll_cost);
   const estimatedDriveHours = totalMiles ? totalMiles / 55 : 0;
-  const routeComplete = Boolean(load.pickup_location && (load.delivery_location || load.dropoff_location) && totalMiles);
+  const routeComplete = Boolean(origin && destination && totalMiles);
 
   confidence.textContent = routeComplete ? "Ready" : "Needs miles";
   confidence.className = `status-pill ${routeComplete ? "success" : "warning"}`;
@@ -175,11 +177,11 @@ function renderRouteSummary(load = currentLoad) {
   container.innerHTML = `
     <article>
       <span>Origin</span>
-      <strong>${escapeHtml(load.pickup_location || "Pickup TBD")}</strong>
+      <strong>${escapeHtml(origin || "Pickup TBD")}</strong>
     </article>
     <article>
       <span>Destination</span>
-      <strong>${escapeHtml(load.delivery_location || load.dropoff_location || "Delivery TBD")}</strong>
+      <strong>${escapeHtml(destination || "Delivery TBD")}</strong>
     </article>
     <article>
       <span>Total Miles</span>
@@ -202,6 +204,51 @@ function renderRouteSummary(load = currentLoad) {
       <small>Feeds profit snapshot.</small>
     </article>
   `;
+}
+
+function getRouteOrigin(load = {}) {
+  return firstPresent(
+    load.pickup_location,
+    load.pickup_address,
+    load.origin,
+    load.origin_location,
+    load.shipper_address,
+    load.shipper_location,
+    joinLocationParts(load.pickup_city, load.pickup_state, load.pickup_zip),
+    joinLocationParts(load.origin_city, load.origin_state, load.origin_zip),
+    addressLike(load.shipper_name)
+  );
+}
+
+function getRouteDestination(load = {}) {
+  return firstPresent(
+    load.delivery_location,
+    load.dropoff_location,
+    load.delivery_address,
+    load.dropoff_address,
+    load.destination,
+    load.destination_location,
+    load.consignee_address,
+    load.consignee_location,
+    joinLocationParts(load.delivery_city, load.delivery_state, load.delivery_zip),
+    joinLocationParts(load.dropoff_city, load.dropoff_state, load.dropoff_zip),
+    joinLocationParts(load.destination_city, load.destination_state, load.destination_zip),
+    addressLike(load.consignee_name)
+  );
+}
+
+function firstPresent(...values) {
+  return values.find(value => String(value || "").trim()) || "";
+}
+
+function joinLocationParts(...parts) {
+  const value = parts.filter(part => String(part || "").trim()).join(", ");
+  return value || "";
+}
+
+function addressLike(value) {
+  const text = String(value || "").trim();
+  return /\d/.test(text) && /,/.test(text) ? text : "";
 }
 
 function populateTripCostForm(load = currentLoad) {
@@ -616,8 +663,8 @@ function showTrackingMessage(text, isError = false) {
 function buildCustomerTrackingMessage(load, trackingUrl) {
   const companyName = window.CompanyContext?.getCompany?.()?.company_name || "your carrier";
   const loadLabel = load.load_number || load.id;
-  const pickup = load.pickup_location || "pickup";
-  const delivery = load.delivery_location || load.dropoff_location || "delivery";
+  const pickup = getRouteOrigin(load) || "pickup";
+  const delivery = getRouteDestination(load) || "delivery";
 
   return [
     `Hello, your shipment for Load ${loadLabel} is now trackable.`,
