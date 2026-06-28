@@ -203,7 +203,7 @@ function parseRateConfirmation(text) {
     lumper_information: extractLumperInformation(text),
     detention_policy: extractDetentionPolicy(text, lines),
     notes: buildNotes(text, rateDetails)
-  });
+  }, text);
 }
 
 function fillReviewForm(data) {
@@ -238,7 +238,7 @@ async function createLoadFromRateCon(event) {
     return;
   }
 
-  const reviewData = normalizeReviewData(Object.fromEntries(new FormData(form).entries()));
+  const reviewData = normalizeReviewData(Object.fromEntries(new FormData(form).entries()), extractedText);
   const readiness = calculateConfidence(reviewData);
   const blockers = readiness.items.filter(item => item.requiredForCreate && !item.ok);
   if (blockers.length) {
@@ -542,11 +542,13 @@ function markReviewFields(items) {
   });
 }
 
-function normalizeReviewData(data) {
+function normalizeReviewData(data, sourceText = "") {
   Object.keys(data).forEach(key => {
     if (typeof data[key] === "string") data[key] = data[key].trim();
-    if (data[key] === "") data[key] = null;
+    if (isBlankValue(data[key])) data[key] = null;
   });
+
+  repairRouteLocations(data, sourceText);
 
   ["rate", "fuel_surcharge", "accessorial_pay", "loaded_miles", "weight"].forEach(key => {
     if (data[key] !== null && data[key] !== undefined) data[key] = Number(data[key]);
@@ -563,7 +565,7 @@ function normalizeReviewData(data) {
   return data;
 }
 
-function cleanExtraction(data) {
+function cleanExtraction(data, sourceText = "") {
   Object.keys(data).forEach(key => {
     if (typeof data[key] === "string") {
       data[key] = data[key].replace(/\s+/g, " ").trim();
@@ -575,7 +577,36 @@ function cleanExtraction(data) {
     if (data[key] && !isUsableLocation(data[key])) data[key] = "";
   });
 
+  repairRouteLocations(data, sourceText);
+
   return data;
+}
+
+function repairRouteLocations(data, sourceText = "") {
+  const stops = extractBestAddressPair(sourceText);
+  if (!isUsableLocation(data.pickup_location) && stops[0]) data.pickup_location = stops[0];
+  if (!isUsableLocation(data.delivery_location) && stops[1]) data.delivery_location = stops[1];
+  if (isBlankValue(data.dropoff_location) && data.delivery_location) data.dropoff_location = data.delivery_location;
+}
+
+function extractBestAddressPair(text = "") {
+  const lines = getUsefulLines(text);
+  const stops = [
+    ...extractKnownAddressStops(text),
+    ...extractHardAddressStops(text),
+    ...extractFacilityAddressBlocksFromLines(lines),
+    ...extractAddressBlocksFromText(text),
+    ...extractFacilityStopsFromText(text).map(stop => stop.location)
+  ]
+    .map(stop => typeof stop === "string" ? stop : stop?.location)
+    .filter(location => isUsableLocation(location));
+
+  return [...new Set(stops)].slice(0, 2);
+}
+
+function isBlankValue(value) {
+  const text = String(value ?? "").trim().toLowerCase();
+  return !text || ["n/a", "na", "none", "null", "undefined", "-", "--", "tbd", "pickup tbd", "delivery tbd"].includes(text);
 }
 
 function normalizeText(text) {
