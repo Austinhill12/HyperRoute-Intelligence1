@@ -4,6 +4,8 @@ const DOCUMENT_BUCKET = "company-documents";
 const fallbackHeaders = { apikey: API_KEY, Authorization: "Bearer " + API_KEY };
 
 let documents = [];
+let documentLoads = [];
+let documentInvoices = [];
 
 function getHeaders(extra = {}) {
   return {
@@ -47,14 +49,21 @@ async function loadDocuments() {
   const tbody = document.getElementById("documentsTableBody");
   tbody.innerHTML = `<tr><td colspan="6">Loading documents...</td></tr>`;
 
-  const res = await fetch(
-    window.CompanyContext.scopedUrl("documents", "select=*&order=created_at.desc"),
-    { headers: getHeaders() }
-  );
+  const [documentRes, loadRes, invoiceRes] = await Promise.all([
+    fetch(window.CompanyContext.scopedUrl("documents", "select=*&order=created_at.desc"), { headers: getHeaders() }),
+    fetch(window.CompanyContext.scopedUrl("loads", "select=id,load_number,customer_name,customer,status,pickup_date,delivery_date,dropoff_date,rate,required_documents&order=delivery_date.asc"), { headers: getHeaders() }),
+    fetch(window.CompanyContext.scopedUrl("invoices", "select=id,load_id,invoice_number,status,total_amount,due_date"), { headers: getHeaders() })
+  ]);
 
-  if (!res.ok) throw new Error(await res.text());
-  documents = await res.json();
+  if (!documentRes.ok) throw new Error(await documentRes.text());
+  if (!loadRes.ok) throw new Error(await loadRes.text());
+  if (!invoiceRes.ok) throw new Error(await invoiceRes.text());
+
+  documents = await documentRes.json();
+  documentLoads = await loadRes.json();
+  documentInvoices = await invoiceRes.json();
   renderFilteredDocuments();
+  renderPaperworkQueue();
 }
 
 async function uploadDocument(event) {
@@ -108,6 +117,118 @@ async function uploadDocument(event) {
     msg.textContent = getDocumentError(err.message);
     msg.style.color = "#ef4444";
   }
+}
+
+function renderPaperworkQueue() {
+  const queue = document.getElementById("paperworkQueue");
+  const count = document.getElementById("paperworkQueueCount");
+  if (!queue || !count) return;
+
+  const items = buildPaperworkQueue();
+  count.textContent = `${items.length} open`;
+
+  if (!items.length) {
+    queue.innerHTML = `<p class="empty-state">No missing paperwork found.</p>`;
+    return;
+  }
+
+  queue.innerHTML = items.map(item => `
+    <article class="paperwork-item ${escapeHtml(item.severity)}">
+      <div>
+        <span class="status-pill ${escapeHtml(item.severity)}">${escapeHtml(item.label)}</span>
+        <h3>${escapeHtml(item.title)}</h3>
+        <p>${escapeHtml(item.detail)}</p>
+      </div>
+      <div class="paperwork-actions">
+        <a class="view" href="load-details.html?id=${encodeURIComponent(item.load.id)}">Open Load</a>
+        <button class="view secondary-action" type="button" data-prepare-upload="${escapeHtml(item.load.id)}" data-document-type="${escapeHtml(item.documentType)}">Upload</button>
+      </div>
+    </article>
+  `).join("");
+
+  queue.querySelectorAll("[data-prepare-upload]").forEach(button => {
+    button.addEventListener("click", () => prepareDocumentUpload(button.dataset.prepareUpload, button.dataset.documentType));
+  });
+}
+
+function buildPaperworkQueue() {
+  const byLoad = buildDocumentsByLoad();
+  const invoiceByLoad = buildInvoicesByLoad();
+  const items = [];
+
+  documentLoads.forEach(load => {
+    const status = normalizeStatus(load.status);
+    const docs = byLoad.get(String(load.id)) || new Set();
+    const invoices = invoiceByLoad.get(String(load.id)) || [];
+    const loadLabel = load.load_number || `Load ${load.id}`;
+    const customer = load.customer_name || load.customer || "No customer";
+
+    if (!docs.has("rate_confirmation")) {
+      items.push(queueItem(load, "rate_confirmation", "Rate Con", "warning", `${loadLabel} is missing the original rate confirmation.`, customer));
+    }
+
+    if (["picked_up", "in_transit", "delivered", "invoiced", "paid"].includes(status) && !docs.has("bol")) {
+      items.push(queueItem(load, "bol", "BOL", "warning", `${loadLabel} is missing the bill of lading.`, customer));
+    }
+
+    if (["delivered", "invoiced", "paid"].includes(status) && !docs.has("pod")) {
+      items.push(queueItem(load, "pod", "POD", "danger", `${loadLabel} is delivered but missing proof of delivery.`, customer));
+    }
+
+    const hasOpenInvoice = invoices.some(invoice => !["paid", "void", "cancelled", "canceled"].includes(normalizeStatus(invoice.status)));
+    if (hasOpenInvoice && !docs.has("invoice_backup")) {
+      items.push(queueItem(load, "invoice_backup", "Invoice Backup", "caution", `${loadLabel} has invoice activity but no invoice backup attached.`, customer));
+    }
+  });
+
+  const priority = { danger: 0, warning: 1, caution: 2 };
+  return items.sort((a, b) => {
+    const severity = (priority[a.severity] ?? 9) - (priority[b.severity] ?? 9);
+    if (severity) return severity;
+    return String(a.load.delivery_date || a.load.dropoff_date || a.load.pickup_date || "").localeCompare(String(b.load.delivery_date || b.load.dropoff_date || b.load.pickup_date || ""));
+  }).slice(0, 12);
+}
+
+function queueItem(load, documentType, label, severity, title, customer) {
+  return {
+    load,
+    documentType,
+    label,
+    severity,
+    title,
+    detail: `${customer} | ${formatStatus(load.status)} | Delivery ${formatDate(load.delivery_date || load.dropoff_date)}`
+  };
+}
+
+function buildDocumentsByLoad() {
+  const map = new Map();
+  documents.forEach(row => {
+    if (row.entity_type !== "load" || !row.entity_id) return;
+    const key = String(row.entity_id);
+    if (!map.has(key)) map.set(key, new Set());
+    map.get(key).add(normalizeDocumentType(row.document_type));
+  });
+  return map;
+}
+
+function buildInvoicesByLoad() {
+  const map = new Map();
+  documentInvoices.forEach(invoice => {
+    if (!invoice.load_id) return;
+    const key = String(invoice.load_id);
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(invoice);
+  });
+  return map;
+}
+
+function prepareDocumentUpload(loadId, documentType) {
+  document.getElementById("entityType").value = "load";
+  document.getElementById("entityId").value = loadId;
+  document.getElementById("documentType").value = documentType;
+  document.getElementById("documentFile").focus();
+  document.getElementById("documentMessage").textContent = `Ready to upload ${formatStatus(documentType)} for Load ${loadId}.`;
+  document.getElementById("documentMessage").style.color = "#075fa6";
 }
 
 async function uploadFile(filePath, file) {
@@ -277,6 +398,27 @@ function formatAttachedTo(documentRow) {
 
 function formatStatus(value) {
   return String(value || "N/A").replaceAll("_", " ");
+}
+
+function normalizeStatus(value) {
+  const status = String(value || "").toLowerCase().replaceAll(" ", "_").replaceAll("-", "_");
+  if (status === "booked") return "available";
+  if (status === "dispatched") return "assigned";
+  if (status === "pod_received") return "delivered";
+  return status;
+}
+
+function normalizeDocumentType(value) {
+  const type = String(value || "").toLowerCase().replaceAll(" ", "_").replaceAll("-", "_");
+  if (["rate_con", "ratecon", "rate_confirmation_pdf"].includes(type)) return "rate_confirmation";
+  if (["proof_of_delivery", "signed_pod"].includes(type)) return "pod";
+  if (["bill_of_lading", "bol_pdf"].includes(type)) return "bol";
+  if (["invoice", "invoice_document"].includes(type)) return "invoice_backup";
+  return type;
+}
+
+function formatDate(value) {
+  return value ? new Date(`${value}T00:00:00`).toLocaleDateString() : "N/A";
 }
 
 function formatTimestamp(value) {

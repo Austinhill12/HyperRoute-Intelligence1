@@ -1134,6 +1134,86 @@ button:disabled,
   padding: 9px 11px;
 }
 
+.paperwork-queue-card {
+  margin-bottom: 22px;
+}
+
+.paperwork-queue {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.paperwork-item {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-left: 4px solid #f59e0b;
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 14px;
+}
+
+.paperwork-item.danger {
+  border-left-color: #dc2626;
+}
+
+.paperwork-item.caution {
+  border-left-color: #0ea5e9;
+}
+
+.paperwork-item h3 {
+  font-size: 16px;
+  line-height: 1.25;
+  margin: 7px 0 3px;
+}
+
+.paperwork-item p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.paperwork-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.paperwork-actions .view {
+  align-items: center;
+  display: inline-flex;
+  min-height: 38px;
+}
+
+.status-pill.danger {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.status-pill.warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-pill.caution {
+  background: #e0f2fe;
+  color: #075985;
+}
+
+@media (max-width: 760px) {
+  .paperwork-item {
+    grid-template-columns: 1fr;
+  }
+
+  .paperwork-actions {
+    justify-content: flex-start;
+  }
+}
+
 /* ==========================================
    QUOTES
 ========================================== */
