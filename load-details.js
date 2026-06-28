@@ -82,6 +82,7 @@ async function loadDetails() {
     document.getElementById("editLoadLink").href = `edit-load.html?id=${load.id}`;
     document.getElementById("tenderLoadLink").href = `tender-load.html?id=${load.id}`;
     document.getElementById("createTenderLink").href = `tender-load.html?id=${load.id}`;
+    document.getElementById("dispatchPacketLink").href = `dispatch-packet.html?id=${load.id}`;
     document.getElementById("rateConfirmationLink").href = `rate-confirmation.html?id=${load.id}`;
     setupTrackingActions(load);
     await loadTenders(load.id);

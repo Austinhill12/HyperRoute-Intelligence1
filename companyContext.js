@@ -22,7 +22,7 @@
     dispatcher: [
       "dashboard.html", "onboarding.html", "activity.html", "dispatch.html", "alerts.html",
       "index.html", "drivers.html", "driver-details.html", "edit-driver.html",
-      "rate-con-import.html", "create-load.html", "loads.html", "load-details.html", "edit-load.html", "tender-load.html", "rate-confirmation.html",
+      "rate-con-import.html", "create-load.html", "loads.html", "load-details.html", "edit-load.html", "dispatch-packet.html", "tender-load.html", "rate-confirmation.html",
       "quotes.html", "customers.html", "create-customer.html", "customer-details.html", "edit-customer.html",
       "carriers.html",
       "create-vehicle.html", "vehicles.html", "vehicle-details.html", "edit-vehicle.html",
@@ -32,7 +32,7 @@
     accounting: [
       "dashboard.html", "onboarding.html", "activity.html", "reports.html", "profit-intelligence.html", "customers.html", "customer-profitability.html", "create-customer.html",
       "customer-details.html", "edit-customer.html", "invoices.html", "invoice-details.html",
-      "edit-invoice.html", "settlements.html", "accounting-sync.html", "quotes.html", "rate-con-import.html", "loads.html", "load-details.html", "tender-load.html", "rate-confirmation.html", "carriers.html", "documents.html", "expense-review.html", "integrations.html", "support.html",
+      "edit-invoice.html", "settlements.html", "accounting-sync.html", "quotes.html", "rate-con-import.html", "loads.html", "load-details.html", "dispatch-packet.html", "tender-load.html", "rate-confirmation.html", "carriers.html", "documents.html", "expense-review.html", "integrations.html", "support.html",
       "notifications.html", "subscription.html", "support-contact.html", "privacy.html", "terms.html", "login.html", "logout.html"
     ],
     maintenance: [
@@ -41,7 +41,7 @@
       "reports.html", "profit-intelligence.html", "documents.html", "support.html", "notifications.html", "support-contact.html", "privacy.html", "terms.html", "login.html", "logout.html"
     ],
     driver: [
-      "driver-portal.html", "support.html", "notifications.html", "support-contact.html", "privacy.html", "terms.html", "login.html", "logout.html"
+      "driver-portal.html", "dispatch-packet.html", "support.html", "notifications.html", "support-contact.html", "privacy.html", "terms.html", "login.html", "logout.html"
     ]
   };
 
@@ -50,7 +50,7 @@
   const FEATURE_GROUPS = {
     core: [
       "dashboard.html", "onboarding.html", "activity.html", "reports.html", "profit-intelligence.html", "alerts.html",
-      "loads.html", "load-details.html", "edit-load.html", "create-load.html", "rate-con-import.html",
+      "loads.html", "load-details.html", "edit-load.html", "dispatch-packet.html", "create-load.html", "rate-con-import.html",
       "customers.html", "customer-profitability.html", "create-customer.html", "customer-details.html", "edit-customer.html",
       "documents.html", "expense-review.html", "integrations.html", "notifications.html", "support.html", "subscription.html",
       "support-contact.html", "privacy.html", "terms.html", "track-load.html",

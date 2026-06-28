@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dispatch Packet</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
+  <script src="auth-guard.js"></script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <h2 class="logo">HyperRoute Intelligence</h2>
+      <nav>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="dispatch.html">Dispatch Board</a>
+        <a href="driver-portal.html">Driver Portal</a>
+        <a href="rate-con-import.html">Rate Con Import</a>
+        <a href="create-load.html">Create Load</a>
+        <a href="loads.html">View Loads</a>
+        <a href="customers.html">Customers</a>
+        <a href="carriers.html">Carriers</a>
+        <a href="documents.html">Documents</a>
+      </nav>
+    </aside>
+
+    <main class="content dispatch-packet-page">
+      <div class="page-header">
+        <div>
+          <h1>Dispatch Packet</h1>
+          <p>Driver-ready load instructions, documents, and status updates in one place.</p>
+        </div>
+        <div class="quick-actions">
+          <a class="view secondary-action" id="loadDetailsLink" href="loads.html">Load Details</a>
+          <a class="view secondary-action" href="loads.html">All Loads</a>
+        </div>
+      </div>
+
+      <section class="card dispatch-packet-hero">
+        <div>
+          <p class="section-eyebrow">Assigned Load</p>
+          <h2 id="packetLoadTitle">Loading...</h2>
+          <p id="packetLane">-</p>
+        </div>
+        <span id="packetStatus" class="status-pill caution">Loading</span>
+      </section>
+
+      <section class="dispatch-packet-grid">
+        <article class="card dispatch-packet-card">
+          <p class="section-eyebrow">Pickup</p>
+          <h2 id="pickupLocation">N/A</h2>
+          <dl class="dispatch-meta">
+            <div><dt>Date / Time</dt><dd id="pickupDateTime">N/A</dd></div>
+            <div><dt>Shipper</dt><dd id="shipperInfo">N/A</dd></div>
+          </dl>
+        </article>
+
+        <article class="card dispatch-packet-card">
+          <p class="section-eyebrow">Delivery</p>
+          <h2 id="deliveryLocation">N/A</h2>
+          <dl class="dispatch-meta">
+            <div><dt>Date / Time</dt><dd id="deliveryDateTime">N/A</dd></div>
+            <div><dt>Consignee</dt><dd id="consigneeInfo">N/A</dd></div>
+          </dl>
+        </article>
+      </section>
+
+      <section class="card dispatch-packet-card">
+        <div class="section-header">
+          <div>
+            <p class="section-eyebrow">Assignment</p>
+            <h2>Driver / Equipment</h2>
+          </div>
+        </div>
+        <dl class="dispatch-packet-summary">
+          <div><dt>Driver</dt><dd id="packetDriver">Unassigned</dd></div>
+          <div><dt>Truck</dt><dd id="packetTruck">Unassigned</dd></div>
+          <div><dt>Commodity</dt><dd id="packetCommodity">N/A</dd></div>
+          <div><dt>Weight</dt><dd id="packetWeight">N/A</dd></div>
+          <div><dt>Trailer</dt><dd id="packetTrailer">N/A</dd></div>
+          <div><dt>Temperature</dt><dd id="packetTemperature">N/A</dd></div>
+          <div><dt>Tracking</dt><dd id="packetTracking">N/A</dd></div>
+          <div><dt>Rate</dt><dd id="packetRate">N/A</dd></div>
+        </dl>
+      </section>
+
+      <section class="card dispatch-packet-card">
+        <div class="section-header">
+          <div>
+            <p class="section-eyebrow">Driver Workflow</p>
+            <h2>Status Updates</h2>
+          </div>
+        </div>
+        <div class="dispatch-action-grid" id="dispatchActionGrid">
+          <button type="button" class="view" data-packet-event="accepted">Accept Load</button>
+          <button type="button" class="view" data-packet-event="arrived_pickup">Arrived Pickup</button>
+          <button type="button" class="view" data-packet-event="loaded">Loaded</button>
+          <button type="button" class="view" data-packet-event="in_transit">In Transit</button>
+          <button type="button" class="view" data-packet-event="arrived_delivery">Arrived Delivery</button>
+          <button type="button" class="view" data-packet-event="delivered">Delivered</button>
+          <button type="button" class="view secondary-action" data-packet-event="pod_received">POD Received</button>
+        </div>
+        <p id="packetActionMessage" class="message"></p>
+      </section>
+
+      <section class="dispatch-packet-grid">
+        <article class="card dispatch-packet-card">
+          <div class="section-header">
+            <div>
+              <p class="section-eyebrow">Instructions</p>
+              <h2>Load Requirements</h2>
+            </div>
+          </div>
+          <div id="packetInstructions" class="dispatch-instruction-list"></div>
+        </article>
+
+        <article class="card dispatch-packet-card">
+          <div class="section-header">
+            <div>
+              <p class="section-eyebrow">Documents</p>
+              <h2>Dispatch Files</h2>
+            </div>
+          </div>
+          <div id="packetDocuments" class="dispatch-doc-list"></div>
+        </article>
+      </section>
+
+      <section class="card dispatch-packet-card">
+        <div class="section-header">
+          <div>
+            <p class="section-eyebrow">Driver Upload</p>
+            <h2>Attach POD, BOL, Receipt, or Other File</h2>
+          </div>
+        </div>
+        <form id="packetDocumentForm" class="form">
+          <div class="field">
+            <label>Document Type</label>
+            <select name="document_type">
+              <option value="pod">Proof of Delivery</option>
+              <option value="bol">Bill of Lading</option>
+              <option value="lumper_receipt">Lumper Receipt</option>
+              <option value="scale_ticket">Scale Ticket</option>
+              <option value="accessorial_receipt">Accessorial Receipt</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>File</label>
+            <input id="packetDocumentFile" name="document_file" type="file" required />
+          </div>
+          <div class="field">
+            <label>Notes</label>
+            <textarea name="notes" placeholder="Optional notes for dispatch"></textarea>
+          </div>
+          <button type="submit" class="btn">Upload Document</button>
+        </form>
+        <p id="packetDocumentMessage" class="message"></p>
+      </section>
+
+      <p id="dispatchPacketMessage" class="message"></p>
+    </main>
+  </div>
+  <script src="companyContext.js"></script>
+  <script src="dispatch-packet.js"></script>
+</body>
+</html>
