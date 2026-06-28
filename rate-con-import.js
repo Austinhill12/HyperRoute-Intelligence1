@@ -11,6 +11,8 @@ const form = document.getElementById("rateConReviewForm");
 const msg = document.getElementById("rateConMessage");
 const confidenceBadge = document.getElementById("rateConConfidence");
 const checklist = document.getElementById("rateConChecklist");
+const reviewNotice = document.getElementById("rateConReviewNotice");
+const createLoadButton = document.getElementById("createRateConLoadButton");
 
 let selectedFile = null;
 let extractedText = "";
@@ -31,6 +33,7 @@ async function initRateConImport() {
     window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
   }
   renderChecklist({});
+  updateReviewState({});
 }
 
 function bindEvents() {
@@ -38,6 +41,7 @@ function bindEvents() {
   extractButton.addEventListener("click", extractRateCon);
   clearButton.addEventListener("click", resetImport);
   form.addEventListener("submit", createLoadFromRateCon);
+  form.addEventListener("input", handleReviewEdit);
 
   ["dragenter", "dragover"].forEach(eventName => {
     dropZone.addEventListener(eventName, event => {
@@ -91,6 +95,7 @@ async function extractRateCon() {
     renderChecklist(currentExtraction);
     updateConfidence(currentExtraction);
     currentImportId = await saveImportDraft(currentExtraction);
+    updateReviewState(currentExtraction);
     setMessage("Review the extracted fields, correct anything needed, then create the load.", "#047857");
   } catch (err) {
     console.error(err);
@@ -212,6 +217,11 @@ function fillReviewForm(data) {
   });
 }
 
+function handleReviewEdit() {
+  const data = Object.fromEntries(new FormData(form).entries());
+  updateReviewState(data);
+}
+
 async function createLoadFromRateCon(event) {
   event.preventDefault();
 
@@ -227,6 +237,14 @@ async function createLoadFromRateCon(event) {
   }
 
   const reviewData = normalizeReviewData(Object.fromEntries(new FormData(form).entries()));
+  const readiness = calculateConfidence(reviewData);
+  const blockers = readiness.items.filter(item => item.requiredForCreate && !item.ok);
+  if (blockers.length) {
+    updateReviewState(reviewData);
+    setMessage(`Review required: ${blockers.map(item => item.label).join(", ")} must be filled before creating the load.`, "#ef4444");
+    return;
+  }
+
   const loadPayload = window.CompanyContext.withCompanyId({
     ...reviewData,
     customer: reviewData.customer_name || null,
@@ -358,9 +376,10 @@ async function markImportCreated(importId, loadId, reviewData) {
 function renderChecklist(data) {
   const confidence = calculateConfidence(data);
   checklist.innerHTML = confidence.items.map(item => `
-    <div class="rate-con-check ${item.ok ? "pass" : "warning"}">
-      <span>${item.ok ? "OK" : "!"}</span>
+    <div class="rate-con-check ${item.ok ? "pass" : item.requiredForCreate ? "danger" : "warning"}">
+      <span>${item.ok ? "OK" : item.requiredForCreate ? "!" : "?"}</span>
       <strong>${escapeHtml(item.label)}</strong>
+      <small>${escapeHtml(item.ok ? "Ready" : item.requiredForCreate ? "Required" : "Review")}</small>
     </div>
   `).join("");
 }
@@ -373,18 +392,80 @@ function updateConfidence(data) {
 
 function calculateConfidence(data = {}) {
   const required = [
-    ["load_number", "Load #"],
-    ["pickup_location", "Pickup"],
-    ["delivery_location", "Delivery"],
-    ["pickup_date", "Pickup date"],
-    ["delivery_date", "Delivery date"],
-    ["rate", "Rate"],
-    ["commodity", "Commodity"],
-    ["loaded_miles", "Miles"]
+    ["load_number", "Load #", true],
+    ["pickup_location", "Pickup", true],
+    ["delivery_location", "Delivery", true],
+    ["pickup_date", "Pickup date", true],
+    ["delivery_date", "Delivery date", true],
+    ["rate", "Rate", true],
+    ["commodity", "Commodity", false],
+    ["loaded_miles", "Miles", false],
+    ["weight", "Weight", false],
+    ["trailer_type", "Trailer", false],
+    ["broker_name", "Broker", false]
   ];
-  const items = required.map(([key, label]) => ({ key, label, ok: Boolean(data[key]) }));
+  const items = required.map(([key, label, requiredForCreate]) => ({
+    key,
+    label,
+    requiredForCreate,
+    ok: hasReviewValue(data[key])
+  }));
   const score = Math.round((items.filter(item => item.ok).length / items.length) * 100);
   return { score, items };
+}
+
+function hasReviewValue(value) {
+  return value !== undefined && value !== null && String(value).trim() !== "";
+}
+
+function updateReviewState(data = {}) {
+  const confidence = calculateConfidence(data);
+  const blockers = confidence.items.filter(item => item.requiredForCreate && !item.ok);
+  const warnings = confidence.items.filter(item => !item.requiredForCreate && !item.ok);
+
+  renderChecklist(data);
+  updateConfidence(data);
+  markReviewFields(confidence.items);
+
+  if (createLoadButton) createLoadButton.disabled = blockers.length > 0;
+
+  if (!selectedFile && !currentExtraction) {
+    setReviewNotice("Upload a PDF to begin the dispatcher review.", "warning");
+    return;
+  }
+
+  if (blockers.length) {
+    setReviewNotice(`Needs review before load creation: ${blockers.map(item => item.label).join(", ")}.`, "danger");
+    return;
+  }
+
+  if (warnings.length) {
+    setReviewNotice(`Ready to create, but review optional fields: ${warnings.map(item => item.label).join(", ")}.`, "warning");
+    return;
+  }
+
+  setReviewNotice("Ready to create. Dispatcher should still confirm broker, stops, rate, and appointments before saving.", "success");
+}
+
+function setReviewNotice(text, tone) {
+  if (!reviewNotice) return;
+  reviewNotice.textContent = text;
+  reviewNotice.className = `rate-con-review-notice ${tone || "warning"}`;
+}
+
+function markReviewFields(items) {
+  if (!form?.querySelectorAll) return;
+
+  form.querySelectorAll(".field").forEach(field => {
+    field.classList.remove("needs-review", "ready-review", "optional-review");
+  });
+
+  items.forEach(item => {
+    const input = form.elements[item.key];
+    const field = input?.closest?.(".field");
+    if (!field) return;
+    field.classList.add(item.ok ? "ready-review" : item.requiredForCreate ? "needs-review" : "optional-review");
+  });
 }
 
 function normalizeReviewData(data) {
@@ -1194,6 +1275,7 @@ function resetImport() {
   confidenceBadge.textContent = "Waiting for PDF";
   confidenceBadge.className = "status-pill caution";
   renderChecklist({});
+  updateReviewState({});
   setMessage("", "");
 }
 
