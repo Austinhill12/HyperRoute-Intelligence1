@@ -4480,6 +4480,30 @@ td .secondary-action:hover {
   color: #0f172a;
 }
 
+.table-link {
+  color: #0788e8;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.table-link:hover {
+  color: #036fbe;
+  text-decoration: underline;
+}
+
+.profit-risk-chip {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 999px;
+  color: #9a3412;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 850;
+  margin: 2px 4px 2px 0;
+  padding: 5px 8px;
+  white-space: nowrap;
+}
+
 .grid-2 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

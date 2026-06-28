@@ -53,6 +53,7 @@
       renderLeakCards(intelligence.leaks);
       renderRecommendations(intelligence.recommendations);
       renderCustomerProfitability(intelligence.customerProfitability);
+      renderAtRiskLoads(intelligence.atRiskLoads);
       renderLeakDetails(intelligence.leaks);
       setMessage(intelligence.summary);
     } catch (err) {
@@ -103,10 +104,14 @@
 
     const deliveredLoads = loads.filter(load => normalize(load.status).includes("delivered") || normalize(load.status).includes("invoiced"));
     const invoiceLoadIds = new Set(invoices.map(invoice => String(invoice.load_id || "")).filter(Boolean));
-    const documentLoadIds = new Set(documents.map(document => String(document.load_id || "")).filter(Boolean));
+    const documentLoadIds = new Set(documents.map(getDocumentLoadId).filter(Boolean));
+    const podLoadIds = new Set(documents
+      .filter(document => ["pod", "proof_of_delivery", "delivery_receipt"].includes(normalize(document.document_type)))
+      .map(getDocumentLoadId)
+      .filter(Boolean));
 
     const deliveredNotInvoiced = deliveredLoads.filter(load => !invoiceLoadIds.has(String(load.id)));
-    const missingPodLoads = deliveredLoads.filter(load => !documentLoadIds.has(String(load.id)));
+    const missingPodLoads = deliveredLoads.filter(load => !podLoadIds.has(String(load.id)));
     const openInvoices = invoices.filter(invoice => !["paid", "void", "canceled", "cancelled"].includes(normalize(invoice.status)));
     const overdueInvoices = openInvoices.filter(invoice => {
       const dueDate = parseDate(invoice.due_date);
@@ -258,7 +263,13 @@
     const leakEstimate = actionableLeaks.reduce((total, leak) => total + toNumber(leak.impact), 0);
     const revenue = sum(monthLoads, totalLoadRevenue);
     const receivables = sum(openInvoices, invoiceTotal);
-    const customerProfitability = buildCustomerProfitability(loads);
+    const atRiskLoads = buildAtRiskLoads(loads, {
+      expenseByLoad,
+      invoiceLoadIds,
+      podLoadIds,
+      documentLoadIds,
+      today
+    });
 
     return {
       revenue,
@@ -271,10 +282,43 @@
         .sort((a, b) => (severityRank(b.severity) - severityRank(a.severity)) || (b.impact - a.impact))
         .slice(0, 5),
       customerProfitability: buildCustomerProfitability(loads, expenseByLoad),
+      atRiskLoads,
       summary: actionableLeaks.length
         ? `${actionableLeaks.length} profit leak areas need attention. Estimated revenue or cash at risk: ${formatCurrency(leakEstimate)}.`
         : "No major profit leaks found from current company data."
     };
+  }
+
+  function buildAtRiskLoads(loads, context) {
+    return loads.map(load => {
+      const revenue = totalLoadRevenue(load);
+      const cost = totalLoadCost(load, context.expenseByLoad);
+      const margin = revenue - cost;
+      const marginPercent = revenue ? (margin / revenue) * 100 : 0;
+      const loadedMiles = toNumber(load.loaded_miles);
+      const emptyMiles = toNumber(load.empty_miles);
+      const totalMiles = loadedMiles + emptyMiles;
+      const risks = [];
+
+      if (revenue <= 0) risks.push({ label: "Missing rate", action: "Add rate before reviewing profit." });
+      if (revenue > 0 && cost > 0 && marginPercent < 12) risks.push({ label: "Low margin", action: "Review pricing or unrecovered costs." });
+      if (totalMiles > 0 && emptyMiles / totalMiles > 0.2) risks.push({ label: "High deadhead", action: "Price empty miles or reduce deadhead." });
+      if (isDelivered(load) && !context.podLoadIds.has(String(load.id))) risks.push({ label: "Missing POD", action: "Collect POD before billing." });
+      if (isDelivered(load) && !context.invoiceLoadIds.has(String(load.id))) risks.push({ label: "Not invoiced", action: "Create invoice immediately." });
+      if (toNumber(load.detention_paid) > toNumber(load.detention_billed)) risks.push({ label: "Detention leak", action: "Bill detention or adjust terms." });
+
+      return {
+        load,
+        revenue,
+        cost,
+        margin,
+        marginPercent,
+        risks
+      };
+    })
+      .filter(row => row.risks.length)
+      .sort((a, b) => (b.risks.length - a.risks.length) || (a.marginPercent - b.marginPercent))
+      .slice(0, 12);
   }
 
   function buildCustomerProfitability(loads, expenseByLoad) {
@@ -358,6 +402,33 @@
     `).join("");
   }
 
+  function renderAtRiskLoads(rows) {
+    const body = document.getElementById("atRiskLoadRows");
+    if (!body) return;
+
+    if (!rows.length) {
+      body.innerHTML = `<tr><td colspan="6">No at-risk loads found from current data.</td></tr>`;
+      return;
+    }
+
+    body.innerHTML = rows.map(row => {
+      const load = row.load;
+      return `
+        <tr>
+          <td>
+            <a class="table-link" href="load-details.html?id=${encodeURIComponent(load.id)}">${escapeHtml(load.load_number || `Load ${load.id}`)}</a>
+            <span class="muted-line">${escapeHtml(load.customer_name || load.customer || "No customer")}</span>
+          </td>
+          <td>${row.risks.map(risk => `<span class="profit-risk-chip">${escapeHtml(risk.label)}</span>`).join("")}</td>
+          <td>${formatCurrency(row.revenue)}</td>
+          <td>${formatCurrency(row.cost)}</td>
+          <td>${formatCurrency(row.margin)} (${formatPercent(row.marginPercent)})</td>
+          <td>${escapeHtml(row.risks[0]?.action || "Review load.")}</td>
+        </tr>
+      `;
+    }).join("");
+  }
+
   function renderLeakDetails(leaks) {
     const body = document.getElementById("leakDetailsRows");
     if (!body) return;
@@ -383,6 +454,8 @@
     if (recommendations) recommendations.innerHTML = "";
     const customerRows = document.getElementById("customerProfitRows");
     if (customerRows) customerRows.innerHTML = `<tr><td colspan="4">No data available.</td></tr>`;
+    const atRiskRows = document.getElementById("atRiskLoadRows");
+    if (atRiskRows) atRiskRows.innerHTML = `<tr><td colspan="6">No data available.</td></tr>`;
     const leakRows = document.getElementById("leakDetailsRows");
     if (leakRows) leakRows.innerHTML = `<tr><td colspan="4">No data available.</td></tr>`;
   }
@@ -418,6 +491,17 @@
       map.set(key, toNumber(map.get(key)) + toNumber(expense.amount));
     });
     return map;
+  }
+
+  function getDocumentLoadId(document) {
+    if (document.load_id) return String(document.load_id);
+    if (normalize(document.entity_type) === "load" && document.entity_id) return String(document.entity_id);
+    return "";
+  }
+
+  function isDelivered(load) {
+    const status = normalize(load.status);
+    return ["delivered", "pod_received", "invoiced", "paid", "closed"].some(value => status.includes(value));
   }
 
   function sum(rows, selector) {
