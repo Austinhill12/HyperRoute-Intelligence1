@@ -4671,6 +4671,75 @@ td .secondary-action:hover {
   font-size: 12px;
 }
 
+.load-documents-hub .section-header p {
+  color: var(--muted);
+  margin: 4px 0 0;
+}
+
+.load-document-checklist {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  margin: 14px 0 18px;
+}
+
+.load-document-check {
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 2px 8px;
+  grid-template-columns: 28px 1fr;
+  padding: 10px;
+}
+
+.load-document-check span {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 850;
+  grid-row: span 2;
+  height: 26px;
+  justify-content: center;
+  width: 26px;
+}
+
+.load-document-check strong {
+  color: #172033;
+  font-size: 13px;
+}
+
+.load-document-check small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.load-document-check.complete {
+  border-color: #bbf7d0;
+}
+
+.load-document-check.complete span {
+  background: #dcfce7;
+  color: #047857;
+}
+
+.load-document-check.missing {
+  border-color: #fecaca;
+}
+
+.load-document-check.missing span {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.load-document-check.optional span {
+  background: #fffbeb;
+  color: #92400e;
+}
+
 @media (max-width: 900px) {
   .sidebar {
     padding: 18px;

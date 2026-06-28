@@ -311,8 +311,15 @@
         </table>
       </section>
 
-      <section class="card" style="margin-top: 30px;">
-        <h2>Add Load Document</h2>
+      <section class="card load-documents-hub" style="margin-top: 30px;">
+        <div class="section-header">
+          <div>
+            <p class="section-eyebrow">Documents Hub</p>
+            <h2>Load Paperwork</h2>
+            <p>Keep rate confirmations, BOLs, PODs, receipts, and invoices tied directly to this load.</p>
+          </div>
+        </div>
+        <div id="loadDocumentChecklist" class="load-document-checklist"></div>
         <form id="loadDocumentForm" class="form">
           <div class="field">
             <label>Document Type</label>
@@ -321,6 +328,8 @@
               <option value="bol">BOL</option>
               <option value="pod">POD</option>
               <option value="lumper_receipt">Lumper Receipt</option>
+              <option value="accessorial_receipt">Accessorial Receipt</option>
+              <option value="scale_ticket">Scale Ticket</option>
               <option value="fuel_receipt">Fuel Receipt</option>
               <option value="invoice">Invoice</option>
               <option value="other">Other</option>
@@ -329,7 +338,11 @@
 
           <div class="field">
             <label>Upload File</label>
-            <input id="documentFile" name="document_file" type="file" />
+            <label id="loadDocumentDropzone" class="document-dropzone" for="documentFile">
+              <input id="documentFile" name="document_file" type="file" />
+              <span>Drop document here or click to upload</span>
+              <small>Rate confirmation, BOL, POD, invoice, receipt, or other load paperwork</small>
+            </label>
           </div>
 
           <div class="field">
@@ -342,8 +355,13 @@
         <p id="loadDocumentMessage" class="message"></p>
       </section>
 
-      <section class="card" style="margin-top: 30px;">
-        <h2>Load Documents</h2>
+      <section class="card load-documents-table-card" style="margin-top: 30px;">
+        <div class="section-header">
+          <div>
+            <p class="section-eyebrow">Attached Files</p>
+            <h2>Load Documents</h2>
+          </div>
+        </div>
         <table class="data-table">
           <thead>
             <tr>
