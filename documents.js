@@ -51,7 +51,7 @@ async function loadDocuments() {
 
   const [documentRes, loadRes, invoiceRes] = await Promise.all([
     fetch(window.CompanyContext.scopedUrl("documents", "select=*&order=created_at.desc"), { headers: getHeaders() }),
-    fetch(window.CompanyContext.scopedUrl("loads", "select=id,load_number,customer_name,customer,status,pickup_date,delivery_date,dropoff_date,rate,required_documents&order=delivery_date.asc"), { headers: getHeaders() }),
+    fetch(window.CompanyContext.scopedUrl("loads", "select=id,load_number,customer_name,customer,status,pickup_location,delivery_location,dropoff_location,pickup_date,delivery_date,dropoff_date,rate,required_documents&order=delivery_date.asc"), { headers: getHeaders() }),
     fetch(window.CompanyContext.scopedUrl("invoices", "select=id,load_id,invoice_number,status,total_amount,due_date"), { headers: getHeaders() })
   ]);
 
@@ -91,18 +91,19 @@ async function uploadDocument(event) {
   msg.style.color = "";
 
   try {
-    const filePath = buildStoragePath(companyId, data.entity_type, data.entity_id, file.name);
+    const cleanFileName = buildDocumentFileName(data, file);
+    const filePath = buildStoragePath(companyId, data.entity_type, data.entity_id, cleanFileName);
     await uploadFile(filePath, file);
 
     const documentRecord = window.CompanyContext.withCompanyId({
       entity_type: data.entity_type,
       entity_id: data.entity_id || null,
       document_type: data.document_type,
-      file_name: file.name,
+      file_name: cleanFileName,
       file_path: filePath,
       file_size: file.size,
       mime_type: file.type || "application/octet-stream",
-      notes: data.notes || null
+      notes: buildDocumentNotes(data.notes, file.name, cleanFileName)
     });
 
     msg.textContent = "Saving document record...";
@@ -317,6 +318,35 @@ function renderDocuments(rows) {
   });
 }
 
+function buildDocumentFileName(data, file) {
+  const extension = getFileExtension(file.name);
+  const documentType = normalizeDocumentType(data.document_type || "other").toUpperCase();
+  const dateStamp = new Date().toISOString().slice(0, 10);
+
+  if (data.entity_type === "load" && data.entity_id) {
+    const load = findLoadById(data.entity_id);
+    const loadLabel = sanitizeFileName(load?.load_number || `LD-${data.entity_id}`);
+    return `${loadLabel}_${documentType}_${dateStamp}${extension}`;
+  }
+
+  const entityLabel = sanitizeFileName(data.entity_type || "GENERAL").toUpperCase();
+  return `${entityLabel}_${documentType}_${dateStamp}${extension}`;
+}
+
+function buildDocumentNotes(notes, originalFileName, cleanFileName) {
+  const parts = [];
+  if (notes) parts.push(notes);
+  if (originalFileName && originalFileName !== cleanFileName) {
+    parts.push(`Original file: ${originalFileName}`);
+  }
+  return parts.length ? parts.join(" | ") : null;
+}
+
+function getFileExtension(fileName) {
+  const match = String(fileName || "").match(/(\.[a-zA-Z0-9]{1,8})$/);
+  return match ? match[1].toLowerCase() : "";
+}
+
 async function downloadDocument(documentId) {
   const documentRow = documents.find(row => String(row.id) === String(documentId));
   if (!documentRow) return;
@@ -392,8 +422,19 @@ function sanitizeFileName(value) {
 }
 
 function formatAttachedTo(documentRow) {
+  if (documentRow.entity_type === "load" && documentRow.entity_id) {
+    const load = findLoadById(documentRow.entity_id);
+    const label = load?.load_number || documentRow.entity_id;
+    const lane = [load?.pickup_location, load?.delivery_location || load?.dropoff_location].filter(Boolean).join(" to ");
+    return `Load ${escapeHtml(label)}${lane ? ` (${escapeHtml(lane)})` : ""}`;
+  }
+
   const type = formatStatus(documentRow.entity_type || "general");
   return documentRow.entity_id ? `${type} #${escapeHtml(documentRow.entity_id)}` : type;
+}
+
+function findLoadById(loadId) {
+  return documentLoads.find(load => String(load.id) === String(loadId)) || null;
 }
 
 function formatStatus(value) {
