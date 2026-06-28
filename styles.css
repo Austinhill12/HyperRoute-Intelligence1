@@ -1244,6 +1244,20 @@ button:disabled,
   margin: 14px 0;
 }
 
+.driver-packet-actions {
+  display: flex;
+  margin: 14px 0;
+}
+
+.driver-packet-link {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+  min-height: 46px;
+  text-decoration: none;
+  width: 100%;
+}
+
 .driver-status-actions button {
   border: 0;
   cursor: pointer;
@@ -4954,6 +4968,19 @@ td .secondary-action:hover {
   .dispatch-packet-hero {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .driver-status-actions,
+  .driver-packet-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .driver-status-actions button,
+  .dispatch-action-grid .view,
+  .driver-packet-link {
+    min-height: 48px;
+    width: 100%;
   }
 
   .dispatcher-load-meta {

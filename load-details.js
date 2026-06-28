@@ -84,6 +84,7 @@ async function loadDetails() {
     document.getElementById("createTenderLink").href = `tender-load.html?id=${load.id}`;
     document.getElementById("dispatchPacketLink").href = `dispatch-packet.html?id=${load.id}`;
     document.getElementById("rateConfirmationLink").href = `rate-confirmation.html?id=${load.id}`;
+    setupDispatchPacketActions(load);
     setupTrackingActions(load);
     await loadTenders(load.id);
     await loadCommunications(load.id);
@@ -405,6 +406,17 @@ function setupTrackingActions(load) {
     window.location.href = phoneNumber ? `sms:${phoneNumber}?&body=${smsBody}` : `sms:?&body=${smsBody}`;
     showTrackingMessage(phoneNumber ? "SMS message opened." : "SMS message opened. Add the customer phone before sending.");
     await recordTrackingSentEvent(phoneNumber ? `Tracking SMS opened for ${phoneNumber}.` : "Tracking SMS opened.");
+  };
+}
+
+function setupDispatchPacketActions(load) {
+  const copyButton = document.getElementById("copyDispatchPacketLink");
+  if (!copyButton) return;
+
+  const packetUrl = new URL(`dispatch-packet.html?id=${load.id}`, window.location.href).href;
+  copyButton.onclick = async () => {
+    await copyText(packetUrl);
+    showTrackingMessage("Dispatch packet link copied.");
   };
 }
 
