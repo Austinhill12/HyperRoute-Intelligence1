@@ -258,6 +258,7 @@ async function createLoadFromRateCon(event) {
 
   try {
     setMessage("Creating load from rate confirmation...", "");
+    await ensureRateConCustomer(reviewData);
     const load = await insertLoad(loadPayload);
     await createInitialLoadEvent(load);
     await uploadAndAttachRateCon(load, selectedFile, reviewData);
@@ -268,6 +269,70 @@ async function createLoadFromRateCon(event) {
     console.error(err);
     setMessage(`Error creating load: ${friendlyError(err.message)}`, "#ef4444");
   }
+}
+
+async function ensureRateConCustomer(reviewData) {
+  const customerName = (reviewData.customer_name || reviewData.broker_name || "").trim();
+  if (!customerName) return null;
+
+  const existing = await findCustomerByName(customerName);
+  if (existing) return existing;
+
+  const contact = parseContactLine(reviewData.broker_contact || "");
+  const payload = window.CompanyContext.withCompanyId({
+    company_name: customerName,
+    customer_type: reviewData.customer_name ? "shipper" : "broker",
+    contact_name: contact.name || null,
+    phone: contact.phone || null,
+    email: contact.email || null,
+    payment_terms: "Net 30",
+    status: "active",
+    notes: [
+      "Auto-created from Rate Con Import.",
+      reviewData.broker_name ? `Broker: ${reviewData.broker_name}` : "",
+      reviewData.broker_mc_number ? `Broker MC: ${reviewData.broker_mc_number}` : "",
+      reviewData.rate_confirmation_number ? `Rate Con #: ${reviewData.rate_confirmation_number}` : ""
+    ].filter(Boolean).join(" ")
+  });
+
+  const res = await fetch(`${BASE_URL}/rest/v1/customers`, {
+    method: "POST",
+    headers: getHeaders({ "Content-Type": "application/json", Prefer: "return=representation" }),
+    body: JSON.stringify(payload)
+  });
+
+  const result = await res.json();
+  if (!res.ok) {
+    console.warn("Could not auto-create customer from rate con:", result);
+    return null;
+  }
+
+  return Array.isArray(result) ? result[0] : result;
+}
+
+async function findCustomerByName(customerName) {
+  const safeName = customerName.replace(/"/g, '\\"');
+  const query = `select=*&company_name=eq.${encodeURIComponent(safeName)}&limit=1`;
+  const url = window.CompanyContext?.scopedUrl("customers", query) || `${BASE_URL}/rest/v1/customers?${query}`;
+  const res = await fetch(url, { headers: getHeaders() });
+  if (!res.ok) return null;
+  const rows = await res.json();
+  return Array.isArray(rows) && rows.length ? rows[0] : null;
+}
+
+function parseContactLine(value) {
+  const text = String(value || "").trim();
+  const email = firstValue(text, [/([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/i]);
+  const phone = firstValue(text, [/(\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}(?:\s*(?:x|ext\.?)\s*\d+)?)/i]);
+  let name = text
+    .replace(email || "", "")
+    .replace(phone || "", "")
+    .replace(/\b(?:carrier|sales|dispatch|phone|email|tel|x|ext)\b/gi, " ")
+    .replace(/[|/;,]+/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  if (name.length > 80) name = "";
+  return { name, phone, email };
 }
 
 async function insertLoad(payload) {
