@@ -158,6 +158,7 @@ function renderLoadProfitSnapshot(load = currentLoad, expenses = currentLoadExpe
 
 function renderRouteSummary(load = currentLoad) {
   const container = document.getElementById("routeSummary");
+  const qualityPanel = document.getElementById("routeQualityPanel");
   const confidence = document.getElementById("routeConfidence");
   if (!container || !confidence || !load) return;
 
@@ -170,9 +171,10 @@ function renderRouteSummary(load = currentLoad) {
   const tollCost = toNumber(load.toll_cost);
   const estimatedDriveHours = totalMiles ? totalMiles / 55 : 0;
   const routeComplete = Boolean(origin && destination && totalMiles);
+  const routeQuality = buildRouteQualityChecks({ origin, destination, loadedMiles, emptyMiles, totalMiles, fuelCost, tollCost });
 
-  confidence.textContent = routeComplete ? "Ready" : "Needs miles";
-  confidence.className = `status-pill ${routeComplete ? "success" : "warning"}`;
+  confidence.textContent = routeQuality.ready ? "Route Ready" : `${routeQuality.issues} issue${routeQuality.issues === 1 ? "" : "s"}`;
+  confidence.className = `status-pill ${routeQuality.ready ? "success" : "warning"}`;
 
   container.innerHTML = `
     <article>
@@ -204,6 +206,55 @@ function renderRouteSummary(load = currentLoad) {
       <small>Feeds profit snapshot.</small>
     </article>
   `;
+
+  if (qualityPanel) {
+    qualityPanel.innerHTML = `
+      <div>
+        <p class="section-eyebrow">Route Estimate Quality</p>
+        <h3>${routeQuality.ready ? "Ready for profit review" : "Route estimate needs review"}</h3>
+      </div>
+      <div class="route-quality-checks">
+        ${routeQuality.checks.map(check => `
+          <span class="${escapeHtml(check.status)}">
+            <strong>${check.status === "ok" ? "OK" : "!"}</strong>
+            ${escapeHtml(check.label)}
+          </span>
+        `).join("")}
+      </div>
+    `;
+  }
+}
+
+function buildRouteQualityChecks({ origin, destination, loadedMiles, emptyMiles, totalMiles, fuelCost, tollCost }) {
+  const deadheadPercent = totalMiles ? emptyMiles / totalMiles : 0;
+  const checks = [
+    {
+      label: origin && destination ? "Origin and destination set" : "Missing origin or destination",
+      status: origin && destination ? "ok" : "warning"
+    },
+    {
+      label: loadedMiles ? "Loaded miles entered" : "Loaded miles missing",
+      status: loadedMiles ? "ok" : "warning"
+    },
+    {
+      label: totalMiles ? `${totalMiles.toLocaleString()} total miles` : "Total miles unavailable",
+      status: totalMiles ? "ok" : "warning"
+    },
+    {
+      label: deadheadPercent > 0.2 ? `High deadhead: ${Math.round(deadheadPercent * 100)}%` : "Deadhead looks acceptable",
+      status: !totalMiles || deadheadPercent > 0.2 ? "warning" : "ok"
+    },
+    {
+      label: fuelCost ? "Fuel estimate entered" : "Fuel estimate missing",
+      status: fuelCost ? "ok" : "warning"
+    },
+    {
+      label: tollCost ? "Toll estimate entered" : "No toll estimate entered",
+      status: tollCost ? "ok" : "neutral"
+    }
+  ];
+  const issues = checks.filter(check => check.status === "warning").length;
+  return { checks, issues, ready: issues === 0 };
 }
 
 function getRouteOrigin(load = {}) {

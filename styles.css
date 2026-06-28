@@ -691,6 +691,69 @@ tbody tr:hover {
   margin-top: 5px;
 }
 
+.route-quality-panel {
+  align-items: flex-start;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 220px minmax(0, 1fr);
+  margin-top: 14px;
+  padding: 14px;
+}
+
+.route-quality-panel h3 {
+  color: #172033;
+  font-size: 16px;
+  margin: 4px 0 0;
+}
+
+.route-quality-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.route-quality-checks span {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: #334155;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 800;
+  gap: 6px;
+  min-height: 34px;
+  padding: 8px 10px;
+}
+
+.route-quality-checks strong {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 10px;
+  height: 18px;
+  justify-content: center;
+  min-width: 18px;
+}
+
+.route-quality-checks .ok strong {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.route-quality-checks .warning strong {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.route-quality-checks .neutral strong {
+  background: #e2e8f0;
+  color: #475569;
+}
+
 .route-planner-editor {
   border-top: 1px solid var(--border);
   margin-top: 16px;
@@ -751,6 +814,7 @@ tbody tr:hover {
   .load-profit-breakdown,
   .trip-cost-form,
   .route-summary-grid,
+  .route-quality-panel,
   .route-planner-form {
     grid-template-columns: 1fr;
   }
