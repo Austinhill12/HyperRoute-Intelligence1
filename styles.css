@@ -3390,6 +3390,38 @@ td .delete {
   vertical-align: middle;
 }
 
+.load-row-actions {
+  align-items: stretch;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(78px, 1fr));
+  max-width: 190px;
+}
+
+.load-row-actions .view,
+.load-row-actions .delete {
+  margin: 0;
+  min-height: 38px;
+  padding: 9px 10px;
+  width: 100%;
+}
+
+.load-row-actions .delete {
+  grid-column: 2;
+}
+
+@media (max-width: 900px) {
+  .load-row-actions {
+    grid-template-columns: 1fr;
+    max-width: none;
+    min-width: 130px;
+  }
+
+  .load-row-actions .delete {
+    grid-column: auto;
+  }
+}
+
 /* ==========================================
    CUSTOMER LOAD TRACKING
 ========================================== */

@@ -58,11 +58,13 @@ function renderLoads(loads, driverMap, truckMap) {
       <td>${formatCurrency(load.rate)}</td>
       <td>${formatMargin(load)}</td>
       <td>
-        <a class="view" href="load-details.html?id=${load.id}">View</a>
-        <a class="view" href="edit-load.html?id=${load.id}">Edit</a>
-        <a class="view secondary-action" href="${trackingUrl}" target="_blank" rel="noopener">Tracking</a>
-        <button class="view secondary-action" type="button" data-copy-tracking="${load.id}">Copy Link</button>
-        <button class="delete" data-delete="${load.id}">Delete</button>
+        <div class="load-row-actions">
+          <a class="view" href="load-details.html?id=${load.id}">View</a>
+          <a class="view" href="edit-load.html?id=${load.id}">Edit</a>
+          <a class="view secondary-action" href="${trackingUrl}" target="_blank" rel="noopener">Tracking</a>
+          <button class="view secondary-action" type="button" data-copy-tracking="${load.id}">Copy Link</button>
+          <button class="delete" data-delete="${load.id}">Delete</button>
+        </div>
       </td>
     `;
 
