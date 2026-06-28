@@ -30,6 +30,7 @@ let companySettings = null;
 let loadTenderCarriers = new Map();
 let currentLoadDocuments = [];
 let currentLoadInvoices = [];
+let currentLoadExpenses = [];
 
 function getHeaders(extra = {}) {
   return {
@@ -104,24 +105,114 @@ async function loadDetails() {
 }
 
 function renderProfitSummary(load) {
-  const revenue = toNumber(load.rate) + toNumber(load.detention_billed) + toNumber(load.accessorial_billed);
-  const cost = toNumber(load.carrier_rate) + toNumber(load.fuel_cost) + toNumber(load.toll_cost) +
-    toNumber(load.detention_paid) + toNumber(load.lumper_cost) + toNumber(load.other_costs);
-  const profit = revenue - cost;
+  const totals = calculateLoadProfit(load, currentLoadExpenses);
   const loadedMiles = toNumber(load.loaded_miles);
   const emptyMiles = toNumber(load.empty_miles);
-  const totalMiles = loadedMiles + emptyMiles;
-  const profitPerMile = totalMiles ? profit / totalMiles : 0;
 
-  setText("estimatedProfit", `${formatCurrency(profit)}${totalMiles ? ` (${formatCurrency(profitPerMile)}/mi)` : ""}`);
-  setText("loadMiles", totalMiles ? `${loadedMiles.toLocaleString()} loaded / ${emptyMiles.toLocaleString()} empty` : "N/A");
+  setText("estimatedProfit", `${formatCurrency(totals.profit)}${totals.totalMiles ? ` (${formatCurrency(totals.netPerMile)}/mi)` : ""}`);
+  setText("loadMiles", totals.totalMiles ? `${loadedMiles.toLocaleString()} loaded / ${emptyMiles.toLocaleString()} empty` : "N/A");
   setText("costBreakdown", [
-    `Carrier ${formatCurrency(load.carrier_rate)}`,
-    `Fuel ${formatCurrency(load.fuel_cost)}`,
-    `Tolls ${formatCurrency(load.toll_cost)}`,
-    `Detention paid ${formatCurrency(load.detention_paid)}`,
-    `Other ${formatCurrency(toNumber(load.lumper_cost) + toNumber(load.other_costs))}`
+    `Carrier ${formatCurrency(totals.carrierCost)}`,
+    `Fuel ${formatCurrency(totals.fuelCost)}`,
+    `Tolls ${formatCurrency(totals.tollCost)}`,
+    `Other ${formatCurrency(totals.otherCost)}`
   ].join(" | "));
+  renderLoadProfitSnapshot(load, currentLoadExpenses);
+}
+
+function renderLoadProfitSnapshot(load = currentLoad, expenses = currentLoadExpenses) {
+  const container = document.getElementById("loadProfitSnapshot");
+  const health = document.getElementById("loadProfitHealth");
+  if (!container || !health || !load) return;
+
+  const totals = calculateLoadProfit(load, expenses);
+  const warnings = buildProfitWarnings(load, totals);
+  const marginClass = totals.marginPercent >= 20 ? "success" : totals.marginPercent >= 10 ? "caution" : "warning";
+
+  health.textContent = warnings.length ? `${warnings.length} warning${warnings.length === 1 ? "" : "s"}` : "Healthy";
+  health.className = `status-pill ${warnings.length ? "warning" : "success"}`;
+
+  container.innerHTML = `
+    <div class="load-profit-grid">
+      ${profitMetric("Revenue", formatCurrency(totals.revenue), "Linehaul plus billed accessorials.")}
+      ${profitMetric("Total Cost", formatCurrency(totals.totalCost), "Carrier/driver cost plus trip expenses.")}
+      ${profitMetric("Profit", formatCurrency(totals.profit), `${totals.marginPercent}% margin`, marginClass)}
+      ${profitMetric("Net / Mile", totals.totalMiles ? formatCurrency(totals.netPerMile) : "N/A", `${totals.totalMiles || 0} total miles`)}
+    </div>
+    <div class="load-profit-breakdown">
+      <div><span>Carrier / Driver</span><strong>${formatCurrency(totals.carrierCost)}</strong></div>
+      <div><span>Fuel</span><strong>${formatCurrency(totals.fuelCost)}</strong></div>
+      <div><span>Tolls</span><strong>${formatCurrency(totals.tollCost)}</strong></div>
+      <div><span>Other Expenses</span><strong>${formatCurrency(totals.otherCost)}</strong></div>
+    </div>
+    <div class="load-profit-warnings">
+      ${warnings.length
+        ? warnings.map(warning => `<p><strong>!</strong> ${escapeHtml(warning)}</p>`).join("")
+        : `<p class="success-note"><strong>OK</strong> No major profit inputs are missing.</p>`}
+    </div>
+  `;
+}
+
+function profitMetric(label, value, detail, className = "") {
+  return `
+    <article class="load-profit-metric ${escapeHtml(className)}">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(value)}</strong>
+      <small>${escapeHtml(detail || "")}</small>
+    </article>
+  `;
+}
+
+function calculateLoadProfit(load, expenses = []) {
+  const activeExpenses = expenses.filter(expense => normalizeStatus(expense.status || "unreviewed") !== "rejected");
+  const revenue = toNumber(load.rate) + toNumber(load.detention_billed) + toNumber(load.accessorial_billed);
+  const carrierCost = toNumber(load.carrier_rate);
+  const loadFuel = toNumber(load.fuel_cost);
+  const loadTolls = toNumber(load.toll_cost);
+  const loadOther = toNumber(load.detention_paid) + toNumber(load.lumper_cost) + toNumber(load.other_costs);
+  const expenseFuel = sumExpenses(activeExpenses, ["fuel"]);
+  const expenseTolls = sumExpenses(activeExpenses, ["toll", "tolls"]);
+  const expenseOther = activeExpenses.reduce((sum, expense) => {
+    const category = normalizeStatus(expense.category);
+    return ["fuel", "toll", "tolls"].includes(category) ? sum : sum + toNumber(expense.amount);
+  }, 0);
+  const fuelCost = loadFuel + expenseFuel;
+  const tollCost = loadTolls + expenseTolls;
+  const otherCost = loadOther + expenseOther;
+  const totalCost = carrierCost + fuelCost + tollCost + otherCost;
+  const profit = revenue - totalCost;
+  const totalMiles = toNumber(load.loaded_miles) + toNumber(load.empty_miles);
+  const marginPercent = revenue ? Math.round((profit / revenue) * 100) : 0;
+
+  return {
+    revenue,
+    carrierCost,
+    fuelCost,
+    tollCost,
+    otherCost,
+    totalCost,
+    profit,
+    totalMiles,
+    marginPercent,
+    netPerMile: totalMiles ? profit / totalMiles : 0
+  };
+}
+
+function sumExpenses(expenses, categories) {
+  const normalized = new Set(categories.map(normalizeStatus));
+  return expenses.reduce((sum, expense) => (
+    normalized.has(normalizeStatus(expense.category)) ? sum + toNumber(expense.amount) : sum
+  ), 0);
+}
+
+function buildProfitWarnings(load, totals) {
+  const warnings = [];
+  if (!totals.revenue) warnings.push("Missing revenue/rate. Profit cannot be trusted.");
+  if (!totals.carrierCost) warnings.push("Missing carrier or driver cost.");
+  if (!totals.totalMiles) warnings.push("Missing loaded/empty miles for net-per-mile.");
+  if (!totals.fuelCost) warnings.push("No fuel cost or fuel receipt recorded.");
+  if (totals.revenue && totals.marginPercent < 10) warnings.push(`Low margin: ${totals.marginPercent}%. Review pricing or trip costs.`);
+  return warnings;
 }
 
 function setText(id, value) {
@@ -626,13 +717,19 @@ async function loadExpenses(loadId) {
 
     if (!res.ok) {
       tbody.innerHTML = `<tr><td colspan="6">Run Profit Intelligence v2 SQL to enable expense review.</td></tr>`;
+      currentLoadExpenses = [];
+      renderLoadProfitSnapshot();
       return;
     }
 
-    renderExpenses(await res.json());
+    currentLoadExpenses = await res.json();
+    renderExpenses(currentLoadExpenses);
+    renderLoadProfitSnapshot();
   } catch (err) {
     console.error(err);
     tbody.innerHTML = `<tr><td colspan="6">Error loading expenses.</td></tr>`;
+    currentLoadExpenses = [];
+    renderLoadProfitSnapshot();
   }
 }
 

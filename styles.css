@@ -514,6 +514,107 @@ tbody tr:hover {
   outline: none;
 }
 
+.load-profit-snapshot-card {
+  margin-top: 18px;
+}
+
+.load-profit-snapshot {
+  display: grid;
+  gap: 14px;
+}
+
+.load-profit-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.load-profit-metric {
+  background: #f8fbff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.load-profit-metric span,
+.load-profit-breakdown span {
+  color: var(--muted);
+  display: block;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.load-profit-metric strong {
+  color: #0f172a;
+  display: block;
+  font-size: 22px;
+  line-height: 1.15;
+  margin: 7px 0 4px;
+}
+
+.load-profit-metric small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.load-profit-metric.success {
+  border-color: rgba(22, 163, 74, .22);
+  background: #f0fdf4;
+}
+
+.load-profit-metric.caution {
+  border-color: rgba(245, 158, 11, .25);
+  background: #fffbeb;
+}
+
+.load-profit-metric.warning {
+  border-color: rgba(220, 38, 38, .22);
+  background: #fef2f2;
+}
+
+.load-profit-breakdown {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.load-profit-breakdown div {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.load-profit-breakdown strong {
+  color: #172033;
+  display: block;
+  font-size: 16px;
+  margin-top: 4px;
+}
+
+.load-profit-warnings {
+  display: grid;
+  gap: 8px;
+}
+
+.load-profit-warnings p {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  color: #7c2d12;
+  font-size: 13px;
+  line-height: 1.35;
+  padding: 10px 12px;
+}
+
+.load-profit-warnings .success-note {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
 @media (max-width: 700px) {
   .details-card .actions {
     display: grid;
@@ -530,6 +631,11 @@ tbody tr:hover {
     margin-top: 8px;
     min-width: 0;
     width: 100%;
+  }
+
+  .load-profit-grid,
+  .load-profit-breakdown {
+    grid-template-columns: 1fr;
   }
 }
 
