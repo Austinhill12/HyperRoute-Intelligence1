@@ -80,16 +80,21 @@
         </div>
         <div class="actions">
           <a class="view" id="editLoadLink" href="#">Edit Load</a>
-          <a class="view" id="tenderLoadLink" href="#">Tender Load</a>
-          <a class="view secondary-action" id="dispatchPacketLink" href="#">Dispatch Packet</a>
-          <button class="view secondary-action" id="copyDispatchPacketLink" type="button">Copy Packet Link</button>
-          <a class="view secondary-action" id="rateConfirmationLink" href="#">Rate Confirmation</a>
           <button class="view" id="openTrackingLink" type="button">Open Tracking</button>
-          <button class="view secondary-action" id="copyTrackingLink" type="button">Copy Tracking Link</button>
-          <button class="view secondary-action" id="copyTrackingMessage" type="button">Copy Customer Message</button>
-          <button class="view secondary-action" id="emailTrackingLink" type="button">Email Tracking</button>
-          <button class="view secondary-action" id="smsTrackingLink" type="button">SMS Tracking</button>
-          <a class="view" href="loads.html">Back to Loads</a>
+          <details class="action-menu">
+            <summary class="view secondary-action">More Actions</summary>
+            <div class="action-menu-panel">
+              <a class="action-menu-item" id="tenderLoadLink" href="#">Tender Load</a>
+              <a class="action-menu-item" id="dispatchPacketLink" href="#">Dispatch Packet</a>
+              <button class="action-menu-item" id="copyDispatchPacketLink" type="button">Copy Packet Link</button>
+              <a class="action-menu-item" id="rateConfirmationLink" href="#">Rate Confirmation</a>
+              <button class="action-menu-item" id="copyTrackingLink" type="button">Copy Tracking Link</button>
+              <button class="action-menu-item" id="copyTrackingMessage" type="button">Copy Customer Message</button>
+              <button class="action-menu-item" id="emailTrackingLink" type="button">Email Tracking</button>
+              <button class="action-menu-item" id="smsTrackingLink" type="button">SMS Tracking</button>
+              <a class="action-menu-item" href="loads.html">Back to Loads</a>
+            </div>
+          </details>
         </div>
         <p id="trackingLinkMessage" class="message"></p>
       </section>
