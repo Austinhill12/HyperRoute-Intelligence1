@@ -62,6 +62,7 @@ function renderLoads(loads, driverMap, truckMap) {
           <a class="view" href="load-details.html?id=${load.id}">View</a>
           <a class="view" href="edit-load.html?id=${load.id}">Edit</a>
           <a class="view secondary-action" href="dispatch-packet.html?id=${load.id}">Packet</a>
+          <button class="view secondary-action" type="button" data-duplicate-load="${load.id}">Duplicate</button>
           <a class="view secondary-action" href="${trackingUrl}" target="_blank" rel="noopener">Tracking</a>
           <button class="view secondary-action" type="button" data-copy-tracking="${load.id}">Copy Link</button>
           <button class="delete" data-delete="${load.id}">Delete</button>
@@ -90,6 +91,10 @@ function renderLoads(loads, driverMap, truckMap) {
     });
   });
 
+  tbody.querySelectorAll("[data-duplicate-load]").forEach(btn => {
+    btn.addEventListener("click", () => duplicateLoad(btn.dataset.duplicateLoad, loads));
+  });
+
   tbody.querySelectorAll("[data-delete]").forEach(btn => {
     btn.addEventListener("click", () => deleteLoad(btn.dataset.delete));
   });
@@ -101,6 +106,82 @@ function formatMargin(load) {
   const rate = Number(load.rate || 0);
   const percent = rate ? ` (${Math.round((margin / rate) * 100)}%)` : "";
   return `${formatCurrency(margin)}${percent}`;
+}
+
+async function duplicateLoad(id, loads) {
+  const original = loads.find(load => String(load.id) === String(id));
+  if (!original) {
+    alert("Could not find that load on this page.");
+    return;
+  }
+
+  if (!confirm(`Duplicate load ${original.load_number || original.id}?`)) return;
+
+  try {
+    const payload = buildDuplicatePayload(original);
+    const res = await fetch(`${BASE_URL}/rest/v1/loads`, {
+      method: "POST",
+      headers: getHeaders({ "Content-Type": "application/json", Prefer: "return=representation" }),
+      body: JSON.stringify(payload)
+    });
+
+    const result = await res.json();
+    if (!res.ok) throw new Error(JSON.stringify(result));
+
+    const newLoad = Array.isArray(result) ? result[0] : result;
+    await createDuplicateEvent(newLoad, original);
+    window.location.href = `edit-load.html?id=${encodeURIComponent(newLoad.id)}`;
+  } catch (err) {
+    console.error(err);
+    alert(`Error duplicating load: ${friendlyError(err.message)}`);
+  }
+}
+
+function buildDuplicatePayload(load) {
+  const copy = { ...load };
+  [
+    "id",
+    "created_at",
+    "updated_at",
+    "margin_amount",
+    "tracking_code",
+    "rate_con_import_id"
+  ].forEach(key => delete copy[key]);
+
+  copy.load_number = nextCopyLoadNumber(load.load_number || load.id);
+  copy.status = "available";
+  copy.driver_id = null;
+  copy.vehicle_id = null;
+  copy.truck_id = null;
+  copy.carrier_id = null;
+  copy.carrier_rate = null;
+  copy.notes = [load.notes, `Duplicated from load ${load.load_number || load.id}.`].filter(Boolean).join("\n");
+  return window.CompanyContext?.withCompanyId(copy) || copy;
+}
+
+function nextCopyLoadNumber(value) {
+  const base = String(value || "LOAD").replace(/\s+/g, "-");
+  const stamp = new Date().toISOString().slice(2, 10).replaceAll("-", "");
+  return `${base}-COPY-${stamp}`;
+}
+
+async function createDuplicateEvent(newLoad, originalLoad) {
+  if (!newLoad?.id) return;
+  const payload = window.CompanyContext?.withCompanyId({
+    load_id: Number(newLoad.id),
+    event_type: "created",
+    event_time: new Date().toISOString(),
+    location: newLoad.pickup_location || null,
+    notes: `Duplicated from load ${originalLoad.load_number || originalLoad.id}.`
+  });
+  if (!payload) return;
+
+  const res = await fetch(`${BASE_URL}/rest/v1/load_events`, {
+    method: "POST",
+    headers: getHeaders({ "Content-Type": "application/json", Prefer: "return=minimal" }),
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) console.warn("Could not create duplicate load event:", await res.text());
 }
 
 function buildTrackingUrl(load) {
@@ -189,6 +270,15 @@ function formatCurrency(value) {
 
 function formatStatus(value) {
   return (value || "unknown").replaceAll("_", " ");
+}
+
+function friendlyError(value) {
+  try {
+    const parsed = JSON.parse(value);
+    return parsed.message || parsed.details || value;
+  } catch {
+    return value;
+  }
 }
 
 loadLoads();
