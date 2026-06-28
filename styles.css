@@ -649,6 +649,80 @@ tbody tr:hover {
   grid-column: 1 / -1;
 }
 
+.route-summary-card {
+  margin-top: 18px;
+}
+
+.route-summary-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.route-summary-grid article {
+  background: #f8fbff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  min-height: 96px;
+  padding: 14px;
+}
+
+.route-summary-grid span {
+  color: var(--muted);
+  display: block;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.route-summary-grid strong {
+  color: #0f172a;
+  display: block;
+  font-size: 17px;
+  line-height: 1.25;
+  margin-top: 7px;
+}
+
+.route-summary-grid small {
+  color: var(--muted);
+  display: block;
+  font-size: 12px;
+  margin-top: 5px;
+}
+
+.route-planner-editor {
+  border-top: 1px solid var(--border);
+  margin-top: 16px;
+  padding-top: 14px;
+}
+
+.route-planner-editor summary {
+  color: var(--primary);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.route-planner-form {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 14px;
+}
+
+.route-planner-form .field {
+  margin: 0;
+}
+
+.route-planner-actions {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  grid-column: 1 / -1;
+}
+
 .inline-message {
   color: var(--muted);
   font-size: 13px;
@@ -675,11 +749,14 @@ tbody tr:hover {
 
   .load-profit-grid,
   .load-profit-breakdown,
-  .trip-cost-form {
+  .trip-cost-form,
+  .route-summary-grid,
+  .route-planner-form {
     grid-template-columns: 1fr;
   }
 
-  .trip-cost-actions {
+  .trip-cost-actions,
+  .route-planner-actions {
     align-items: stretch;
     flex-direction: column;
   }

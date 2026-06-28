@@ -66,6 +66,7 @@ async function loadDetails() {
 
     currentLoad = load;
     populateTripCostForm(load);
+    populateRoutePlannerForm(load);
     document.getElementById("loadTitle").textContent = `Load ${load.load_number || load.id}`;
     document.getElementById("loadStatus").textContent = formatStatus(load.status);
     document.getElementById("customerName").textContent = load.customer_name || load.customer || "N/A";
@@ -76,6 +77,7 @@ async function loadDetails() {
     document.getElementById("weight").textContent = load.weight ? Number(load.weight).toLocaleString() : "N/A";
     document.getElementById("rate").textContent = load.rate ? `$${Number(load.rate).toLocaleString()}` : "N/A";
     renderProfitSummary(load);
+    renderRouteSummary(load);
     document.getElementById("driverName").textContent = await getDriverName(load.driver_id);
     const assignment = await getLoadAssignment(load.id);
     document.getElementById("truckName").textContent = await getTruckName(assignment?.truck_id);
@@ -154,6 +156,54 @@ function renderLoadProfitSnapshot(load = currentLoad, expenses = currentLoadExpe
   `;
 }
 
+function renderRouteSummary(load = currentLoad) {
+  const container = document.getElementById("routeSummary");
+  const confidence = document.getElementById("routeConfidence");
+  if (!container || !confidence || !load) return;
+
+  const loadedMiles = toNumber(load.loaded_miles);
+  const emptyMiles = toNumber(load.empty_miles);
+  const totalMiles = loadedMiles + emptyMiles;
+  const fuelCost = toNumber(load.fuel_cost);
+  const tollCost = toNumber(load.toll_cost);
+  const estimatedDriveHours = totalMiles ? totalMiles / 55 : 0;
+  const routeComplete = Boolean(load.pickup_location && (load.delivery_location || load.dropoff_location) && totalMiles);
+
+  confidence.textContent = routeComplete ? "Ready" : "Needs miles";
+  confidence.className = `status-pill ${routeComplete ? "success" : "warning"}`;
+
+  container.innerHTML = `
+    <article>
+      <span>Origin</span>
+      <strong>${escapeHtml(load.pickup_location || "Pickup TBD")}</strong>
+    </article>
+    <article>
+      <span>Destination</span>
+      <strong>${escapeHtml(load.delivery_location || load.dropoff_location || "Delivery TBD")}</strong>
+    </article>
+    <article>
+      <span>Total Miles</span>
+      <strong>${totalMiles ? totalMiles.toLocaleString() : "N/A"}</strong>
+      <small>${loadedMiles.toLocaleString()} loaded / ${emptyMiles.toLocaleString()} deadhead</small>
+    </article>
+    <article>
+      <span>Est. Drive Time</span>
+      <strong>${estimatedDriveHours ? `${estimatedDriveHours.toFixed(1)} hrs` : "N/A"}</strong>
+      <small>Calculated at 55 mph average.</small>
+    </article>
+    <article>
+      <span>Fuel Estimate</span>
+      <strong>${formatCurrency(fuelCost)}</strong>
+      <small>Feeds profit snapshot.</small>
+    </article>
+    <article>
+      <span>Toll Estimate</span>
+      <strong>${formatCurrency(tollCost)}</strong>
+      <small>Feeds profit snapshot.</small>
+    </article>
+  `;
+}
+
 function populateTripCostForm(load = currentLoad) {
   const form = document.getElementById("tripCostForm");
   if (!form || !load) return;
@@ -171,6 +221,23 @@ function populateTripCostForm(load = currentLoad) {
     const input = form.elements[field];
     if (input) input.value = load[field] ?? "";
   });
+}
+
+function populateRoutePlannerForm(load = currentLoad) {
+  const form = document.getElementById("routePlannerForm");
+  if (!form || !load) return;
+
+  ["loaded_miles", "empty_miles", "toll_cost"].forEach(field => {
+    const input = form.elements[field];
+    if (input) input.value = load[field] ?? "";
+  });
+
+  if (form.elements.fuel_mpg && !form.elements.fuel_mpg.value) form.elements.fuel_mpg.value = "6.5";
+  if (form.elements.fuel_price && !form.elements.fuel_price.value) form.elements.fuel_price.value = "3.85";
+  if (form.elements.drive_hours) {
+    const totalMiles = toNumber(load.loaded_miles) + toNumber(load.empty_miles);
+    form.elements.drive_hours.value = totalMiles ? (totalMiles / 55).toFixed(1) : "";
+  }
 }
 
 function profitMetric(label, value, detail, className = "") {
@@ -1871,6 +1938,8 @@ async function saveTripCostInputs(e) {
 
     currentLoad = { ...currentLoad, ...(result[0] || payload) };
     populateTripCostForm(currentLoad);
+    populateRoutePlannerForm(currentLoad);
+    renderRouteSummary(currentLoad);
     renderProfitSummary(currentLoad);
     msg.textContent = "Saved.";
     msg.style.color = "#047857";
@@ -1881,12 +1950,99 @@ async function saveTripCostInputs(e) {
   }
 }
 
+function calculateRouteEstimate() {
+  const form = document.getElementById("routePlannerForm");
+  const msg = document.getElementById("routePlannerMessage");
+  if (!form) return;
+
+  const loadedMiles = toNumber(form.elements.loaded_miles?.value);
+  const emptyMiles = toNumber(form.elements.empty_miles?.value);
+  const mpg = toNumber(form.elements.fuel_mpg?.value) || 6.5;
+  const fuelPrice = toNumber(form.elements.fuel_price?.value) || 3.85;
+  const totalMiles = loadedMiles + emptyMiles;
+  const fuelEstimate = totalMiles && mpg ? (totalMiles / mpg) * fuelPrice : 0;
+  const driveHours = totalMiles ? totalMiles / 55 : 0;
+
+  const tripCostForm = document.getElementById("tripCostForm");
+  if (tripCostForm) {
+    if (tripCostForm.elements.loaded_miles) tripCostForm.elements.loaded_miles.value = loadedMiles || "";
+    if (tripCostForm.elements.empty_miles) tripCostForm.elements.empty_miles.value = emptyMiles || "";
+    if (tripCostForm.elements.fuel_cost) tripCostForm.elements.fuel_cost.value = fuelEstimate ? fuelEstimate.toFixed(2) : "";
+    if (tripCostForm.elements.toll_cost && form.elements.toll_cost) tripCostForm.elements.toll_cost.value = form.elements.toll_cost.value;
+  }
+
+  if (form.elements.drive_hours) form.elements.drive_hours.value = driveHours ? driveHours.toFixed(1) : "";
+  if (msg) {
+    msg.textContent = fuelEstimate ? `Estimated fuel: ${formatCurrency(fuelEstimate)}` : "Add miles to estimate fuel.";
+    msg.style.color = fuelEstimate ? "#047857" : "#ef4444";
+  }
+}
+
+async function saveRoutePlanner(e) {
+  e.preventDefault();
+
+  const loadId = getLoadId();
+  const msg = document.getElementById("routePlannerMessage");
+  const form = e.target;
+  if (!loadId || !currentLoad) return;
+
+  const loadedMiles = toNumber(form.elements.loaded_miles?.value);
+  const emptyMiles = toNumber(form.elements.empty_miles?.value);
+  const mpg = toNumber(form.elements.fuel_mpg?.value) || 6.5;
+  const fuelPrice = toNumber(form.elements.fuel_price?.value) || 3.85;
+  const totalMiles = loadedMiles + emptyMiles;
+  const fuelEstimate = totalMiles && mpg ? (totalMiles / mpg) * fuelPrice : 0;
+  const tollCost = form.elements.toll_cost?.value === "" ? null : Number(form.elements.toll_cost?.value);
+
+  const payload = {
+    loaded_miles: form.elements.loaded_miles?.value === "" ? null : loadedMiles,
+    empty_miles: form.elements.empty_miles?.value === "" ? null : emptyMiles,
+    fuel_cost: fuelEstimate ? Number(fuelEstimate.toFixed(2)) : null,
+    toll_cost: tollCost
+  };
+
+  msg.textContent = "Saving route...";
+  msg.style.color = "";
+
+  try {
+    const query = `id=eq.${loadId}`;
+    const res = await fetch(
+      window.CompanyContext?.scopedUrl("loads", query) || `${BASE_URL}/rest/v1/loads?${query}`,
+      {
+        method: "PATCH",
+        headers: getHeaders({
+          "Content-Type": "application/json",
+          Prefer: "return=representation"
+        }),
+        body: JSON.stringify(payload)
+      }
+    );
+
+    const result = await res.json();
+    if (!res.ok) throw new Error(JSON.stringify(result));
+
+    currentLoad = { ...currentLoad, ...(result[0] || payload) };
+    populateTripCostForm(currentLoad);
+    populateRoutePlannerForm(currentLoad);
+    renderRouteSummary(currentLoad);
+    renderProfitSummary(currentLoad);
+    msg.textContent = "Route saved.";
+    msg.style.color = "#047857";
+  } catch (err) {
+    console.error(err);
+    msg.textContent = `Error saving route: ${err.message}`;
+    msg.style.color = "#ef4444";
+  }
+}
+
 document.getElementById("loadEventForm").addEventListener("submit", saveLoadEvent);
 document.getElementById("communicationForm").addEventListener("submit", saveCommunication);
 document.getElementById("issueForm").addEventListener("submit", saveIssue);
 document.getElementById("loadDocumentForm").addEventListener("submit", saveLoadDocument);
 document.getElementById("invoiceForm").addEventListener("submit", createInvoice);
 document.getElementById("tripCostForm")?.addEventListener("submit", saveTripCostInputs);
+document.getElementById("routePlannerForm")?.addEventListener("submit", saveRoutePlanner);
+document.getElementById("calculateRouteEstimateButton")?.addEventListener("click", calculateRouteEstimate);
 document.getElementById("markLoadClosedButton")?.addEventListener("click", closeLoad);
 document.getElementById("eventTime").value = getLocalDateTimeValue();
 bindLoadDocumentDropzone();

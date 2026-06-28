@@ -153,6 +153,53 @@
         </details>
       </section>
 
+      <section class="card route-summary-card">
+        <div class="section-header">
+          <div>
+            <p class="section-eyebrow">Route Planning</p>
+            <h2>Route Summary</h2>
+          </div>
+          <span id="routeConfidence" class="status-pill neutral">Manual</span>
+        </div>
+        <div id="routeSummary" class="route-summary-grid">
+          <p class="empty-state">Loading route summary...</p>
+        </div>
+        <details class="route-planner-editor">
+          <summary>Update Route Estimates</summary>
+          <form id="routePlannerForm" class="route-planner-form">
+            <div class="field">
+              <label>Loaded Miles</label>
+              <input name="loaded_miles" type="number" min="0" step="1" placeholder="0" />
+            </div>
+            <div class="field">
+              <label>Deadhead Miles</label>
+              <input name="empty_miles" type="number" min="0" step="1" placeholder="0" />
+            </div>
+            <div class="field">
+              <label>Fuel MPG</label>
+              <input name="fuel_mpg" type="number" min="1" step="0.1" placeholder="6.5" />
+            </div>
+            <div class="field">
+              <label>Fuel Price</label>
+              <input name="fuel_price" type="number" min="0" step="0.01" placeholder="3.85" />
+            </div>
+            <div class="field">
+              <label>Toll Estimate</label>
+              <input name="toll_cost" type="number" min="0" step="0.01" placeholder="0.00" />
+            </div>
+            <div class="field">
+              <label>Estimated Drive Hours</label>
+              <input name="drive_hours" type="number" min="0" step="0.1" placeholder="0" />
+            </div>
+            <div class="route-planner-actions">
+              <button class="view" type="button" id="calculateRouteEstimateButton">Estimate Fuel</button>
+              <button class="view secondary-action" type="submit">Save Route</button>
+              <span id="routePlannerMessage" class="inline-message"></span>
+            </div>
+          </form>
+        </details>
+      </section>
+
       <section class="card tender-history-card">
         <div class="section-header">
           <div>
