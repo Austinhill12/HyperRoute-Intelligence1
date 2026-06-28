@@ -339,6 +339,15 @@ function calculateMetrics(data) {
     (row.revenue > 0 && row.grossMargin < 0) ||
     (row.revenue > 0 && row.marginPercent < 12)
   );
+  const profitLeakItems = buildProfitLeakItems({
+    profitabilityRows,
+    pendingExpenses,
+    pendingExpenseAmount,
+    deliveredNotInvoiced,
+    deliveredNotInvoicedValue,
+    overdueInvoices,
+    claimExposure
+  });
 
   const openRisks = overdueInvoices.length + complianceRisk.length + maintenanceDue.length + deliveredNotInvoiced.length + deliveredMissingPod.length + quotesExpiring.length + profitRisks.length;
   const healthScore = Math.max(0, Math.min(100, 100 - (openRisks * 8)));
@@ -382,6 +391,7 @@ function calculateMetrics(data) {
     profitPerMile,
     customerProfitability,
     profitRisks,
+    profitLeakItems,
     openRisks,
     healthScore
   };
@@ -422,6 +432,82 @@ function buildCustomerProfitability(rows) {
       marginPercent: row.revenue ? (row.margin / row.revenue) * 100 : 0
     }))
     .sort((a, b) => a.marginPercent - b.marginPercent);
+}
+
+function buildProfitLeakItems({
+  profitabilityRows,
+  pendingExpenses,
+  pendingExpenseAmount,
+  deliveredNotInvoiced,
+  deliveredNotInvoicedValue,
+  overdueInvoices,
+  claimExposure
+}) {
+  const targetMarginPercent = 12;
+  const lowMarginGap = profitabilityRows.reduce((sum, row) => {
+    if (!row.revenue || row.marginPercent >= targetMarginPercent) return sum;
+    const targetProfit = row.revenue * (targetMarginPercent / 100);
+    return sum + Math.max(0, targetProfit - row.grossMargin);
+  }, 0);
+  const missingCostInputs = profitabilityRows.filter(row =>
+    row.revenue > 0 &&
+    (!row.carrierCost || !row.totalMiles || (!Number(row.load.fuel_cost || 0) && !Number(row.load.toll_cost || 0)))
+  ).length;
+  const overdueValue = overdueInvoices.reduce((sum, invoice) => sum + Number(invoice.total_amount || invoice.total || 0), 0);
+
+  return [
+    {
+      title: "Low-margin loads",
+      value: lowMarginGap,
+      count: profitabilityRows.filter(row => row.revenue > 0 && row.marginPercent < targetMarginPercent).length,
+      detail: `Estimated gap to ${targetMarginPercent}% target margin.`,
+      href: "profit-intelligence.html",
+      severity: "warning"
+    },
+    {
+      title: "Delivered not invoiced",
+      value: deliveredNotInvoicedValue,
+      count: deliveredNotInvoiced.length,
+      detail: "Cash is waiting because delivered work has not been billed.",
+      href: "invoices.html",
+      severity: "caution"
+    },
+    {
+      title: "Overdue receivables",
+      value: overdueValue,
+      count: overdueInvoices.length,
+      detail: "Invoices are past due and should be followed up.",
+      href: "invoices.html",
+      severity: "warning"
+    },
+    {
+      title: "Unreviewed driver expenses",
+      value: pendingExpenseAmount,
+      count: pendingExpenses.length,
+      detail: "Profit may change after receipts and expenses are approved.",
+      href: "expense-review.html",
+      severity: "caution"
+    },
+    {
+      title: "Claim exposure",
+      value: claimExposure,
+      count: profitabilityRows.filter(row => row.claimExposure > 0).length,
+      detail: "Open load issues with claim amounts reduce expected profit.",
+      href: "loads.html",
+      severity: "warning"
+    },
+    {
+      title: "Missing cost inputs",
+      value: 0,
+      count: missingCostInputs,
+      detail: "Add carrier cost, miles, fuel, or tolls for accurate load profit.",
+      href: "loads.html",
+      severity: "neutral"
+    }
+  ]
+    .filter(item => item.count > 0 || item.value > 0)
+    .sort((a, b) => b.value - a.value || b.count - a.count)
+    .slice(0, 4);
 }
 
 function renderKpis(metrics) {
@@ -629,7 +715,29 @@ function renderOwnerCommandCenter(metrics) {
   setText("ownerPendingExpenseCount", `${metrics.pendingExpenses.length} waiting review`);
 
   renderOwnerActions(metrics);
+  renderOwnerProfitLeaks(metrics);
   renderOwnerCustomers(metrics);
+}
+
+function renderOwnerProfitLeaks(metrics) {
+  const list = document.getElementById("ownerProfitLeakList");
+  if (!list) return;
+
+  const leaks = metrics.profitLeakItems || [];
+  if (!leaks.length) {
+    list.innerHTML = `<div class="empty-state">No major profit leaks found right now.</div>`;
+    return;
+  }
+
+  list.innerHTML = leaks.map(item => `
+    <a class="profit-leak-item ${escapeHtml(item.severity)}" href="${escapeHtml(item.href)}">
+      <span class="profit-leak-impact">${item.value ? formatCurrency(item.value) : item.count}</span>
+      <span>
+        <strong>${escapeHtml(item.title)}</strong>
+        <small>${escapeHtml(item.detail)}</small>
+      </span>
+    </a>
+  `).join("");
 }
 
 function renderOwnerActions(metrics) {

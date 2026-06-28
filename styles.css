@@ -3434,6 +3434,71 @@ textarea {
   font-size: 16px;
 }
 
+.profit-leak-panel {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+  margin-top: 16px;
+  padding: 16px;
+}
+
+.profit-leak-list {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.profit-leak-item {
+  align-items: flex-start;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-left: 4px solid #94a3b8;
+  border-radius: 8px;
+  color: inherit;
+  display: grid;
+  gap: 10px;
+  min-height: 116px;
+  padding: 13px;
+  text-decoration: none;
+}
+
+.profit-leak-item:hover {
+  background: #f8fbff;
+  border-color: #93c5fd;
+}
+
+.profit-leak-item.warning {
+  border-left-color: var(--danger);
+}
+
+.profit-leak-item.caution {
+  border-left-color: var(--warning);
+}
+
+.profit-leak-impact {
+  color: #0f172a;
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.profit-leak-item strong,
+.profit-leak-item small {
+  display: block;
+}
+
+.profit-leak-item strong {
+  color: #172033;
+  font-size: 14px;
+}
+
+.profit-leak-item small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+  margin-top: 4px;
+}
+
 .rate-intelligence-panel {
   grid-column: 1 / -1;
   display: grid;
@@ -3638,6 +3703,7 @@ textarea {
   .dashboard-command-grid,
   .dashboard-two-column,
   .owner-command-grid,
+  .profit-leak-list,
   .rate-intelligence-grid,
   .readiness-grid,
   .readiness-mini-grid,
