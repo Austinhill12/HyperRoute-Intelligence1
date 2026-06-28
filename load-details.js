@@ -207,6 +207,7 @@ function renderRouteSummary(load = currentLoad) {
 }
 
 function getRouteOrigin(load = {}) {
+  const addressPair = extractAddressPairFromLoad(load);
   return firstPresent(
     load.pickup_location,
     load.pickup_address,
@@ -217,11 +218,15 @@ function getRouteOrigin(load = {}) {
     joinLocationParts(load.pickup_city, load.pickup_state, load.pickup_zip),
     joinLocationParts(load.origin_city, load.origin_state, load.origin_zip),
     addressLike(load.shipper_name),
-    load.shipper_name
+    addressPair[0],
+    load.shipper_name,
+    load.customer_name,
+    load.customer
   );
 }
 
 function getRouteDestination(load = {}) {
+  const addressPair = extractAddressPairFromLoad(load);
   return firstPresent(
     load.delivery_location,
     load.dropoff_location,
@@ -235,6 +240,7 @@ function getRouteDestination(load = {}) {
     joinLocationParts(load.dropoff_city, load.dropoff_state, load.dropoff_zip),
     joinLocationParts(load.destination_city, load.destination_state, load.destination_zip),
     addressLike(load.consignee_name),
+    addressPair[1],
     load.consignee_name
   );
 }
@@ -254,6 +260,27 @@ function joinLocationParts(...parts) {
 function addressLike(value) {
   const text = String(value || "").trim();
   return /\d/.test(text) && /,/.test(text) ? text : "";
+}
+
+function extractAddressPairFromLoad(load = {}) {
+  const text = Object.values(load)
+    .filter(value => typeof value === "string" || typeof value === "number")
+    .join("\n");
+  const streetSuffix = "(?:RD|ROAD|ST|STREET|AVE|AVENUE|BLVD|BOULEVARD|DR|DRIVE|LN|LANE|CT|COURT|HWY|HIGHWAY|PKWY|PARKWAY|WAY|PL|PLACE|CIR|CIRCLE|TRL|TRAIL)";
+  const regex = new RegExp(`\\b([0-9]{1,6}\\s+[A-Z0-9 .'-]{2,70}?\\b${streetSuffix})\\s*,?\\s+([A-Z][A-Z .'-]{2,45}?),\\s*([A-Z]{2}),?\\s*(?:USA,?\\s*)?(\\d{5})\\b`, "gi");
+  const stops = [];
+  let match;
+
+  while ((match = regex.exec(text)) !== null) {
+    const location = `${titleCase(match[1])}, ${titleCase(match[2])}, ${match[3].toUpperCase()} ${match[4]}`;
+    if (!stops.includes(location)) stops.push(location);
+  }
+
+  return stops.slice(0, 2);
+}
+
+function titleCase(value) {
+  return String(value || "").toLowerCase().replace(/\b[a-z]/g, char => char.toUpperCase());
 }
 
 function populateTripCostForm(load = currentLoad) {
