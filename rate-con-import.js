@@ -173,7 +173,7 @@ function parseRateConfirmation(text) {
   const trackingRequired = /tracking is required|electronic tracking|required for all loads|track and trace/i.test(text);
   const hazmatRequired = /hazmat|hazardous|un\d{4}/i.test(text);
 
-  return cleanExtraction({
+  const parsed = cleanExtraction({
     broker_name: extractBrokerName(text, lines),
     broker_contact: extractBrokerContact(text, lines),
     broker_mc_number: extractBrokerMcNumber(text, lines),
@@ -204,6 +204,8 @@ function parseRateConfirmation(text) {
     detention_policy: extractDetentionPolicy(text, lines),
     notes: buildNotes(text, rateDetails)
   }, text);
+
+  return enhanceRateConExtraction(parsed, lines, text);
 }
 
 function fillReviewForm(data) {
@@ -459,29 +461,32 @@ function updateConfidence(data) {
 
 function calculateConfidence(data = {}) {
   const required = [
-    ["load_number", "Load # or Rate Con #", true],
-    ["pickup_location", "Pickup", true],
-    ["delivery_location", "Delivery", true],
-    ["pickup_date", "Pickup date", true],
-    ["delivery_date", "Delivery date", true],
-    ["rate", "Rate", true],
-    ["rate_confirmation_number", "Rate Con #", false],
-    ["broker_mc_number", "Broker MC", false],
-    ["broker_name", "Broker", false],
-    ["commodity", "Commodity", false],
-    ["loaded_miles", "Miles", false],
-    ["weight", "Weight", false],
-    ["trailer_type", "Trailer", false]
+    ["load_number", "Load # or Rate Con #", true, 12],
+    ["pickup_location", "Pickup", true, 14],
+    ["delivery_location", "Delivery", true, 14],
+    ["pickup_date", "Pickup date", true, 10],
+    ["delivery_date", "Delivery date", true, 10],
+    ["rate", "Rate", true, 14],
+    ["rate_confirmation_number", "Rate Con #", false, 5],
+    ["broker_mc_number", "Broker MC", false, 4],
+    ["broker_name", "Broker", false, 5],
+    ["commodity", "Commodity", false, 4],
+    ["loaded_miles", "Miles", false, 4],
+    ["weight", "Weight", false, 2],
+    ["trailer_type", "Trailer", false, 2]
   ];
-  const items = required.map(([key, label, requiredForCreate]) => ({
+  const items = required.map(([key, label, requiredForCreate, weight]) => ({
     key,
     label,
     requiredForCreate,
+    weight,
     ok: key === "load_number"
       ? hasReviewValue(data.load_number) || hasReviewValue(data.rate_confirmation_number)
       : hasReviewValue(data[key])
   }));
-  const score = Math.round((items.filter(item => item.ok).length / items.length) * 100);
+  const possible = items.reduce((total, item) => total + item.weight, 0);
+  const earned = items.reduce((total, item) => total + (item.ok ? item.weight : 0), 0);
+  const score = possible ? Math.round((earned / possible) * 100) : 0;
   return { score, items };
 }
 
@@ -590,6 +595,181 @@ function repairRouteLocations(data, sourceText = "") {
   if ((!isUsableLocation(data.pickup_location) || sameRouteLocation) && stops[0]) data.pickup_location = stops[0];
   if ((!isUsableLocation(data.delivery_location) || sameRouteLocation) && stops[1]) data.delivery_location = stops[1];
   if (isBlankValue(data.dropoff_location) && data.delivery_location) data.dropoff_location = data.delivery_location;
+}
+
+function enhanceRateConExtraction(data, lines, text) {
+  const enhanced = { ...data };
+  const normalizedText = String(text || "");
+  const stopPair = extractUniversalStopPair(lines, normalizedText);
+  const identifiers = extractUniversalIdentifiers(lines, normalizedText);
+  const money = extractUniversalMoney(lines, normalizedText);
+  const equipment = extractUniversalEquipment(lines, normalizedText);
+
+  enhanced.rate_confirmation_number = firstCleanValue(
+    enhanced.rate_confirmation_number,
+    identifiers.rateConfirmation,
+    identifiers.confirmation,
+    identifiers.tender,
+    identifiers.order
+  );
+  enhanced.load_number = firstCleanValue(
+    enhanced.load_number,
+    identifiers.load,
+    identifiers.shipment,
+    identifiers.order,
+    enhanced.rate_confirmation_number
+  );
+  enhanced.customer_reference_number = firstCleanValue(
+    enhanced.customer_reference_number,
+    identifiers.customerRef,
+    identifiers.po,
+    identifiers.pickup,
+    identifiers.bol
+  );
+  enhanced.pickup_location = firstCleanValue(enhanced.pickup_location, stopPair.pickup.location);
+  enhanced.delivery_location = firstCleanValue(enhanced.delivery_location, stopPair.delivery.location);
+  enhanced.pickup_date = firstCleanValue(enhanced.pickup_date, stopPair.pickup.date?.date);
+  enhanced.pickup_time = firstCleanValue(enhanced.pickup_time, stopPair.pickup.date?.time);
+  enhanced.delivery_date = firstCleanValue(enhanced.delivery_date, stopPair.delivery.date?.date);
+  enhanced.delivery_time = firstCleanValue(enhanced.delivery_time, stopPair.delivery.date?.time);
+  enhanced.rate = toFirstNumber(enhanced.rate, money.total, money.carrierPay, money.lineHaul);
+  enhanced.fuel_surcharge = toFirstNumber(enhanced.fuel_surcharge, money.fuel);
+  enhanced.accessorial_pay = toFirstNumber(enhanced.accessorial_pay, money.accessorial);
+  enhanced.loaded_miles = toFirstNumber(enhanced.loaded_miles, extractUniversalMiles(lines, normalizedText));
+  enhanced.weight = toFirstNumber(enhanced.weight, extractUniversalWeight(lines, normalizedText));
+  enhanced.commodity = firstCleanValue(enhanced.commodity, equipment.commodity);
+  enhanced.equipment_requirements = firstCleanValue(enhanced.equipment_requirements, equipment.requirements);
+  enhanced.trailer_type = firstCleanValue(enhanced.trailer_type, inferTrailerType(`${equipment.requirements || ""} ${equipment.trailer || ""}`));
+  enhanced.broker_name = firstCleanValue(enhanced.broker_name, extractUniversalBrokerName(lines, normalizedText));
+  enhanced.broker_contact = firstCleanValue(enhanced.broker_contact, extractUniversalBrokerContact(lines, normalizedText));
+  enhanced.broker_mc_number = firstCleanValue(enhanced.broker_mc_number, extractUniversalBrokerMc(normalizedText));
+
+  return cleanExtraction(enhanced, text);
+}
+
+function firstCleanValue(...values) {
+  return values.find(value => !isBlankValue(value)) || "";
+}
+
+function toFirstNumber(...values) {
+  for (const value of values) {
+    const number = Number(value);
+    if (Number.isFinite(number) && number > 0) return number;
+  }
+  return null;
+}
+
+function extractUniversalIdentifiers(lines, text) {
+  const labelMap = {
+    rateConfirmation: ["Rate Confirmation #", "Rate Confirmation Number", "Rate Conf #", "Rate Con #", "Confirmation #", "Confirmation Number"],
+    confirmation: ["Confirm #", "Confirmation"],
+    load: ["Load #", "Load Number", "Load ID", "Load"],
+    shipment: ["Shipment #", "Shipment ID", "Shipment Number"],
+    order: ["Order #", "Order Number", "Order ID", "Trip #", "Trip Number"],
+    tender: ["Tender #", "Tender Number", "Tender ID"],
+    customerRef: ["Customer Reference #", "Customer Ref #", "Customer Ref", "Reference #", "Reference Number", "Ref #"],
+    po: ["PO #", "P.O. #", "Purchase Order", "PO Number"],
+    pickup: ["Pickup #", "Pick #", "PU #", "Pick Up #"],
+    bol: ["BOL #", "Bill of Lading #"]
+  };
+  const result = {};
+  Object.entries(labelMap).forEach(([key, labels]) => {
+    result[key] = cleanIdentifier(valueAfterAnyLabel(lines, labels) || firstValue(text, labels.map(label => labelPattern(label, "([A-Z0-9][A-Z0-9._-]*\\d[A-Z0-9._-]*)"))));
+  });
+  return result;
+}
+
+function labelPattern(label, capture) {
+  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\\ /g, "\\s*");
+  return new RegExp(`${escaped}\\s*[:#-]?\\s*${capture}`, "i");
+}
+
+function cleanIdentifier(value) {
+  const text = String(value || "").trim();
+  const match = text.match(/[A-Z0-9][A-Z0-9._-]*\d[A-Z0-9._-]*/i);
+  return match ? match[0] : "";
+}
+
+function extractUniversalMoney(lines, text) {
+  return {
+    total: moneyNearLabel(lines, ["Total Carrier Pay", "Carrier Pay", "Total Pay", "Total Rate", "Rate Total", "Total Charges", "Total Amount", "Agreed Rate", "Freight Charge"]) ?? firstMoneyAfter(text, ["total carrier pay", "carrier pay", "total pay", "total rate", "rate total", "total charges", "agreed rate", "freight charge"]),
+    carrierPay: moneyNearLabel(lines, ["Carrier Rate", "Carrier Pay", "Pay Amount", "Truck Pay"]) ?? firstMoneyAfter(text, ["carrier rate", "carrier pay", "pay amount", "truck pay"]),
+    lineHaul: moneyNearLabel(lines, ["Line Haul", "Linehaul", "Line Haul Charges", "Line Haul Rate", "Base Rate"]) ?? firstMoneyAfter(text, ["line haul", "linehaul", "base rate"]),
+    fuel: moneyNearLabel(lines, ["Fuel Surcharge", "FSC", "Fuel"]) ?? firstMoneyAfter(text, ["fuel surcharge", "fsc"]),
+    accessorial: moneyNearLabel(lines, ["Accessorial", "Accessorial Pay", "Accessorial Amount", "Other Charges"]) ?? firstMoneyAfter(text, ["accessorial", "other charges"])
+  };
+}
+
+function extractUniversalMiles(lines, text) {
+  return valueAfterLabelNumber(lines, ["Loaded Miles", "Total Miles", "Miles", "Distance", "Practical Miles", "Trip Miles"])
+    || firstNumberAfter(text, ["loaded miles", "total miles", "practical miles", "trip miles", "distance"]);
+}
+
+function extractUniversalWeight(lines, text) {
+  return valueAfterLabelNumber(lines, ["Weight", "Gross Weight", "Load Weight", "Cargo Weight"])
+    || firstNumberAfter(text, ["gross weight", "load weight", "cargo weight", "weight"]);
+}
+
+function extractUniversalEquipment(lines, text) {
+  return {
+    requirements: valueAfterAnyLabel(lines, ["Equipment", "Equipment Type", "Trailer Type", "Trailer", "Truck Type", "Mode", "Size & Type"]) || firstValue(text, [
+      /(?:equipment|equipment type|trailer type|trailer|truck type|mode|size\s*&\s*type)\s*[:#-]?\s*([^|\n]{2,80}?)(?=\s+(?:commodity|description|weight|miles|pickup|delivery|rate)\b|$)/i
+    ]),
+    trailer: valueAfterAnyLabel(lines, ["Trailer Type", "Trailer", "Equipment Type"]),
+    commodity: valueAfterAnyLabel(lines, ["Commodity", "Product", "Description", "Cargo", "Freight Description", "Load Description"]) || firstValue(text, [
+      /(?:commodity|product|cargo|freight description|load description|description)\s*[:#-]?\s*([^|\n]{2,100}?)(?=\s+(?:weight|pieces|miles|pickup|delivery|rate|equipment)\b|$)/i
+    ])
+  };
+}
+
+function extractUniversalStopPair(lines, text) {
+  const addressStops = extractBestAddressPair(text).map(location => ({ location, date: {} }));
+  const pickupSection = extractStopFromSection(lines, ["pickup", "pick up", "shipper", "origin", "pu"], "pickup");
+  const deliverySection = extractStopFromSection(lines, ["delivery", "deliver", "consignee", "destination", "receiver", "drop"], "delivery");
+
+  return {
+    pickup: mergeStopDate(addressStops[0] || {}, pickupSection) || pickupSection || { location: "", date: {} },
+    delivery: mergeStopDate(addressStops[1] || {}, deliverySection) || deliverySection || { location: "", date: {} }
+  };
+}
+
+function extractStopFromSection(lines, labels, kind) {
+  const index = lines.findIndex(line => labels.some(label => new RegExp(`^${label}\\b`, "i").test(line)));
+  if (index < 0) return { location: "", date: {} };
+
+  const windowLines = lines.slice(index, index + 16);
+  const addressStop = extractAddressStops(windowLines, windowLines.join("\n"))[0];
+  const date = extractDateTime(windowLines.join(" "));
+  return {
+    location: addressStop?.location || "",
+    date
+  };
+}
+
+function extractUniversalBrokerName(lines, text) {
+  return valueAfterAnyLabel(lines, ["Broker", "Broker Name", "Bill To", "Booked By", "3PL", "Logistics Company"])
+    || firstValue(text, [
+      /(?:broker|broker name|bill to|booked by)\s*[:#-]?\s*([A-Z][A-Za-z0-9 &'.,-]{2,60}?)(?=\s+(?:phone|email|mc|dot|load|carrier)\b|$)/i
+    ]);
+}
+
+function extractUniversalBrokerContact(lines, text) {
+  const contactName = valueAfterAnyLabel(lines, ["Contact", "Broker Contact", "Booked By", "Representative", "Rep"]);
+  const phone = valueAfterAnyLabel(lines, ["Phone", "Broker Phone", "Contact Phone"]) || firstValue(text, [/(?:phone|tel|cell)\s*[:#-]?\s*([()+\-\d xX. ]{7,})/i]);
+  const email = valueAfterAnyLabel(lines, ["Email", "Broker Email", "Contact Email"]) || firstValue(text, [/(?:email|e-mail)\s*[:#-]?\s*([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/i, /([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/i]);
+  return [contactName, phone, email].filter(Boolean).join(" / ");
+}
+
+function extractUniversalBrokerMc(text) {
+  return firstValue(text, [
+    /(?:broker\s*)?mc\s*(?:number|#)?\s*[:#-]?\s*(\d{4,8})/i,
+    /(?:broker\s*)?dot\s*(?:number|#)?\s*[:#-]?\s*(\d{4,8})/i
+  ]);
+}
+
+function valueAfterAnyLabel(lines, labels) {
+  return valueAfterLabel(lines, labels)
+    || firstValue(lines.join("\n"), labels.map(label => labelPattern(label, "([^\\n|]{2,90})")));
 }
 
 function extractBestAddressPair(text = "") {
