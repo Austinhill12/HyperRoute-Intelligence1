@@ -91,6 +91,17 @@ async function extractRateCon() {
     if (!extractedText.trim()) {
       throw new Error("No readable text found. This may be a scanned PDF and will need OCR.");
     }
+    if (isUnreadablePdfText(extractedText)) {
+      const ocrMessage = "This PDF has an unreadable embedded text layer. It appears readable visually, but the browser receives encoded CID text. Use OCR/AI import or enter this load manually.";
+      currentExtraction = {};
+      fillReviewForm({});
+      renderChecklist({});
+      updateConfidence({});
+      updateReviewState({});
+      setReviewNotice(ocrMessage, "danger");
+      setMessage(ocrMessage, "#ef4444");
+      return;
+    }
 
     currentExtraction = parseRateConfirmation(extractedText);
     fillReviewForm(currentExtraction);
@@ -117,6 +128,20 @@ async function extractPdfText(file) {
   }
 
   return normalizeText(pages.join("\n"));
+}
+
+function isUnreadablePdfText(text) {
+  const raw = String(text || "");
+  const cidCount = (raw.match(/\(cid:\d+\)/gi) || []).length;
+  const readableWords = (raw.match(/[A-Za-z]{3,}/g) || []).length;
+  const digits = (raw.match(/\d/g) || []).length;
+  const meaningfulTokens = readableWords + digits;
+
+  if (cidCount >= 100) return true;
+  if (cidCount / Math.max(raw.length, 1) > 0.04) return true;
+  if (cidCount >= 25 && readableWords < 20) return true;
+  if (cidCount > meaningfulTokens && raw.length > 300) return true;
+  return false;
 }
 
 function parseRateConfirmation(text) {
