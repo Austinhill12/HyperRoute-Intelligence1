@@ -19,6 +19,7 @@ let selectedFile = null;
 let extractedText = "";
 let currentExtraction = null;
 let currentImportId = null;
+let currentExtractionFailureReason = "";
 
 function getHeaders(extra = {}) {
   return {
@@ -89,31 +90,169 @@ async function extractRateCon() {
     setMessage("Reading PDF and extracting load details...", "");
     extractedText = await extractPdfText(selectedFile);
     if (!extractedText.trim()) {
-      throw new Error("No readable text found. This may be a scanned PDF and will need OCR.");
+      await handleExtractionFailure("No readable text found. This rate confirmation is likely scanned or image-only and needs OCR/AI extraction.", true);
+      return;
     }
     if (isUnreadablePdfText(extractedText)) {
-      const ocrMessage = "This PDF has an unreadable embedded text layer. It appears readable visually, but the browser receives encoded CID text. Use OCR/AI import or enter this load manually.";
-      currentExtraction = {};
-      fillReviewForm({});
-      renderChecklist({});
-      updateConfidence({});
-      updateReviewState({});
-      setReviewNotice(ocrMessage, "danger");
-      setMessage(ocrMessage, "#ef4444");
+      await handleExtractionFailure("This PDF has an unreadable embedded text layer. It appears readable visually, but the browser receives encoded CID text. OCR/AI extraction is required for this broker PDF.", true);
       return;
     }
 
-    currentExtraction = parseRateConfirmation(extractedText);
-    fillReviewForm(currentExtraction);
-    renderChecklist(currentExtraction);
-    updateConfidence(currentExtraction);
-    currentImportId = await saveImportDraft(currentExtraction);
-    updateReviewState(currentExtraction);
-    setMessage("Review the extracted fields, correct anything needed, then create the load.", "#047857");
+    let parsedExtraction = parseRateConfirmation(extractedText);
+    if (shouldRunAiVerification(parsedExtraction)) {
+      try {
+        setReviewNotice("Basic extraction found text, but key fields need AI verification. Running OCR/AI now.", "warning");
+        setMessage("Basic extraction completed. Running OCR/AI verification for better accuracy...", "#b45309");
+        const aiExtraction = await runOcrAiImport("Normal PDF extraction completed, but key rate confirmation fields were missing, weak, or low confidence.");
+        parsedExtraction = mergeAiExtraction(parsedExtraction, aiExtraction);
+        await finalizeExtraction(
+          parsedExtraction,
+          "AI verification completed. Review every field before creating the load.",
+          { notes: "Extracted with normal PDF parser and verified with OCR/AI because key fields were missing or weak." }
+        );
+        return;
+      } catch (aiErr) {
+        console.warn("AI verification unavailable:", aiErr);
+        await finalizeExtraction(
+          parsedExtraction,
+          `Basic extraction completed, but AI verification did not run: ${friendlyError(aiErr.message || String(aiErr))}`,
+          { notes: `Basic extraction only. AI verification failed: ${aiErr.message || String(aiErr)}` }
+        );
+        return;
+      }
+    }
+
+    await finalizeExtraction(parsedExtraction, "Review the extracted fields, correct anything needed, then create the load.");
   } catch (err) {
     console.error(err);
-    setMessage(`Rate con import failed: ${err.message}`, "#ef4444");
+    await handleExtractionFailure(`Rate con import failed: ${err.message}`, false);
   }
+}
+
+async function finalizeExtraction(extraction, successMessage, draftOptions = {}) {
+  currentExtractionFailureReason = "";
+  currentExtraction = cleanExtraction(extraction || {}, extractedText);
+  fillReviewForm(currentExtraction);
+  renderChecklist(currentExtraction);
+  updateConfidence(currentExtraction);
+  currentImportId = await saveImportDraft(currentExtraction, draftOptions);
+  updateReviewState(currentExtraction);
+  setMessage(successMessage || "Review the extracted fields, correct anything needed, then create the load.", "#047857");
+}
+
+async function handleExtractionFailure(reason, shouldTryOcr) {
+  currentExtractionFailureReason = reason;
+  currentExtraction = {};
+  fillReviewForm({});
+  renderChecklist({});
+  updateConfidence({});
+  updateReviewState({});
+
+  if (shouldTryOcr) {
+    try {
+      setReviewNotice(`${reason} Trying OCR/AI extraction now.`, "warning");
+      setMessage("Browser text extraction failed. Trying OCR/AI page reading...", "#b45309");
+      const ocrExtraction = await runOcrAiImport(reason);
+      await finalizeExtraction(
+        ocrExtraction,
+        "OCR/AI extraction completed. Review every field before creating the load.",
+        { notes: "Extracted with OCR/AI fallback after browser PDF text extraction failed." }
+      );
+      return;
+    } catch (ocrErr) {
+      console.warn("OCR/AI import unavailable:", ocrErr);
+      reason = `${reason} OCR/AI fallback did not run: ${friendlyError(ocrErr.message || String(ocrErr))}`;
+    }
+  }
+
+  try {
+    currentImportId = await saveImportFailure(reason);
+    setReviewNotice(reason, "danger");
+    setMessage(`Rate con stored for review, but extraction did not complete. Reason: ${reason}`, "#ef4444");
+  } catch (saveErr) {
+    console.error("Could not save extraction failure:", saveErr);
+    setReviewNotice(reason, "danger");
+    setMessage(`Rate con import failed: ${reason}`, "#ef4444");
+  }
+}
+
+async function runOcrAiImport(reason) {
+  const pageImages = await renderPdfPagesAsImages(selectedFile, 4);
+  if (!pageImages.length) throw new Error("Could not render PDF pages for OCR.");
+
+  const res = await fetch(`${BASE_URL}/functions/v1/ocr-rate-con`, {
+    method: "POST",
+    headers: getHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({
+      file_name: selectedFile.name,
+      failure_reason: reason,
+      images: pageImages
+    })
+  });
+
+  const result = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(result.error || result.message || `OCR function returned ${res.status}`);
+  const extraction = result.extraction || result;
+  if (!extraction || typeof extraction !== "object") throw new Error("OCR function did not return extracted load data.");
+  return cleanExtraction(extraction, extractedText);
+}
+
+function shouldRunAiVerification(extraction = {}) {
+  const confidence = calculateConfidence(extraction);
+  const missingRequired = confidence.items.some(item => item.requiredForCreate && !item.ok);
+  const missingHighValue = [
+    "rate_confirmation_number",
+    "broker_mc_number",
+    "loaded_miles",
+    "weight",
+    "pickup_location",
+    "delivery_location",
+    "rate"
+  ].some(key => isBlankValue(extraction[key]));
+
+  return missingRequired || missingHighValue || confidence.score < 92;
+}
+
+function mergeAiExtraction(base = {}, ai = {}) {
+  const merged = { ...base };
+  const aiClean = cleanExtraction({ ...ai }, extractedText);
+
+  Object.keys(aiClean).forEach(key => {
+    const aiValue = aiClean[key];
+    if (isBlankValue(aiValue)) return;
+
+    const baseValue = merged[key];
+    const shouldReplace =
+      isBlankValue(baseValue) ||
+      (["pickup_location", "delivery_location"].includes(key) && isUsableLocation(aiValue) && !isUsableLocation(baseValue)) ||
+      (["rate_confirmation_number", "load_number", "broker_mc_number"].includes(key) && String(aiValue).length >= String(baseValue || "").length) ||
+      (["rate", "loaded_miles", "weight", "fuel_surcharge", "accessorial_pay"].includes(key) && Number(aiValue) > 0);
+
+    if (shouldReplace) merged[key] = aiValue;
+  });
+
+  return cleanExtraction(merged, extractedText);
+}
+
+async function renderPdfPagesAsImages(file, maxPages = 4) {
+  if (!window.pdfjsLib) return [];
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const images = [];
+  const pageCount = Math.min(pdf.numPages, maxPages);
+
+  for (let pageNumber = 1; pageNumber <= pageCount; pageNumber += 1) {
+    const page = await pdf.getPage(pageNumber);
+    const viewport = page.getViewport({ scale: 1.8 });
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+    canvas.width = Math.floor(viewport.width);
+    canvas.height = Math.floor(viewport.height);
+    await page.render({ canvasContext: context, viewport }).promise;
+    images.push(canvas.toDataURL("image/jpeg", 0.85));
+  }
+
+  return images;
 }
 
 async function extractPdfText(file) {
@@ -428,16 +567,16 @@ async function uploadAndAttachRateCon(load, file, reviewData) {
   return Array.isArray(result) ? result[0] : result;
 }
 
-async function saveImportDraft(extraction) {
+async function saveImportDraft(extraction, options = {}) {
   const payload = window.CompanyContext.withCompanyId({
     file_name: selectedFile.name,
     file_size: selectedFile.size,
     mime_type: selectedFile.type || "application/pdf",
-    status: "review",
+    status: options.status || "review",
     extracted_text: extractedText.slice(0, 50000),
-    extracted_data: extraction,
-    confidence_score: calculateConfidence(extraction).score,
-    notes: "Dispatcher review required before creating load."
+    extracted_data: options.extractedData || extraction,
+    confidence_score: options.confidenceScore ?? calculateConfidence(extraction).score,
+    notes: options.notes || "Dispatcher review required before creating load."
   });
 
   const res = await fetch(`${BASE_URL}/rest/v1/rate_con_imports`, {
@@ -450,6 +589,22 @@ async function saveImportDraft(extraction) {
   if (!res.ok) throw new Error(JSON.stringify(result));
   const row = Array.isArray(result) ? result[0] : result;
   return row?.id || null;
+}
+
+async function saveImportFailure(reason) {
+  return saveImportDraft({}, {
+    status: "review",
+    confidenceScore: 0,
+    extractedData: {
+      extraction_status: "needs_ocr",
+      failure_reason: reason,
+      file_name: selectedFile?.name || "",
+      file_size: selectedFile?.size || 0,
+      cid_encoded_text: isUnreadablePdfText(extractedText),
+      recommended_next_step: "Deploy or check the ocr-rate-con Supabase Edge Function, then re-run extraction."
+    },
+    notes: `Extraction failed: ${reason}`
+  });
 }
 
 async function markImportCreated(importId, loadId, reviewData) {
@@ -1606,6 +1761,9 @@ function updateAttachmentNotice() {
 }
 
 function friendlyError(message) {
+  if (message.includes("ocr-rate-con") || message.includes("Edge Function") || message.includes("FunctionsHttpError") || message.includes("404")) {
+    return "OCR/AI rate con extraction is not deployed yet. Deploy supabase/functions/ocr-rate-con and add OPENAI_API_KEY in Supabase Edge Function secrets.";
+  }
   if (message.includes("rate_con_imports") || message.includes("import_source") || message.includes("rate_confirmation_number")) {
     return "Run rate-con-import.sql in Supabase first, then reload this page.";
   }
